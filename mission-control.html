@@ -1322,8 +1322,9 @@ function saveIdentity(){
 let identity = loadIdentity();
 
 /* ---------- persistence: missions (localStorage) ---------- */
-const STORE_KEY = 'missionControl.missions.v3';
-const OLD_STORE_KEY = 'missionControl.missions.v2';
+const STORE_KEY = 'missionControl.missions.v4';
+const OLD_STORE_KEY = 'missionControl.missions.v3';
+const OLDER_STORE_KEY = 'missionControl.missions.v2';
 function defaultMissions(){ return JSON.parse(JSON.stringify(DEFAULT_MISSIONS)); }
 function isValidMission(m){
   return m && typeof m==='object'
@@ -1335,7 +1336,7 @@ function loadMissions(){
   try{
     const raw = localStorage.getItem(STORE_KEY);
     if(!raw){
-      const old = localStorage.getItem(OLD_STORE_KEY);
+      const old = localStorage.getItem(OLD_STORE_KEY) || localStorage.getItem(OLDER_STORE_KEY);
       if(old){
         try{
           const prev = JSON.parse(old);
@@ -1424,6 +1425,7 @@ function startRunner(missionId){
     R.teamIdx = 0;
     R.standby = true;
   }
+  recordLessonState(missionId, R.run);
   screen = 'runner';
   render();
 }
@@ -1615,6 +1617,8 @@ function identityLine(){
 function renderHome(){
   const bands=['ALL','K-2','3-4','5-6'];
   const BAND_ORD = {'ALL':0,'K-2':1,'3-4':2,'5-6':3};
+  const ac = activeClass(); const acLs = ac ? lessonSummary(ac) : null;
+  const acMode = ac ? classMode(ac) : 'commander'; const acTier = ac ? classTier(ac) : 'ALL';
   const lessons = missions.filter(m=>m.type==='lesson' && bandMatch(m))
     .sort((a,b)=>((a.arc||99)-(b.arc||99)) || ((BAND_ORD[a.band||'ALL']??0)-(BAND_ORD[b.band||'ALL']??0)));
   const casts = missions.filter(m=>m.type==='broadcast' && bandMatch(m));
@@ -1638,6 +1642,22 @@ function renderHome(){
         <span class="eyebrow">YOU RUN THE ROOM</span>
       </div>
     </div>
+
+    ${classes.length ? `
+    <div class="band-filter" style="margin-bottom:14px">
+      <span class="bf-label">ACTIVE CLASS</span>
+      ${classes.map(c=>`<button class="band-btn ${ac&&ac.id===c.id?'on':''}" onclick="setActiveClass('${c.id}')">${esc(c.name)}</button>`).join('')}
+      ${ac?`<button class="band-btn" onclick="setActiveClass(null)">CLEAR</button>`:''}
+    </div>` : ''}
+    ${ac ? `
+    <div class="season" style="margin-bottom:14px">
+      <div class="s-tag"><span class="s-dot"></span>${esc(ac.name)} · ${ac.grade?`GRADE ${ac.grade} · `:''}${MODES[acMode].label} MODE</div>
+      <div class="s-line">${(ac.students||[]).length} students on this roster.${ac.grade?` Library filtered to ${acTier}, tap ALL GRADES to see everything.`:' This class needs a grade, set it in the roster.'}${acLs?` Resume ${esc(acLs.title)}, run ${acLs.run}.`:''}</div>
+      <div class="acct-bar" style="margin-top:10px">
+        <button class="id-edit" onclick="screen='roster';openClass('${ac.id}')">${ac.grade?'OPEN ROSTER':'SET GRADE'}</button>
+        ${acLs?`<button class="id-edit" onclick="startMission('${acLs.id}')">RESUME LESSON</button>`:''}
+      </div>
+    </div>` : ''}
 
     <div class="season">
       <div class="s-tag"><span class="s-dot"></span>${esc(identity.seasonLabel)} · BUILDING THEME</div>
@@ -1705,7 +1725,7 @@ function renderRunner(){
       ? 'Great show. Reset the desk and the gear for tomorrow\'s crew.'
       : (isTank ? 'Every team put their work on the line. That is the whole idea.' : 'You took on something hard and made it better. That is the challenge.');
     app.innerHTML = `
-    <div class="runner ${modeCls} ${R.m.band==='K-2'?'littles':''}">
+    <div class="runner ${modeCls} flight-${currentMode()} ${littlesOn()?'littles':''}">
       ${hudHTML()}
       <div class="complete">
         <div class="eyebrow">${isCast?'BROADCAST ENDED':(isTank?'TANK COMPLETE':'ALL PHASES CLEAR')}</div>
@@ -1790,7 +1810,7 @@ function renderRunner(){
   }
 
   app.innerHTML = `
-  <div class="runner ${modeCls} ${R.m.band==='K-2'?'littles':''} ${R.running?'running':''}">
+  <div class="runner ${modeCls} flight-${currentMode()} ${littlesOn()?'littles':''} ${R.running?'running':''}">
     ${hudHTML()}
     ${body}
     <div class="deck" id="deck"></div>
@@ -2149,6 +2169,44 @@ function saveClasses(){ Store.write(CLASSES_KEY, classes); }
 function saveRecords(){ Store.write(RECORDS_KEY, records); }
 function saveSession(){ Store.write(SESSION_KEY, session); }
 
+/* ---------- grade -> flight mode + content tier (step 1B: grade is the single source of truth) ---------- */
+const ACTIVE_KEY = 'missionControl.activeClass.v1';
+let activeClassId = Store.read(ACTIVE_KEY, null);
+const GRADES = ['K','1','2','3','4','5','6'];
+const MODES = {
+  cadet:     { id:'cadet',     label:'CADET',     grades:'K-1' },
+  pilot:     { id:'pilot',     label:'PILOT',     grades:'2-3' },
+  commander: { id:'commander', label:'COMMANDER', grades:'4-6' }
+};
+function gradeToMode(g){ if(g==='K'||g==='1') return 'cadet'; if(g==='2'||g==='3') return 'pilot'; return 'commander'; }
+function gradeToTier(g){ if(g==='K'||g==='1'||g==='2') return 'K-2'; if(g==='3'||g==='4') return '3-4'; if(g==='5'||g==='6') return '5-6'; return 'ALL'; }
+function saveActive(){ Store.write(ACTIVE_KEY, activeClassId); }
+function normalizeClasses(){
+  let changed = false;
+  classes.forEach(c=>{
+    if(c.lessonState === undefined){ c.lessonState = null; changed = true; }
+    /* grade wins. Once a class has a grade, drop any legacy step 1 mode field. A class with a mode but no grade keeps working and the picker prompts for a grade. */
+    if(c.grade && c.mode !== undefined){ delete c.mode; changed = true; }
+  });
+  if(activeClassId && !classes.some(c=>c.id===activeClassId)){ activeClassId = null; saveActive(); changed = true; }
+  if(changed) saveClasses();
+}
+function activeClass(){ return activeClassId ? findClass(activeClassId) : null; }
+function classMode(c){ if(!c) return 'commander'; if(c.grade) return gradeToMode(c.grade); if(c.mode && MODES[c.mode]) return c.mode; return 'commander'; }
+function classTier(c){ return (c && c.grade) ? gradeToTier(c.grade) : 'ALL'; }
+function currentMode(){ return classMode(activeClass()); }
+function littlesOn(){ return currentMode()==='cadet' || !!(typeof R!=='undefined' && R && R.m && R.m.band==='K-2'); }
+function setActiveClass(id){ activeClassId = id || null; saveActive(); const c = activeClass(); if(c && c.grade) homeBand = gradeToTier(c.grade); screen='home'; render(); }
+function setClassGrade(id, g){ const c = findClass(id); if(!c || GRADES.indexOf(g)<0) return; c.grade = g; if(c.mode !== undefined) delete c.mode; saveClasses(); if(activeClassId===id) homeBand = gradeToTier(g); render(); }
+function recordLessonState(missionId, run){ const c = activeClass(); if(!c) return; c.lessonState = { missionId, run: run||1 }; saveClasses(); }
+function lessonSummary(c){
+  if(!c || !c.lessonState) return null;
+  const m = missions.find(x=>x.id===c.lessonState.missionId);
+  if(!m) return null;
+  return { title: m.title || 'MISSION', run: c.lessonState.run||1, id: m.id };
+}
+normalizeClasses();
+
 const uid = () => 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 const todayKey = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
 const prettyDay = k => { const [y,m,d]=k.split('-'); return new Date(+y,+m-1,+d).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}); };
@@ -2184,7 +2242,7 @@ function renderRoster(){
   </div>`;
   document.getElementById('newClass')?.focus();
 }
-function addClass(){ const i=document.getElementById('newClass'); const name=i.value.trim(); if(!name) return; classes.push({id:uid(), name, code:genCode(), students:[]}); saveClasses(); renderRoster(); }
+function addClass(){ const i=document.getElementById('newClass'); const name=i.value.trim(); if(!name) return; classes.push({id:uid(), name, code:genCode(), students:[], grade:null, lessonState:null}); saveClasses(); renderRoster(); }
 function openClass(id){ roster={classId:id}; renderRoster(); }
 function renderClassDetail(){
   const c=findClass(roster.classId); if(!c){ roster={}; renderRoster(); return; }
@@ -2195,6 +2253,11 @@ function renderClassDetail(){
     <div class="row-card" style="margin-bottom:18px">
       <span class="rc-main"><span class="rc-sub">STUDENT JOIN CODE</span><span class="rc-title">Tap STUDENT SIGN IN, then enter this</span></span>
       <span class="code-chip">${esc(c.code)}</span>
+    </div>
+    <div class="section-label"><span class="eyebrow">GRADE</span></div>
+    <p class="note" style="margin-top:0">${c.grade?`Grade ${c.grade}. Flight mode and the mission library both follow from this: ${MODES[gradeToMode(c.grade)].label} mode, ${gradeToTier(c.grade)} library.`:'Pick this class grade. Flight mode and the mission library both follow from it. This class needs a grade set.'}</p>
+    <div class="band-filter" style="margin-bottom:18px">
+      ${GRADES.map(g=>`<button class="band-btn ${c.grade===g?'on':''}" onclick="setClassGrade('${c.id}','${g}')">${g==='K'?'K':'GRADE '+g}</button>`).join('')}
     </div>
     <div class="section-label"><span class="eyebrow">STUDENTS · ${c.students.length}</span></div>
     <div class="roster">
