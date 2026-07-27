@@ -523,6 +523,51 @@ body::after{
 .season .s-theme .hot{color:var(--flare);text-shadow:0 0 26px rgba(255,177,59,.45)}
 .season .s-line{font-size:clamp(.82rem,2.2vw,.98rem);color:var(--text-dim);line-height:1.5;max-width:640px}
 
+/* ---------- TODAY'S MISSION ---------- */
+.today-launch{
+  position:relative;
+  margin:0 0 18px;
+  border:1px solid rgba(0,229,255,.55);
+  border-radius:14px;
+  padding:clamp(20px,4vw,30px);
+  background:
+    linear-gradient(135deg, rgba(0,229,255,.12), rgba(62,107,255,.08) 55%, rgba(196,77,255,.08)),
+    var(--hull);
+  box-shadow:0 0 36px rgba(0,229,255,.1);
+  overflow:hidden;
+}
+.today-launch::after{
+  content:'';
+  position:absolute;
+  right:-70px;top:-90px;
+  width:230px;height:230px;border-radius:50%;
+  border:1px solid rgba(0,229,255,.16);
+  box-shadow:0 0 0 28px rgba(0,229,255,.025),0 0 0 58px rgba(62,107,255,.02);
+  pointer-events:none;
+}
+.today-top{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:22px;align-items:center}
+.today-kicker{display:flex;align-items:center;gap:9px;font-family:var(--display);font-size:.65rem;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--ion)}
+.today-kicker .live-dot{width:7px;height:7px;border-radius:50%;background:var(--grow);box-shadow:0 0 10px var(--grow);flex:none}
+.today-launch h2{font-family:var(--display);font-size:clamp(1.5rem,4.4vw,2.65rem);line-height:1.05;letter-spacing:.045em;text-transform:uppercase;margin:10px 0 9px;max-width:700px}
+.today-summary{color:var(--text-dim);font-size:clamp(.86rem,2vw,.98rem);line-height:1.55;max-width:700px}
+.today-summary strong{color:var(--text);font-weight:600}
+.today-actions{display:flex;flex-direction:column;gap:9px;align-items:stretch;min-width:min(100%,270px)}
+.today-actions .btn{min-height:52px;padding:.9em 1.35em}
+.today-actions .today-primary{color:var(--void);background:var(--ion);border-color:var(--ion);box-shadow:0 0 24px rgba(0,229,255,.28)}
+.today-actions .today-primary:hover{color:var(--void);background:#75F1FF;box-shadow:0 0 32px rgba(0,229,255,.36)}
+.today-actions .micro{font-size:.7rem;line-height:1.45;color:var(--text-dim);text-align:center}
+.today-flow{position:relative;z-index:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;margin-top:20px}
+.today-phase{border:1px solid var(--line-dim);border-radius:8px;background:rgba(4,7,11,.48);padding:10px 11px;min-width:0}
+.today-phase .tp-name{display:block;font-family:var(--display);font-size:.64rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text);line-height:1.35;overflow-wrap:anywhere}
+.today-phase .tp-time{display:block;font-family:var(--display);font-size:.68rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ion);margin-top:5px}
+.today-help{position:relative;z-index:1;margin-top:16px;border-top:1px solid var(--line-dim);padding-top:14px}
+.today-help summary{width:max-content;max-width:100%;cursor:pointer;color:var(--ion);font-family:var(--display);font-size:.72rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:7px 0}
+.today-help summary:focus-visible{outline:2px solid var(--ion);outline-offset:3px}
+.today-help ol{margin:10px 0 2px 1.25rem;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 28px;color:var(--text-dim);font-size:.82rem;line-height:1.55}
+.today-help li{padding-left:4px}
+.today-help li::marker{color:var(--flare);font-family:var(--display);font-weight:700}
+.today-help b{color:var(--text);font-weight:600}
+
 @media (max-width:640px){
   .mission-grid{grid-template-columns:1fr;gap:12px}
   .card{padding:18px 16px 14px}
@@ -539,6 +584,10 @@ body::after{
   .hud .left,.hud .right{gap:10px}
   .field input,.field textarea{font-size:1rem;padding:13px 14px}
   .hud .theme-pill{display:none}
+  .today-top{grid-template-columns:1fr}
+  .today-actions{width:100%;min-width:0}
+  .today-flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .today-help ol{grid-template-columns:1fr}
 }
 
 /* ---------- K-2 LITTLES MODE (bigger, calmer, icon-scale text) ---------- */
@@ -1614,6 +1663,31 @@ function identityLine(){
   return bits.filter(Boolean).map(esc).join(' · ');
 }
 
+function missionMinutes(m){
+  return m && Array.isArray(m.phases) ? m.phases.reduce((sum,p)=>sum+p.minutes,0) : 0;
+}
+
+function suggestedMission(){
+  const ac = activeClass();
+  const tier = ac && ac.grade ? classTier(ac) : homeBand;
+  if(ac && ac.lessonState){
+    const saved = missions.find(m=>m.id===ac.lessonState.missionId && m.type==='lesson');
+    if(saved && (tier==='ALL' || saved.band==='ALL' || saved.band===tier)) return saved;
+  }
+  return missions
+    .filter(m=>m.type==='lesson' && (tier==='ALL' || m.band==='ALL' || m.band===tier))
+    .sort((a,b)=>((a.arc||99)-(b.arc||99)) || String(a.title||'').localeCompare(String(b.title||'')))[0]
+    || missions.find(m=>m.type==='lesson')
+    || null;
+}
+
+function scrollToLessons(){
+  const target = document.getElementById('lesson-ops');
+  if(!target) return;
+  const reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  target.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'start'});
+}
+
 function renderHome(){
   const bands=['ALL','K-2','3-4','5-6'];
   const BAND_ORD = {'ALL':0,'K-2':1,'3-4':2,'5-6':3};
@@ -1623,6 +1697,11 @@ function renderHome(){
     .sort((a,b)=>((a.arc||99)-(b.arc||99)) || ((BAND_ORD[a.band||'ALL']??0)-(BAND_ORD[b.band||'ALL']??0)));
   const casts = missions.filter(m=>m.type==='broadcast' && bandMatch(m));
   const tanks = missions.filter(m=>m.type==='tank' && bandMatch(m));
+  const today = suggestedMission();
+  const todayTotal = missionMinutes(today);
+  const todayContext = ac
+    ? `<strong>${esc(ac.name)}</strong>${ac.grade?` · Grade ${esc(ac.grade)}`:''} · ${esc(today?today.title:'Choose a mission')}`
+    : `<strong>No class selected yet.</strong> Start with ${esc(today?today.title:'the first mission')}, or choose a class below when you are ready.`;
   const themeHTML = esc(identity.seasonTheme).replace(/(CHALLENGE)/i, '<span class="hot">$1</span>');
   app.innerHTML = `
   <div class="home">
@@ -1659,6 +1738,34 @@ function renderHome(){
       </div>
     </div>` : ''}
 
+    ${today ? `
+    <section class="today-launch" aria-labelledby="today-title">
+      <div class="today-top">
+        <div>
+          <div class="today-kicker"><span class="live-dot"></span>START HERE · YOUR WHOLE PERIOD</div>
+          <h2 id="today-title">Run Today's ${fmtMin(todayTotal)}-Minute Mission</h2>
+          <p class="today-summary">${todayContext}<br>Mission Control handles every phase, timer, transition, and cleanup prompt.</p>
+        </div>
+        <div class="today-actions">
+          <button class="btn today-primary" onclick="startMission('${today.id}')">RUN TODAY'S MISSION</button>
+          <button class="btn ghost" onclick="scrollToLessons()">CHOOSE A DIFFERENT MISSION</button>
+          <span class="micro">${today.loadout&&today.loadout.length?'The supply check opens first.':'The first phase opens ready to start.'}</span>
+        </div>
+      </div>
+      <div class="today-flow" role="list" aria-label="Today's period flow">
+        ${today.phases.map(p=>`<div class="today-phase" role="listitem"><span class="tp-name">${esc(p.name)}</span><span class="tp-time">${fmtMin(p.minutes)} min</span></div>`).join('')}
+      </div>
+      <details class="today-help">
+        <summary>First day? Show me the routine</summary>
+        <ol>
+          <li><b>Pick the class.</b> Mission Control filters lessons to the right grade band.</li>
+          <li><b>Open today's mission.</b> Confirm the supply checklist while students enter.</li>
+          <li><b>Start when ready.</b> Press Space to pause or resume. Press N to move ahead.</li>
+          <li><b>Follow the screen.</b> Teaching prompts, build time, sharing, and cleanup are already timed.</li>
+        </ol>
+      </details>
+    </section>` : ''}
+
     <div class="season">
       <div class="s-tag"><span class="s-dot"></span>${esc(identity.seasonLabel)} · BUILDING THEME</div>
       <div class="s-theme">${themeHTML}</div>
@@ -1670,7 +1777,7 @@ function renderHome(){
       ${bands.map(b=>`<button class="band-btn ${homeBand===b?'on':''}" onclick="setBand('${b}')">${b==='ALL'?'ALL GRADES':'GRADES '+b}</button>`).join('')}
     </div>
 
-    <div class="section-label"><span class="eyebrow">LESSON OPS</span></div>
+    <div class="section-label" id="lesson-ops"><span class="eyebrow">LESSON OPS</span></div>
     <div class="mission-grid">
       ${lessons.map(cardHTML).join('')}
       <button class="card new-mission" onclick="openEditor(null)">+ NEW MISSION</button>
@@ -1691,7 +1798,7 @@ function bandMatch(m){
 function setBand(b){ homeBand=b; renderHome(); }
 
 function cardHTML(m){
-  const total = m.phases.reduce((a,p)=>a+p.minutes,0);
+  const total = missionMinutes(m);
   const bars = m.phases.map(p=>`<span style="flex-grow:${p.minutes}"></span>`).join('');
   const cls = m.type==='broadcast' ? 'broadcast' : (m.type==='tank' ? 'tank' : '');
   let footer = `<div class="phasebar">${bars}</div>`;
@@ -2206,6 +2313,8 @@ function lessonSummary(c){
   return { title: m.title || 'MISSION', run: c.lessonState.run||1, id: m.id };
 }
 normalizeClasses();
+const initialActiveClass = activeClass();
+if(initialActiveClass && initialActiveClass.grade) homeBand = classTier(initialActiveClass);
 
 const uid = () => 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 const todayKey = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
