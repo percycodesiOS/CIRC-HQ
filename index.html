@@ -146,6 +146,7 @@ body::after{
 .card .chip-row .theme{margin-bottom:0}
 .card.broadcast .theme{color:var(--current);border-color:rgba(62,107,255,.4)}
 .card.tank .theme{color:var(--tank);border-color:rgba(196,77,255,.4)}
+.card.grow .theme{color:var(--grow);border-color:rgba(59,255,142,.42)}
 .card h3{font-family:var(--display);font-weight:600;font-size:1.18rem;letter-spacing:.04em;margin-bottom:8px}
 .card .meta{font-size:.8rem;color:var(--text-dim);display:flex;gap:14px;flex-wrap:wrap}
 .card .meta b{color:var(--text);font-weight:600}
@@ -153,6 +154,7 @@ body::after{
 .card .phasebar span{border-radius:2px;background:var(--ion-dim)}
 .card.broadcast .phasebar span{background:rgba(62,107,255,.55)}
 .card.tank .phasebar span{background:rgba(196,77,255,.55)}
+.card.grow .phasebar span{background:rgba(59,255,142,.55)}
 .card .edit-link{
   position:absolute;top:14px;right:14px;
   font-family:var(--display);font-size:.6rem;font-weight:600;letter-spacing:.2em;
@@ -355,6 +357,11 @@ body::after{
 .runner.mode-tank .timer.burn{color:var(--burn);text-shadow:0 0 36px rgba(255,59,87,.5)}
 .runner.mode-tank .phase-eyebrow{color:var(--tank)}
 .runner.mode-tank .phase-track .seg .fill{background:var(--tank);box-shadow:0 0 10px rgba(196,77,255,.5)}
+.runner.mode-grow .timer{color:var(--grow);text-shadow:0 0 36px rgba(59,255,142,.4)}
+.runner.mode-grow .timer.flare{color:var(--flare);text-shadow:0 0 36px rgba(255,177,59,.45)}
+.runner.mode-grow .timer.burn{color:var(--burn);text-shadow:0 0 36px rgba(255,59,87,.5)}
+.runner.mode-grow .phase-eyebrow{color:var(--grow)}
+.runner.mode-grow .phase-track .seg .fill{background:var(--grow);box-shadow:0 0 10px rgba(59,255,142,.45)}
 .team-hero{display:flex;align-items:center;justify-content:center;gap:clamp(12px,3vw,26px);flex-wrap:wrap}
 .team-hero .emb svg{width:clamp(64px,13vmin,118px);height:auto;display:block}
 .team-name{
@@ -568,6 +575,69 @@ body::after{
 .today-help li::marker{color:var(--flare);font-family:var(--display);font-weight:700}
 .today-help b{color:var(--text);font-weight:600}
 
+/* ---------- TEACHER TODAY ---------- */
+.teacher-day{
+  position:relative;
+  margin:0 0 18px;
+  border:1px solid rgba(255,177,59,.46);
+  border-radius:14px;
+  padding:clamp(20px,4vw,30px);
+  background:
+    linear-gradient(145deg, rgba(255,177,59,.09), rgba(0,229,255,.055) 52%, rgba(62,107,255,.07)),
+    var(--hull);
+  box-shadow:0 0 34px rgba(255,177,59,.07);
+  overflow:hidden;
+}
+.teacher-day::before{
+  content:'';
+  position:absolute;left:-52px;bottom:-82px;width:190px;height:190px;border-radius:50%;
+  border:1px solid rgba(255,177,59,.14);
+  box-shadow:0 0 0 26px rgba(255,177,59,.02),0 0 0 54px rgba(0,229,255,.018);
+  pointer-events:none;
+}
+.teacher-day-head{position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.teacher-day-head h2{font-family:var(--display);font-size:clamp(1.4rem,4vw,2.35rem);line-height:1.08;letter-spacing:.045em;text-transform:uppercase;margin:8px 0 8px}
+.teacher-day-head p{font-size:.84rem;line-height:1.55;color:var(--text-dim);max-width:720px}
+.teacher-status{display:inline-flex;align-items:center;gap:8px;font-family:var(--display);font-size:.62rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--flare);border:1px solid rgba(255,177,59,.38);border-radius:99px;padding:7px 11px;background:rgba(255,177,59,.07)}
+.teacher-status .dot{width:6px;height:6px;border-radius:50%;background:var(--flare);box-shadow:0 0 8px var(--flare)}
+.teacher-status.official{color:var(--grow);border-color:rgba(59,255,142,.38);background:rgba(59,255,142,.07)}
+.teacher-status.official .dot{background:var(--grow);box-shadow:0 0 8px var(--grow)}
+.rotation-strip{position:relative;z-index:1;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin:18px 0 14px}
+.rotation-btn{min-height:50px;border:1px solid var(--line-dim);border-radius:8px;background:rgba(4,7,11,.46);color:var(--text-dim);font-family:var(--display);font-weight:600;letter-spacing:.1em;text-transform:uppercase;font-size:.68rem;cursor:pointer;padding:7px}
+.rotation-btn span{display:block;font-size:.58rem;letter-spacing:.08em;margin-top:3px;color:var(--text-dim)}
+.rotation-btn:hover{border-color:var(--line);color:var(--text)}
+.rotation-btn:focus-visible{outline:2px solid var(--ion);outline-offset:2px}
+.rotation-btn.on{border-color:var(--flare);color:var(--flare);background:rgba(255,177,59,.09);box-shadow:0 0 16px rgba(255,177,59,.1)}
+.teacher-now{position:relative;z-index:1;border:1px solid var(--line);border-radius:12px;background:rgba(4,7,11,.63);padding:clamp(16px,3vw,22px)}
+.teacher-progress{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-family:var(--display);font-size:.62rem;font-weight:600;letter-spacing:.17em;text-transform:uppercase;color:var(--text-dim)}
+.teacher-progress .when{color:var(--ion)}
+.teacher-now h3{font-family:var(--display);font-size:clamp(1.25rem,3.4vw,1.9rem);letter-spacing:.035em;text-transform:uppercase;margin:10px 0 7px}
+.teacher-now p{font-size:clamp(.88rem,2vw,1rem);line-height:1.6;color:var(--text-dim);max-width:820px}
+.teacher-now p b{color:var(--text);font-weight:600}
+.teacher-controls{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+.teacher-controls .btn{min-height:46px}
+.teacher-controls .teacher-done{color:var(--void);background:var(--flare);border-color:var(--flare);box-shadow:0 0 22px rgba(255,177,59,.22)}
+.teacher-controls .teacher-done:hover{color:var(--void);background:#FFD08A}
+.teacher-meter{height:5px;border-radius:4px;background:rgba(127,163,176,.15);overflow:hidden;margin-top:16px}
+.teacher-meter span{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--flare),var(--ion));box-shadow:0 0 10px rgba(0,229,255,.32)}
+.day-map{position:relative;z-index:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:12px}
+.day-event{border:1px solid var(--line-dim);border-radius:8px;padding:10px 11px;background:rgba(4,7,11,.4)}
+.day-event .de-time{display:block;font-family:var(--display);font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ion)}
+.day-event .de-label{display:block;font-size:.76rem;line-height:1.4;color:var(--text);margin-top:4px}
+.day-event .de-type{display:block;font-family:var(--display);font-size:.55rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);margin-top:5px}
+.day-event.teach{border-color:rgba(59,255,142,.28)}
+.day-event.teach .de-type{color:var(--grow)}
+.teacher-rescue{position:relative;z-index:1;margin-top:14px;border-top:1px solid var(--line-dim);padding-top:12px}
+.teacher-rescue summary{cursor:pointer;color:var(--flare);font-family:var(--display);font-size:.68rem;font-weight:600;letter-spacing:.13em;text-transform:uppercase;padding:7px 0;width:max-content;max-width:100%}
+.teacher-rescue summary:focus-visible{outline:2px solid var(--flare);outline-offset:2px}
+.rescue-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}
+.rescue-card{border:1px solid var(--line-dim);border-radius:8px;background:rgba(4,7,11,.4);padding:11px 12px;font-size:.78rem;line-height:1.5;color:var(--text-dim)}
+.rescue-card b{display:block;color:var(--text);font-family:var(--display);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+.plan-day-card{border:1px solid var(--line-dim);border-radius:10px;background:linear-gradient(160deg,var(--hull),var(--hull-2));padding:16px;margin-top:12px}
+.plan-day-card h3{font-family:var(--display);letter-spacing:.08em;text-transform:uppercase;font-size:1rem;color:var(--flare);margin-bottom:6px}
+.plan-day-card .field{margin-bottom:0}
+.plan-day-card textarea{min-height:156px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.82rem;line-height:1.55}
+
 @media (max-width:640px){
   .mission-grid{grid-template-columns:1fr;gap:12px}
   .card{padding:18px 16px 14px}
@@ -588,6 +658,11 @@ body::after{
   .today-actions{width:100%;min-width:0}
   .today-flow{grid-template-columns:repeat(2,minmax(0,1fr))}
   .today-help ol{grid-template-columns:1fr}
+  .rotation-strip{grid-template-columns:repeat(5,minmax(54px,1fr));overflow-x:auto;padding-bottom:3px}
+  .rotation-btn{min-width:54px;padding:7px 4px}
+  .rescue-grid{grid-template-columns:1fr}
+  .teacher-controls .btn{flex:1 1 44%;min-width:0}
+  .teacher-controls .teacher-done{flex:1 1 100%}
 }
 
 /* ---------- K-2 LITTLES MODE (bigger, calmer, icon-scale text) ---------- */
@@ -645,7 +720,7 @@ body::after{
    MISSION CONTROL  ·  ECMS  ·  PercyCodes  ·  2026-2027 SEASON
    Building theme: EMBRACE THE CHALLENGE.
    One self-contained page. Runs a 35-minute lesson, a morning
-   broadcast, or a CIRC Tank pitch competition. Built to read from
+   broadcast, or an optional team pitch showcase. Built to read from
    across the room. Every phase names how it embraces the challenge.
    Voice rule: launch-ops vernacular kids know. No em dashes.
    ============================================================== */
@@ -803,17 +878,17 @@ const DEFAULT_MISSIONS = [
       {name:'MISSION BRIEF', minutes:5, text:'Your mission: same foil, same water, different hulls. Design the hull shape that holds the most weight. Before you build, predict your max and write it down.', challenge:'Predicting first takes nerve. Your guess against reality, in public, on the board.'},
       {name:'BUILD WINDOW', minutes:16, text:'Shape your hull: barge, canoe, catamaran, your call. Test-float early, watch the waterline, reshape where it dips. Log your test loads as you go.', challenge:'The waterline tells the truth the whole time. Learn to read it before the big test.'},
       {name:'MAX LOAD TEST', minutes:10, text:'Official loading, one washer at a time, class counts together. When it ships water, that number goes on the board next to your prediction and your hull shape.', challenge:'Your prediction meets the tub. Being wrong by a lot and knowing WHY is a great result.'},
-      {name:'RESET + RECOVER', minutes:4, text:'Foil recycled, washers counted and dried, tubs wiped, chart photographed for the record. Sit when dry and clear.', challenge:'Water plus metal means a careful recovery. Dry it, count it, done.'}
+      {name:'RESET + RECOVER', minutes:4, text:'Foil recycled, washers counted and dried, tubs wiped, chart saved for the record. Photograph student work only if school policy permits it. Sit when dry and clear.', challenge:'Water plus metal means a careful recovery. Dry it, count it, done.'}
     ]
   },
   {
     id:'m56lander', type:'lesson', title:'CRASH LANDER', theme:'SOFT + SLOW', band:'5-6', arc:8,
-    loadout:['One egg or two crackers per team as crew','Straws, paper, string, cotton, and limited tape','A high drop point and a marked landing zone','Floor covering for the splat zone'],
+    loadout:['One reusable toy passenger or teacher-approved paper test tile per team','Straws, paper, string, cotton, and limited tape','A teacher-only drop point and a marked landing zone','A clear safety line around the landing zone'],
     phases:[
-      {name:'MISSION BRIEF', minutes:5, text:'Your mission: your crew capsule drops from full height and the crew must survive. Budget: the materials in front of you, nothing else. NASA does this with billion dollar rovers.', challenge:'Fragile cargo, hard floor, one drop. Every real engineering constraint at once.'},
-      {name:'BUILD WINDOW', minutes:18, text:'Design for slow fall, soft landing, or both. Crumple zones, parachutes, cages. Small drops from chair height to test, save the crew for the real one.', challenge:'Your test drops are your only rehearsal. Use them or gamble the crew.'},
-      {name:'THE DROP', minutes:8, text:'One official drop per team, full height, into the zone. Open the capsule as a class. Intact crew earns the cheer, cracked crew earns the autopsy.', challenge:'One drop, no retry. This is why engineers test before launch day.'},
-      {name:'RESET + RECOVER', minutes:4, text:'Capsules opened and sorted, floor cleaned, survivors honored, casualties binned. Sit when your zone is clear.', challenge:'Debrief and clean like a crash team: honest, thorough, fast.'}
+      {name:'MISSION BRIEF', minutes:5, text:'Your mission: protect a reusable passenger during a teacher-run drop. Budget: the materials in front of you, nothing else. Engineers use models like this before valuable cargo ever flies.', challenge:'Fragile cargo, hard floor, one drop. Every real engineering constraint at once.'},
+      {name:'BUILD WINDOW', minutes:18, text:'Design for slow fall, soft landing, or both. Use crumple zones, parachutes, or cages. Test only from desk height while standing on the floor. Nobody climbs on furniture.', challenge:'Your safe test drops are your rehearsal. Use the evidence before the official drop.'},
+      {name:'THE DROP', minutes:8, text:'Everyone stands behind the safety line. The teacher makes one official drop per team from the marked height. Open each capsule and inspect the passenger together.', challenge:'One official drop shows what the design can do. Use the result, not blame, in the debrief.'},
+      {name:'RESET + RECOVER', minutes:4, text:'Capsules opened and materials sorted, floor checked, reusable passengers returned. Sit when your zone is clear.', challenge:'Debrief and clean like a test team: honest, thorough, fast.'}
     ]
   },
   {
@@ -832,7 +907,7 @@ const DEFAULT_MISSIONS = [
     phases:[
       {name:'MISSION BRIEF', minutes:5, text:'Your mission: build a catapult with a repeatable launch, then score points across three target distances. Repeatable is the key word. A lucky shot is not engineering.', challenge:'Building for repeatability means the same result every launch. Random power is easy, control is rare.'},
       {name:'BUILD + CALIBRATE', minutes:18, text:'Build, then calibrate: find and record the setting for each distance, pull-back, angle, arm length. Write your three settings down like a range card.', challenge:'The range card IS the mission. Numbers you can trust beat vibes every time.'},
-      {name:'SCORED SHOOT', minutes:8, text:'Three shots per distance, from your written settings. Points per zone hit. Teams call the target before each shot. Range safety: launch only from the line.', challenge:'Shooting from your card under pressure. Trust your calibration or learn why not.'},
+      {name:'SCORED SHOOT', minutes:8, text:'Use soft foil balls only. All launches stay below shoulder height and happen on the teacher signal from behind the line. Nobody retrieves ammo until the range is called clear.', challenge:'Shooting from your card under pressure. Trust your calibration or learn why not.'},
       {name:'RESET + RECOVER', minutes:4, text:'Ammo counted to the last foil ball, catapults shelved or disassembled, range tape checked. Sit when the range is cold.', challenge:'A cold, counted, clean range. That is how every shoot ends.'}
     ]
   },
@@ -860,7 +935,7 @@ const DEFAULT_MISSIONS = [
     id:'m56binary', type:'lesson', title:'BINARY BEACONS', theme:'SEND A MESSAGE', band:'5-6', arc:13,
     loadout:['Binary alphabet charts per pair','Flashlights or card flippers per pair','Secret words in envelopes','Sender and receiver stations set apart'],
     phases:[
-      {name:'MISSION BRIEF', minutes:5, text:'Your mission: send a word across the room in binary, light on is 1, light off is 0, five bits per letter. This is literally how every device in this room talks. Today you ARE the wifi.', challenge:'Ones and zeros with no shortcuts. Precision is the entire message.'},
+      {name:'MISSION BRIEF', minutes:5, text:'Your mission: use a simplified five-bit classroom code to send a word across the room. Light on is 1 and light off is 0. Real digital systems also encode information with bits, but use more rules than our model.', challenge:'Ones and zeros with no shortcuts. Precision is the entire message.'},
       {name:'LEARN + DRILL', minutes:12, text:'Drill with your partner up close: encode your initials to binary with the chart, send, decode, verify. Agree on your timing rhythm, steady beats fast.', challenge:'Sender and receiver must share one rhythm. Agree on it or the message shreds.'},
       {name:'TRANSMISSION RUNS', minutes:14, text:'Full distance. Send your envelope word bit by bit, receiver decodes letter by letter, then swap roles. Score a clean word each direction.', challenge:'One flipped bit corrupts a letter. Feeling how fragile data is, that is the lesson.'},
       {name:'RESET + RECOVER', minutes:4, text:'Lights binned, charts stacked, envelopes resealed, stations reset. Sit when your station is clear.', challenge:'Shut the network down clean and reseal the secrets for the next crew.'}
@@ -884,7 +959,7 @@ const DEFAULT_MISSIONS = [
       {name:'INTERVIEW + DEFINE', minutes:6, text:'One teammate plays the user, others interview: what is annoying, when, how often? Then write ONE problem sentence you all agree on.', challenge:'Listening before building. Most bad products skipped this exact step.'},
       {name:'SKETCH + PICK', minutes:6, text:'Everyone sketches a solution solo, two minutes, no talking. Then compare and pick one direction, or combine two. Vote fast, move on.', challenge:'Killing your own sketch for a better one is sprint maturity. It stings, do it anyway.'},
       {name:'PROTOTYPE', minutes:12, text:'Build the rough version that shows the idea working. Ugly is fine, unclear is not. Test it against the problem sentence twice while you build.', challenge:'Rough and real beats polished and pointless. Prototype the risky part first.'},
-      {name:'PITCH', minutes:4, text:'Sixty seconds per team at the pitch spot: the problem, the demo, who it helps. This is your CIRC Tank warm-up, treat it like it.', challenge:'Selling a rough prototype with a clear story. That is exactly what the Tank rewards.'},
+      {name:'PITCH', minutes:4, text:'Sixty seconds per team at the pitch spot: the problem, the demo, and who it helps. Treat this as an optional showcase practice until the school confirms the final exhibition format.', challenge:'Explaining a rough prototype with a clear story is real design work.'},
       {name:'RESET + RECOVER', minutes:2, text:'Prototypes shelved, sketches filed, materials sorted back. Sit when your studio is clear.', challenge:'Strike the studio fast. Sprints end clean.'}
     ]
   },
@@ -892,10 +967,10 @@ const DEFAULT_MISSIONS = [
     id:'m56upcycle', type:'lesson', title:'UPCYCLE LAB', theme:'MAKE IT NEW', band:'5-6', arc:16,
     loadout:['A big shared bin of clean recyclables','Market cards: a problem worth solving per team','Tape, scissors, string per table','A demo table for the market pitch'],
     phases:[
-      {name:'MISSION BRIEF', minutes:5, text:'Your mission: build a sellable product from the recycle bin that solves your market card problem. Then pitch it like it costs five dollars and everyone needs one.', challenge:'Turning garbage into something someone would PAY for. That is the founder mindset.'},
-      {name:'BUILD WINDOW', minutes:18, text:'Raid the bin, claim your materials, build the product. Keep asking the money question: would a real kid pay for this? Add the feature that makes it a yes.', challenge:'The money question is brutal and useful. Build until the answer is yes.'},
-      {name:'MARKET PITCH', minutes:8, text:'Ninety seconds per team at the demo table: name, demo, price, who buys it. Class votes with imaginary dollars, two per kid, spend them anywhere but your own team.', challenge:'Watching the class spend their dollars elsewhere teaches faster than any lecture.'},
-      {name:'RESET + RECOVER', minutes:4, text:'Products shelved or disassembled into the bin, votes tallied and photographed, tables clear. Sit when the market is closed.', challenge:'Close the market like a pro vendor. Clean stall, counted till.'}
+      {name:'MISSION BRIEF', minutes:5, text:'Your mission: turn clean discarded material into something useful for a student, classroom, or community need. Repair, accessibility, and waste reduction all count.', challenge:'Seeing useful potential in discarded material is the designer mindset.'},
+      {name:'BUILD WINDOW', minutes:18, text:'Choose materials, build the useful feature first, and test it with the need on your card. Ask whether it works, lasts, and can be repaired instead of whether it merely looks impressive.', challenge:'Useful and repairable beats flashy and disposable.'},
+      {name:'IMPACT PITCH', minutes:8, text:'Ninety seconds per team: name the need, demonstrate the solution, and explain what material stayed out of the trash. Listeners give one useful improvement note.', challenge:'Make the value clear without pretending the first version is perfect.'},
+      {name:'RESET + RECOVER', minutes:4, text:'Products shelved or safely disassembled, reusable materials sorted, tables clear. Photograph student work only if school policy permits it.', challenge:'Close the shop with every material in the right next place.'}
     ]
   },
   {
@@ -905,7 +980,7 @@ const DEFAULT_MISSIONS = [
       {name:'MISSION BRIEF', minutes:5, text:'Your mission: the whole class builds ONE connected skyline. Each team owns a tower zone, but every tower must connect to its neighbors with a bridge. The city stands or falls together.', challenge:'Your tower can be perfect and the city can still fail. Team of teams is the final boss of collaboration.'},
       {name:'TOWER RAISE', minutes:14, text:'Build your zone tower toward your height target. Triangles everywhere. Send one ambassador to plan bridge heights with your neighbor zones NOW, not at the end.', challenge:'The ambassador job is the mission inside the mission. Coordinate early or crash late.'},
       {name:'CONNECT THE SKYLINE', minutes:10, text:'Bridge to your neighbors at the agreed heights. Reinforce whatever the bridges stress. The skyline is done when you can trace it end to end without a gap.', challenge:'Connecting reveals every mismatch. Fix them together without blame, that is the skill.'},
-      {name:'SKYLINE PHOTO', minutes:2, text:'Hands off. Trace it end to end as a class, count the towers, take the photo. This one goes on the wall.', challenge:'Look at what a room full of builders did in one class. Remember how it happened.'},
+      {name:'SKYLINE RECORD', minutes:2, text:'Hands off. Trace it end to end as a class and count the towers. Photograph student work only if school policy permits it.', challenge:'Look at what a room full of builders did in one class. Remember how it happened.'},
       {name:'RESET + RECOVER', minutes:4, text:'Skyline down zone by zone, spaghetti binned, connectors counted, floor swept. Sit when your zone is spotless.', challenge:'A city-sized build means a city-sized recovery. All hands, all the way.'}
     ]
   },
@@ -955,11 +1030,11 @@ const DEFAULT_MISSIONS = [
   },
   {
     id:'m34drop', type:'lesson', title:'CRACKER DROP', theme:'SOFT + SLOW', band:'3-4', arc:8,
-    loadout:['One cracker passenger per team','Paper, straws, cotton, string, and tape','A drop zone marked below the drop spot','A broom for crumb emergencies'],
+    loadout:['One cracker or teacher-approved paper test tile per team','Paper, straws, cotton, string, and tape','A teacher-only drop point and marked landing zone','A safety line and cleanup tools'],
     phases:[
       {name:'MISSION BRIEF', minutes:5, text:'Your mission: a cracker rides your lander from up high and must land WHOLE. Build anything that drops soft and slow: crumple zones, parachutes, cages.', challenge:'Protecting something fragile is real engineering. Cars and helmets work this way.'},
-      {name:'BUILD WINDOW', minutes:16, text:'Build your lander around the cracker. Slow it down with drag or cushion the landing with crumple. Small test drops first, from your chair height.', challenge:'Chair-height tests are cheap. Full-height failures are expensive. Test smart.'},
-      {name:'THE DROP', minutes:8, text:'One official drop per team from full height. Open the lander and inspect: whole cracker, cracked, or crumbs? Whole crackers get the cheer.', challenge:'One official drop. Preparation is the only thing that catches you.'},
+      {name:'BUILD WINDOW', minutes:16, text:'Build your lander around the passenger. Slow it with drag or cushion the landing with crumple. Test only from desk height while standing on the floor. Nobody climbs on furniture.', challenge:'Small, safe tests are cheap. Use them before the official trial.'},
+      {name:'THE DROP', minutes:8, text:'Everyone stands behind the safety line. The teacher makes one official drop per team from the marked height. Open the lander and inspect the result. Test materials are never eaten.', challenge:'One official drop. Preparation is the only thing that catches you.'},
       {name:'DEBRIEF', minutes:4, text:'Cushion or parachute, which did the work? Would you build the same again? One answer per team.', challenge:'Win or crumbs, name what you would change. That is a real debrief.'},
       {name:'RESET + RECOVER', minutes:2, text:'Landers apart, materials sorted back, crumbs swept. Tables clear. Sit when done.', challenge:'Crumbs and all, recover the zone completely.'}
     ]
@@ -970,7 +1045,7 @@ const DEFAULT_MISSIONS = [
     phases:[
       {name:'MISSION BRIEF', minutes:5, text:'Your mission: build a wind-powered car that rolls the farthest. The fan is your only engine. Sail size, sail angle, and rolling smooth are your controls.', challenge:'You cannot push it. You can only design it and let the wind decide.'},
       {name:'BUILD WINDOW', minutes:16, text:'Build the car and sail. Test on the track and watch: does it tip, drift sideways, or stall? Change ONE thing per test run.', challenge:'One change per test or you will never know what worked.'},
-      {name:'WIND TRIALS', minutes:8, text:'Two official runs per team from the start line. Farthest marker wins. Cars must roll, not slide or fly.', challenge:'Trial time: your build against everyone else and the wind itself.'},
+      {name:'WIND TRIALS', minutes:8, text:'Two official runs per team from the start line. Record distance and whether the car stayed in the lane. Score improvement from the team test run, not only the farthest car.', challenge:'Trial time: make the second run more reliable than the first.'},
       {name:'DEBRIEF', minutes:4, text:'Big sail or small sail? Tall or low? Each team names the setting that moved them the farthest.', challenge:'Wind is invisible but your results are not. Read them.'},
       {name:'RESET + RECOVER', minutes:2, text:'Sails off, bases in the bin, tape in the trash, fan off. Sit when your table is clear.', challenge:'Power down the whole operation cleanly. Finish strong.'}
     ]
@@ -980,8 +1055,8 @@ const DEFAULT_MISSIONS = [
     loadout:['Craft sticks, rubber bands, and a spoon per team','Pom-poms or foil balls as ammo','Three target zones taped at different distances','A firing line everyone respects'],
     phases:[
       {name:'MISSION BRIEF', minutes:5, text:'Your mission: build a catapult from sticks, bands, and a spoon, then hit three targets at three distances. Power is easy. Control is the mission.', challenge:'Anyone can launch far. Landing WHERE you want is the real skill.'},
-      {name:'BUILD WINDOW', minutes:14, text:'Build your catapult and find its settings: pull-back distance, launch angle, ammo seat. Practice shots at the near target first, then step it up.', challenge:'Find your settings and WRITE them down. Guessing twice is wasting a shot.'},
-      {name:'TARGET TRIALS', minutes:10, text:'Three official shots per target zone, near, mid, far. Score a point per zone hit. Every launch happens from the firing line, every time.', challenge:'Adjusting between shots under pressure, that is engineering in the wild.'},
+      {name:'BUILD WINDOW', minutes:14, text:'Build your catapult and find its settings with soft pom-poms or foil balls. Keep every launch below shoulder height and practice at the near target first.', challenge:'Find your settings and WRITE them down. Guessing twice is wasting a shot.'},
+      {name:'TARGET TRIALS', minutes:10, text:'Three official shots per target zone. Launch only on the teacher signal from behind the line. Nobody retrieves ammo until the range is called clear.', challenge:'Adjusting between shots under pressure, that is engineering in the wild.'},
       {name:'DEBRIEF', minutes:4, text:'Which distance was hardest and what setting fixed it? One answer per team, short and sharp.', challenge:'The team that knows WHY they hit will hit again tomorrow.'},
       {name:'RESET + RECOVER', minutes:2, text:'Ammo counted back, catapults disassembled or shelved, bands in the cup. Sit when clear.', challenge:'Count the ammo. All of it. Recovery is part of range safety.'}
     ]
@@ -990,9 +1065,9 @@ const DEFAULT_MISSIONS = [
     id:'m34columns', type:'lesson', title:'PAPER COLUMNS', theme:'STRONG SHAPES', band:'3-4', arc:11,
     loadout:['4 sheets of paper per team','30 cm of tape per team','A stack of books for loading','A flat board to spread the load'],
     phases:[
-      {name:'MISSION BRIEF', minutes:5, text:'Your mission: roll or fold paper into columns that hold a stack of books off the table. Circle, triangle, or square columns, you pick. Strongest stack wins.', challenge:'Paper holding books sounds fake. Shape makes it true.'},
+      {name:'MISSION BRIEF', minutes:5, text:'Your mission: roll or fold paper into columns that support a teacher-controlled load. Circle, triangle, or square columns, you pick. Reliability and evidence matter more than a dramatic collapse.', challenge:'Paper holding weight sounds fake. Shape makes it true.'},
       {name:'BUILD WINDOW', minutes:14, text:'Build 3 or 4 columns and stand them up. Think about height, width, and shape. Test with one book while you build.', challenge:'Short and wide or tall and tight? Test instead of arguing.'},
-      {name:'BOOK LOAD', minutes:10, text:'Board on top of your columns, then books ONE at a time as the class counts. Watch for the lean, the buckle, and the moment it lets go.', challenge:'The buckle is sudden. Watching for the warning signs is the lesson.'},
+      {name:'BOOK LOAD', minutes:10, text:'Students stand behind the marked line. The teacher places the board and adds a capped number of books one at a time. Stop at the first strong lean or buckle instead of forcing a collapse.', challenge:'Watching for warning signs and stopping safely is part of engineering.'},
       {name:'DEBRIEF', minutes:4, text:'Which shape held the most: circles, triangles, or squares? Compare across tables and say why you think it won.', challenge:'Real engineers argue from results, not opinions. You have results now.'},
       {name:'RESET + RECOVER', minutes:2, text:'Books restacked, columns recycled, tape in the trash. Sit when your table is clear.', challenge:'Restack the books neat. The recovery is part of the grade in life.'}
     ]
@@ -1054,12 +1129,12 @@ const DEFAULT_MISSIONS = [
   },
   {
     id:'m34forts', type:'lesson', title:'NEWSPAPER FORTS', theme:'BUILD TOGETHER', band:'3-4', arc:17,
-    loadout:['Big stacks of newspaper or scrap paper','One tape roll per team, rationed','Floor zones taped per team','A fits-a-teammate test rule on the board'],
+    loadout:['Big stacks of newspaper or scrap paper','One tape roll per team, rationed','Floor zones taped per team','A backpack or lightweight box for the space test'],
     phases:[
-      {name:'MISSION BRIEF', minutes:5, text:'Your mission: build a paper fort big enough for a teammate to sit inside. Rolled paper tubes are your lumber. This only works if the whole team builds together.', challenge:'A fort for a real person is a big build. Big builds need every teammate.'},
+      {name:'MISSION BRIEF', minutes:5, text:'Your mission: build a freestanding paper shelter with an opening large enough for the class backpack or test box. Rolled paper tubes are your lumber.', challenge:'A full-size opening is a big build. Big builds need every teammate.'},
       {name:'ROLL THE LUMBER', minutes:8, text:'Factory first: roll tight paper tubes, the tighter the stronger. Make a pile of lumber before you build anything. Everyone rolls.', challenge:'Boring strong tubes now, or exciting collapse later. Choose the tubes.'},
       {name:'RAISE THE FORT', minutes:14, text:'Frame first: triangles and squares from tubes, then walls. Connect corners well. Test strength gently as it rises.', challenge:'When a wall sags, the team fixes it together. No solo heroes, no blame.'},
-      {name:'MOVE-IN TEST', minutes:6, text:'The moment of truth: one teammate sits inside. Fort stands for 10 seconds with them in it, the class counts, the team takes the photo pose.', challenge:'Ten seconds with a human inside. That is a real load test.'},
+      {name:'SPACE TEST', minutes:6, text:'Nobody goes inside the structure. Slide the backpack or test box through the opening, then remove it. The shelter must stand for 10 seconds with a clear exit path and no floor trip hazards.', challenge:'Ten steady seconds with a full-size opening is a real structure test.'},
       {name:'RESET + RECOVER', minutes:2, text:'Forts down, tubes flattened into the recycle bin, floor zones clear. Sit when your zone is empty.', challenge:'Take it down as a team, same as you raised it.'}
     ]
   },
@@ -1076,11 +1151,11 @@ const DEFAULT_MISSIONS = [
   },
   {
     id:'k2spinners', type:'lesson', title:'PAPER SPINNERS', theme:'SPIN + DROP', band:'K-2', arc:4,
-    loadout:['Spinner strips pre-cut per kid','Paper clips in a cup per table','A chair or step stool for drop tests','Clear floor space marked for drops'],
+    loadout:['Spinner strips pre-cut per kid','Paper clips in a cup per table','A teacher-only high drop spot','Clear floor space marked for drops'],
     phases:[
       {name:'WATCH + LEARN', minutes:4, text:'Watch my paper spinner drop. It spins like a helicopter. Today you make your own spinner and make it spin slow and steady.', challenge:'New builds feel tricky at first. Watching close is how builders start.'},
       {name:'FOLD + BUILD', minutes:12, text:'Fold your spinner on the lines. One wing folds toward you, one folds away. Add one paper clip to the bottom. Test it with a small drop.', challenge:'Folding neat takes patience. Slow hands make strong spinners.'},
-      {name:'DROP + WATCH', minutes:8, text:'Drop your spinner from up high. Does it spin or does it flop? Try a second paper clip. Watch what changes.', challenge:'If it flops, that is a clue, not a fail. Change one thing and drop it again.'},
+      {name:'DROP + WATCH', minutes:8, text:'Students test from shoulder height while standing on the floor. The teacher handles any higher drop. Does it spin or flop? Try a second paper clip and watch what changes.', challenge:'If it flops, that is a clue, not a fail. Change one thing and drop it again.'},
       {name:'SHOW + TELL', minutes:6, text:'Show us your best spinner drop. Tell us one thing you changed to make it spin better.', challenge:'Telling us what you learned is brave. Builders share their tries.'},
       {name:'CLEAN UP', minutes:5, text:'Spinners in the tray. Paper clips back in the cup. Sit criss-cross when your spot is clean.', challenge:'A clean room is a team win. Finish strong.'}
     ]
@@ -1120,11 +1195,11 @@ const DEFAULT_MISSIONS = [
   },
   {
     id:'k2safeland', type:'lesson', title:'SAFE LANDING', theme:'SOFT + SLOW', band:'K-2', arc:8,
-    loadout:['A small toy passenger per team','Cups, cotton balls, paper, and tape per table','A drop spot marked on the floor','A step stool for the drop tester'],
+    loadout:['A small toy passenger per team','Cups, cotton balls, paper, and tape per table','A drop spot marked on the floor','A teacher-only high drop point'],
     phases:[
       {name:'WATCH + LEARN', minutes:4, text:'This little passenger needs a safe landing. Watch what happens with no lander, ouch. Today you build a lander that keeps your passenger safe.', challenge:'Keeping someone safe is a big job. Big jobs are the best challenges.'},
       {name:'BUILD THE LANDER', minutes:12, text:'Build a soft landing spot around your passenger with cups, cotton, and paper. Think soft, think slow. Test with a tiny drop first.', challenge:'Test small before you test big. Smart builders check as they go.'},
-      {name:'DROP TEST', minutes:8, text:'Drop your lander from up high. Did your passenger stay safe inside? Add more soft stuff where it hit hard, then drop again.', challenge:'A bumpy landing is a clue. Fix the bumpy part and go again.'},
+      {name:'DROP TEST', minutes:8, text:'Students test from shoulder height while standing on the floor. The teacher handles any higher drop. Did the passenger stay inside? Fix the bumpy part and test again.', challenge:'A bumpy landing is a clue. Fix the bumpy part and go again.'},
       {name:'SHOW + TELL', minutes:6, text:'Show us your lander and your passenger. Tell us the soft part that worked best.', challenge:'Sharing your best idea helps every builder in the room.'},
       {name:'CLEAN UP', minutes:5, text:'Cotton and cups back in the bins. Passengers back home safe. Sit when your spot is clean.', challenge:'A safe mission ends with a clean room. Finish strong.'}
     ]
@@ -1145,8 +1220,8 @@ const DEFAULT_MISSIONS = [
     loadout:['Plastic spoons and pom-poms per pair','Blocks to prop the spoons','Target circles taped on the floor','A launch line every kid can see'],
     phases:[
       {name:'WATCH + LEARN', minutes:4, text:'Watch the pom-pom fly off the spoon and land in the circle. Today you build a launcher and aim for the target.', challenge:'Aiming takes practice. Nobody hits the middle on try one.'},
-      {name:'BUILD + PRACTICE', minutes:12, text:'Prop your spoon on the blocks to make a launcher. Press, launch, watch where it lands. Move your launcher a little and try again.', challenge:'Watch where it lands and change one thing. That is how aim gets better.'},
-      {name:'TARGET TIME', minutes:8, text:'Three official launches each from the launch line. Closest to the middle circle gets a class cheer. Cheer every single launch.', challenge:'Pressure time. Take a breath, aim, and let it fly.'},
+      {name:'BUILD + PRACTICE', minutes:12, text:'Use soft pom-poms only. Prop your spoon on the blocks and keep every launch below shoulder height. Press, watch where it lands, move the launcher, and try again.', challenge:'Watch where it lands and change one thing. That is how aim gets better.'},
+      {name:'TARGET TIME', minutes:8, text:'Launch only on the teacher signal from behind the line. Nobody retrieves pom-poms until the area is clear. Three tries each, then celebrate improved aim.', challenge:'Pressure time. Take a breath, aim, and let it fly safely.'},
       {name:'SHOW + TELL', minutes:6, text:'Tell us your best trick for aiming. Was it a soft press or a hard press? High launcher or low launcher?', challenge:'Your trick might help a friend hit the target too.'},
       {name:'CLEAN UP', minutes:5, text:'Pom-poms counted back in the cups. Spoons and blocks in the tray. Sit when your spot is clean.', challenge:'Count them all back in. A full cup means a finished mission.'}
     ]
@@ -1224,7 +1299,7 @@ const DEFAULT_MISSIONS = [
       {name:'WATCH + LEARN', minutes:4, text:'Today the WHOLE CLASS builds one giant cup city. Every table gets a zone: towers, walls, or bridges. The city only works if every zone works together.', challenge:'Building alone is easy. Building one big thing TOGETHER is the real challenge.'},
       {name:'BUILD YOUR ZONE', minutes:12, text:'Build your zone big and strong. Walk carefully, slow feet near the city. If a neighbor zone falls, help them rebuild.', challenge:'Helping a fallen zone IS the mission. One city, one team.'},
       {name:'CONNECT THE CITY', minutes:8, text:'Now connect your zone to your neighbors with cup bridges and walls. Make one city with no gaps.', challenge:'Connecting means agreeing with your neighbors. Talk it out, then build it.'},
-      {name:'CITY TOUR', minutes:6, text:'Hands in laps, eyes on the city. We walk the tour together and take the class photo. Every builder points to their part.', challenge:'Look what a whole team can build in one class. Remember this one.'},
+      {name:'CITY TOUR', minutes:6, text:'Hands in laps, eyes on the city. Walk the tour together and let every builder point to a part. Photograph student work only if school policy permits it.', challenge:'Look what a whole team can build in one class. Remember this one.'},
       {name:'CLEAN UP', minutes:5, text:'The city comes down zone by zone, cups stacked in towers of ten, tubs filled. Sit when your zone is clear.', challenge:'Even the clean up is a team build. Count your stacks of ten.'}
     ]
   },
@@ -1289,7 +1364,7 @@ const DEFAULT_MISSIONS = [
     phases:[
       {name:'MISSION BRIEF', minutes:5, text:'Your mission: build the tallest tower that holds a marshmallow on top for 10 seconds. Materials: 20 spaghetti sticks, 1 meter of tape, 1 marshmallow.', challenge:'Tall and steady fight each other. Living with that tension is the challenge.'},
       {name:'BUILD WINDOW', minutes:20, text:'Plan fast, build faster. Test as you go. The marshmallow goes on top the whole time, not on at the end. Towers must stand on their own.', img:DIAG_TOWER, challenge:'Test as you build. Every wobble is data, not defeat.'},
-      {name:'MEASURE + SHOW', minutes:8, text:'Hands off your towers. We measure together. Tallest standing tower wins. Be ready to say the one thing that made yours work.', challenge:'Win or fall, you can name what made it work. That is the growth.'},
+      {name:'MEASURE + SHOW', minutes:8, text:'Hands off your towers. We measure together and compare each team with its first test. Be ready to name the change that improved height or stability.', challenge:'Stand or fall, evidence of improvement is the win.'},
       {name:'RESET + RECOVER', minutes:2, text:'Spaghetti in the cup. Tape balls in the trash. Marshmallows stay where they are. Tables clear. Sit when done.', challenge:'Pack down fast and fair. Reset the space for the next crew.'}
     ]
   },
@@ -1299,7 +1374,7 @@ const DEFAULT_MISSIONS = [
     phases:[
       {name:'MISSION BRIEF', minutes:5, text:'Your mission: span the gap between two desks and hold the most weight in the middle. Materials: 20 index cards and 30 cm of tape. No taping to the desks.', challenge:'Holding weight with flimsy paper sounds impossible. Taking that on is the challenge.'},
       {name:'BUILD WINDOW', minutes:18, text:'Fold cards to make them stiff. Flat paper bends, folded paper holds. Build your span, then test with a few washers before the real load.', img:DIAG_BRIDGE, challenge:'Fold weak paper into something strong. Turning a limit into a strength is the lesson.'},
-      {name:'LOAD TEST', minutes:8, text:'Bridges across the gap. We add weight one washer at a time until it bends or drops. Count out loud as a class. Last span standing takes it.', challenge:'Watch it bend and hold. Pushing to the breaking point is how you learn the limit.'},
+      {name:'LOAD TEST', minutes:8, text:'Bridges across the gap. Add washers one at a time while the class counts. Stop at the first unsafe bend. Score load held, reliability, and what improved from the team test.', challenge:'Watch how it responds under load. Knowing when to stop is part of learning the limit.'},
       {name:'RESET + RECOVER', minutes:4, text:'Washers back in the cup. Cards in the recycle bin. Tape off the desks. Tables clear. Sit when your station is done.', challenge:'Recover the space. A clean finish is a strong finish.'}
     ]
   },
@@ -1314,14 +1389,44 @@ const DEFAULT_MISSIONS = [
     ]
   },
   {
-    id:'pitchpolish', type:'lesson', title:'PITCH POLISH', theme:'TANK PREP', band:'5-6', arc:18,
+    id:'pitchpolish', type:'lesson', title:'PITCH POLISH', theme:'OPTIONAL SHOWCASE PREP', band:'5-6', arc:18,
     loadout:['Team prototypes on the table','A pitch card per team','A 60 second timer or phone','Feedback slips for listeners','Showcase zone cleared'],
     phases:[
-      {name:'THE BRIEF', minutes:4, text:'Today we sharpen your CIRC Tank pitch. The goal: hook us in one sentence, show the thing, and say who it helps. Sixty seconds, no slides.', challenge:'Saying it simply is harder than saying it long. That is the challenge.'},
+      {name:'THE BRIEF', minutes:4, text:'Today we sharpen an optional showcase pitch. The goal: hook us in one sentence, show the thing, and say who it helps. Sixty seconds, no slides. Use this only if a school showcase is confirmed.', challenge:'Saying it simply is harder than saying it long. That is the challenge.'},
       {name:'DRAFT THE HOOK', minutes:8, text:'Write your one sentence hook. Make it about the person you help, not the parts you used. Try three versions and circle the one that sounds best out loud.', challenge:'Cutting your idea down to one sentence is real work. Embrace the edit.'},
       {name:'PRACTICE ROUND', minutes:10, text:'Pitch to the team next to you. Listeners fill one feedback slip: one thing that landed, one thing to fix. Swap and repeat so everyone pitches once.', challenge:'Pitching to a real listener is nerve-racking. Doing it anyway is the growth.'},
       {name:'FEEDBACK + FIX', minutes:10, text:'Take the feedback and change one thing that makes your pitch clearer. Practice the new version twice. Confident and clear beats long and fancy.', challenge:'Take the note and change one thing. Humility plus grit is the challenge.'},
-      {name:'RESET + RECOVER', minutes:3, text:'Pitch cards with your team name on top. Feedback slips in the bin. Prototypes back in the tote. Tables clear. Sit when your team is set.', challenge:'Pack up sharp and walk away ready for the Tank.'}
+      {name:'RESET + RECOVER', minutes:3, text:'Pitch cards with your team name on top. Feedback slips in the bin. Prototypes back in the tote. Tables clear. Sit when your team is set.', challenge:'Pack up sharp and walk away ready for the showcase.'}
+    ]
+  },
+  {
+    id:'grow-k2-scouts', type:'grow', title:'GROW LAB: PLANT SCOUTS', theme:'OBSERVE + CARE', band:'K-2',
+    loadout:['Hydroponic system checked by the teacher first','Plant scout picture cards','Cubes or rulers for measuring','Plant journals and pencils','Paper towels ready for small spills'],
+    phases:[
+      {name:'PLANT CHECK', minutes:4, text:'Look without touching first. Find roots, stems, and leaves. Plants need light, water, air, and nutrients. They do not always need soil.', challenge:'Scientists notice before they act. Slow eyes find useful clues.'},
+      {name:'SCOUT + MEASURE', minutes:18, text:'With your partner, count leaves and measure one plant. Draw what you see. Tell the teacher about yellow leaves, low water, or anything surprising. The teacher handles nutrients, plugs, pumps, and pH.', challenge:'Careful measuring turns a guess into evidence.'},
+      {name:'DATA SHARE', minutes:6, text:'Share one number and one notice. Did the plant grow, stay the same, or change color? Add today to the class growth chart.', challenge:'Your small observation helps the whole Grow Lab.'},
+      {name:'RESET + HANDOFF', minutes:7, text:'Return tools, close journals, wipe any drips, and wash hands. No tasting unless the school has approved a harvest and food-safety plan.', challenge:'Plants depend on a clean handoff. Finish the care job completely.'}
+    ]
+  },
+  {
+    id:'grow-34-roots', type:'grow', title:'GROW LAB: ROOT ZONE CREW', theme:'MEASURE + MAINTAIN', band:'3-4',
+    loadout:['Hydroponic system checked by the teacher first','Growth log and pencils','Rulers or measuring tape','Plant support materials if assigned','Paper towels and handwashing access'],
+    phases:[
+      {name:'SYSTEM SCAN', minutes:4, text:'Check the visible system: leaves, roots, water level, light, and flow. Report leaks, stopped flow, algae, or damaged plants. Do not touch plugs, pumps, nutrients, or pH supplies.', challenge:'A good crew spots a problem before it becomes a failure.'},
+      {name:'MEASURE + CARE', minutes:18, text:'Measure plant height, count leaves, and record the water level marker. Complete one teacher-assigned care job, such as placing a plant support or clearing a safe work area.', challenge:'Reliable data and careful care beat a quick guess.'},
+      {name:'READ THE DATA', minutes:6, text:'Compare today with the last entry. Name one pattern and one question. If something changed, point to the evidence instead of blaming the plant.', challenge:'Patterns are clues. Use the record to decide what deserves attention.'},
+      {name:'RESET + HANDOFF', minutes:7, text:'Return tools, dry the work area, wash hands, and leave a short note for the next crew. The teacher alone changes nutrients or pH and handles electrical equipment.', challenge:'A clear handoff keeps a living system healthy between classes.'}
+    ]
+  },
+  {
+    id:'grow-56-systems', type:'grow', title:'GROW LAB: SYSTEMS ENGINEERS', theme:'DATA + DIAGNOSE', band:'5-6',
+    loadout:['Hydroponic system checked by the teacher first','System inspection checklist','Growth and reservoir log','Rulers plus pH or EC meters only if school-approved','Paper towels and handwashing access'],
+    phases:[
+      {name:'SYSTEM STATUS', minutes:4, text:'Inspect flow, light, timer status, reservoir level, roots, and leaves. Mark normal, watch, or alert. Do not handle mains power, pump wiring, nutrients, or chemicals.', challenge:'Systems thinking begins by checking every input and output.'},
+      {name:'COLLECT EVIDENCE', minutes:18, text:'Record growth and reservoir data. Use pH or EC meters only with teacher supervision if the school has them. Investigate one alert and change only one safe variable at a time.', challenge:'One controlled change teaches more than five random fixes.'},
+      {name:'DIAGNOSE + DECIDE', minutes:6, text:'Use the log to state the symptom, evidence, likely cause, and safest next check. Escalate leaks, electrical issues, chemical work, and pump service to an adult.', challenge:'A strong diagnosis separates what you know from what you still need to test.'},
+      {name:'RESET + HANDOFF', minutes:7, text:'Return tools, dry the area, wash hands, and write the next crew handoff. No harvest or tasting until the school approves sanitation and food-safety procedures.', challenge:'Documenting the system is part of maintaining the system.'}
     ]
   },
   {
@@ -1337,7 +1442,7 @@ const DEFAULT_MISSIONS = [
     ]
   },
   {
-    id:'tank', type:'tank', title:'CIRC TANK', theme:'PITCH', band:'5-6',
+    id:'tank', type:'tank', title:'CIRC SHOWCASE', theme:'OPTIONAL PITCH', band:'5-6',
     loadout:['Pitch order locked','Teams checked in with emblems','Prototypes on the props table','Judges have feedback sheets','Audience seated, demo zone clear'],
     phases:[
       {name:'PITCH', minutes:3, text:'You have the floor. Hook us in one sentence, demo your innovation, and tell us who it helps.', challenge:'Putting your work in front of judges is the biggest challenge of all. Own the floor.'},
@@ -1371,9 +1476,10 @@ function saveIdentity(){
 let identity = loadIdentity();
 
 /* ---------- persistence: missions (localStorage) ---------- */
-const STORE_KEY = 'missionControl.missions.v4';
-const OLD_STORE_KEY = 'missionControl.missions.v3';
-const OLDER_STORE_KEY = 'missionControl.missions.v2';
+const STORE_KEY = 'missionControl.missions.v5';
+const OLD_STORE_KEY = 'missionControl.missions.v4';
+const OLDER_STORE_KEY = 'missionControl.missions.v3';
+const OLDEST_STORE_KEY = 'missionControl.missions.v2';
 function defaultMissions(){ return JSON.parse(JSON.stringify(DEFAULT_MISSIONS)); }
 function isValidMission(m){
   return m && typeof m==='object'
@@ -1385,7 +1491,7 @@ function loadMissions(){
   try{
     const raw = localStorage.getItem(STORE_KEY);
     if(!raw){
-      const old = localStorage.getItem(OLD_STORE_KEY) || localStorage.getItem(OLDER_STORE_KEY);
+      const old = localStorage.getItem(OLD_STORE_KEY) || localStorage.getItem(OLDER_STORE_KEY) || localStorage.getItem(OLDEST_STORE_KEY);
       if(old){
         try{
           const prev = JSON.parse(old);
@@ -1439,7 +1545,7 @@ const sfx = {
 };
 
 /* ---------- state ---------- */
-let screen = 'home';     // home | runner | editor | checkin | loadout | settings
+let screen = 'home';     // home | runner | editor | checkin | loadout | settings | teacherplan
 let R = null;            // runner state
 let editing = null;      // editor working copy
 let lo = null;           // loadout working state
@@ -1529,7 +1635,7 @@ function phaseDone(){
     if(lastPhase){
       if(R.teamIdx >= R.teams.length - 1){
         R.finished = true; R.running = false;
-        sfx.done(); flash('TANK CLEAR'); render();
+        sfx.done(); flash('SHOWCASE CLEAR'); render();
       } else {
         sfx.chime(); flash('PITCH COMPLETE');
         R.teamIdx++; R.running = false; R.standby = true;
@@ -1547,6 +1653,7 @@ function phaseDone(){
 
   if(lastPhase){
     R.finished = true; R.running = false;
+    if(R.m.type==='lesson') markLessonComplete(R.m.id);
     sfx.done();
     flash(R.m.type==='broadcast' ? 'OFF AIR' : 'MISSION COMPLETE');
     render();
@@ -1651,6 +1758,7 @@ function render(){
   else if(screen==='checkin') renderCheckin();
   else if(screen==='loadout') renderLoadout();
   else if(screen==='settings') renderSettings();
+  else if(screen==='teacherplan') renderTeacherPlan();
   else if(screen==='roster') renderRoster();
   else if(screen==='join') renderJoin();
   else if(screen==='log') renderLog();
@@ -1674,9 +1782,12 @@ function suggestedMission(){
     const saved = missions.find(m=>m.id===ac.lessonState.missionId && m.type==='lesson');
     if(saved && (tier==='ALL' || saved.band==='ALL' || saved.band===tier)) return saved;
   }
-  return missions
+  const available = missions
     .filter(m=>m.type==='lesson' && (tier==='ALL' || m.band==='ALL' || m.band===tier))
-    .sort((a,b)=>((a.arc||99)-(b.arc||99)) || String(a.title||'').localeCompare(String(b.title||'')))[0]
+    .sort((a,b)=>((a.arc||99)-(b.arc||99)) || String(a.title||'').localeCompare(String(b.title||'')));
+  const completed = new Set(ac && Array.isArray(ac.completedMissionIds) ? ac.completedMissionIds : []);
+  return available.find(m=>!completed.has(m.id))
+    || available[0]
     || missions.find(m=>m.type==='lesson')
     || null;
 }
@@ -1695,13 +1806,18 @@ function renderHome(){
   const acMode = ac ? classMode(ac) : 'commander'; const acTier = ac ? classTier(ac) : 'ALL';
   const lessons = missions.filter(m=>m.type==='lesson' && bandMatch(m))
     .sort((a,b)=>((a.arc||99)-(b.arc||99)) || ((BAND_ORD[a.band||'ALL']??0)-(BAND_ORD[b.band||'ALL']??0)));
+  const grows = missions.filter(m=>m.type==='grow' && bandMatch(m));
   const casts = missions.filter(m=>m.type==='broadcast' && bandMatch(m));
   const tanks = missions.filter(m=>m.type==='tank' && bandMatch(m));
+  const morningBroadcast = missions.find(m=>m.type==='broadcast') || null;
   const today = suggestedMission();
   const todayTotal = missionMinutes(today);
   const todayContext = ac
     ? `<strong>${esc(ac.name)}</strong>${ac.grade?` · Grade ${esc(ac.grade)}`:''} · ${esc(today?today.title:'Choose a mission')}`
     : `<strong>No class selected yet.</strong> Start with ${esc(today?today.title:'the first mission')}, or choose a class below when you are ready.`;
+  const teacherView = teacherDayView();
+  const teacherCurrent = teacherView.current;
+  const teacherPct = teacherView.done ? 100 : Math.round((teacherView.index/Math.max(1,teacherView.steps.length))*100);
   const themeHTML = esc(identity.seasonTheme).replace(/(CHALLENGE)/i, '<span class="hot">$1</span>');
   app.innerHTML = `
   <div class="home">
@@ -1737,6 +1853,50 @@ function renderHome(){
         ${acLs?`<button class="id-edit" onclick="startMission('${acLs.id}')">RESUME LESSON</button>`:''}
       </div>
     </div>` : ''}
+
+    <section class="teacher-day" aria-labelledby="teacher-day-title">
+      <div class="teacher-day-head">
+        <div>
+          <span class="teacher-status ${teacherPlan.status==='official'?'official':''}"><span class="dot"></span>${teacherPlan.status==='official'?'Official schedule':'Historical template'}</span>
+          <h2 id="teacher-day-title">${esc(teacherView.day.label)} · ${teacherView.teachCount} Teaching Block${teacherView.teachCount===1?'':'s'}</h2>
+          <p>${teacherPlan.status==='official'
+            ? 'This is your saved working schedule. Pick the current rotation day, then follow one action at a time.'
+            : 'Provisional only. Built from the prior Middle School CIRC card. Keep using it as a calm placeholder until the school gives you the official K-6 schedule.'}</p>
+        </div>
+        <button class="btn ghost" onclick="openTeacherPlan()">EDIT SCHEDULE</button>
+      </div>
+      <div class="rotation-strip" role="tablist" aria-label="Five-day rotation">
+        ${teacherPlan.days.map(d=>`<button class="rotation-btn ${d.day===teacherView.day.day?'on':''}" role="tab" aria-selected="${d.day===teacherView.day.day}" onclick="setTeacherDay(${d.day})">DAY ${d.day}<span>${teacherBlockCount(d)} CLASS${teacherBlockCount(d)===1?'':'ES'}</span></button>`).join('')}
+      </div>
+      <div class="teacher-now" aria-live="polite">
+        <div class="teacher-progress">
+          <span>${teacherView.done?'DAY COMPLETE':`ACTION ${teacherView.index+1} OF ${teacherView.steps.length}`}</span>
+          <span class="when">${esc(teacherCurrent.time)}</span>
+        </div>
+        <h3>${esc(teacherCurrent.title)}</h3>
+        <p>${teacherCurrent.body}</p>
+        <div class="teacher-controls">
+          ${teacherCurrent.kind==='teach' && today ? `<button class="btn primary" onclick="startMission('${today.id}')">OPEN CLASS MISSION</button>` : ''}
+          ${teacherCurrent.kind==='announcement' && morningBroadcast ? `<button class="btn primary" onclick="startMission('${morningBroadcast.id}')">OPEN MORNING BROADCAST</button>` : ''}
+          ${teacherView.done
+            ? `<button class="btn teacher-done" onclick="nextTeacherDay()">NEXT ROTATION DAY</button><button class="btn ghost" onclick="resetTeacherDay()">START THIS DAY OVER</button>`
+            : `<button class="btn teacher-done" onclick="advanceTeacherStep()">${teacherCurrent.kind==='shutdown'?'FINISH DAY':'MARK DONE'}</button><button class="btn ghost" onclick="backTeacherStep()" ${teacherView.index===0?'disabled':''}>BACK</button>`}
+        </div>
+        <div class="teacher-meter" aria-hidden="true"><span style="width:${teacherPct}%"></span></div>
+      </div>
+      <div class="day-map" aria-label="${esc(teacherView.day.label)} schedule">
+        ${teacherView.day.events.map(e=>`<div class="day-event ${e.type==='teach'?'teach':''}"><span class="de-time">${esc(e.time)}</span><span class="de-label">${esc(e.label)}</span><span class="de-type">${esc(teacherTypeLabel(e.type))}</span></div>`).join('') || '<div class="day-event"><span class="de-time">OPEN DAY</span><span class="de-label">No events saved yet.</span><span class="de-type">Edit schedule</span></div>'}
+      </div>
+      <details class="teacher-rescue">
+        <summary>Something changed? Open a fast fallback</summary>
+        <div class="rescue-grid">
+          <div class="rescue-card"><b>Technology fails</b>Stop troubleshooting in front of students. Run a paper prototype, cup tower, or human algorithm with the same challenge goal.</div>
+          <div class="rescue-card"><b>Class arrives late</b>Run a 25-minute rescue: 3 minutes to launch, 14 minutes to build, 3 minutes to share, and 5 minutes to reset.</div>
+          <div class="rescue-card"><b>The room spins up</b>Pause. Hands empty. Give one calm direction, wait for the room, then restart from the next visible step.</div>
+          <div class="rescue-card"><b>Materials are missing</b>Switch to sketch, explain, test with a partner, and improve. The thinking still counts as the mission.</div>
+        </div>
+      </details>
+    </section>
 
     ${today ? `
     <section class="today-launch" aria-labelledby="today-title">
@@ -1783,10 +1943,14 @@ function renderHome(){
       <button class="card new-mission" onclick="openEditor(null)">+ NEW MISSION</button>
     </div>
 
+    ${grows.length?`<div class="section-label"><span class="eyebrow">GROW LAB · REPEAT THROUGH THE YEAR</span></div>
+    <p class="note" style="margin-top:-8px">Students observe, measure, care, and document. The teacher controls nutrients, pH changes, electrical equipment, sanitation, and harvest approval.</p>
+    <div class="mission-grid">${grows.map(cardHTML).join('')}</div>`:''}
+
     ${casts.length?`<div class="section-label"><span class="eyebrow">MORNING BROADCAST</span></div>
     <div class="mission-grid">${casts.map(cardHTML).join('')}</div>`:''}
 
-    ${tanks.length?`<div class="section-label"><span class="eyebrow">CIRC TANK</span></div>
+    ${tanks.length?`<div class="section-label"><span class="eyebrow">OPTIONAL CIRC SHOWCASE</span></div>
     <div class="mission-grid">${tanks.map(cardHTML).join('')}</div>`:''}
   </div>`;
 }
@@ -1800,7 +1964,7 @@ function setBand(b){ homeBand=b; renderHome(); }
 function cardHTML(m){
   const total = missionMinutes(m);
   const bars = m.phases.map(p=>`<span style="flex-grow:${p.minutes}"></span>`).join('');
-  const cls = m.type==='broadcast' ? 'broadcast' : (m.type==='tank' ? 'tank' : '');
+  const cls = m.type==='broadcast' ? 'broadcast' : (m.type==='tank' ? 'tank' : (m.type==='grow' ? 'grow' : ''));
   let footer = `<div class="phasebar">${bars}</div>`;
   if(m.type==='tank'){
     footer = `<div class="mini-emblems">${
@@ -1824,8 +1988,9 @@ function renderRunner(){
   const m = R.m, p = m.phases[R.phase];
   const isCast = m.type==='broadcast';
   const isTank = m.type==='tank';
+  const isGrow = m.type==='grow';
   const next = m.phases[R.phase+1];
-  const modeCls = isCast ? 'mode-broadcast' : (isTank ? 'mode-tank' : '');
+  const modeCls = isCast ? 'mode-broadcast' : (isTank ? 'mode-tank' : (isGrow ? 'mode-grow' : ''));
 
   if(R.finished){
     const creed = isCast
@@ -1835,8 +2000,8 @@ function renderRunner(){
     <div class="runner ${modeCls} flight-${currentMode()} ${littlesOn()?'littles':''}">
       ${hudHTML()}
       <div class="complete">
-        <div class="eyebrow">${isCast?'BROADCAST ENDED':(isTank?'TANK COMPLETE':'ALL PHASES CLEAR')}</div>
-        <div class="big">${isCast?'OFF AIR':(isTank?'TANK CLEAR':'MISSION COMPLETE')}</div>
+        <div class="eyebrow">${isCast?'BROADCAST ENDED':(isTank?'SHOWCASE COMPLETE':'ALL PHASES CLEAR')}</div>
+        <div class="big">${isCast?'OFF AIR':(isTank?'SHOWCASE CLEAR':'MISSION COMPLETE')}</div>
         ${isCast||isTank?'':`<div class="crew">Crew <b>${R.run} of ${R.m.runs||13}</b> cleared the mission.</div>`}
         <div class="creed">${creed}</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:10px">
@@ -1844,7 +2009,7 @@ function renderRunner(){
             ? `<button class="btn primary big" onclick="resetMission(false)">RESET BROADCAST</button>`
             : (isTank
               ? `<button class="btn primary big" onclick="exitRunner()">BACK TO HOME</button>
-                 <button class="btn ghost" onclick="resetMission(false)">RUN TANK AGAIN</button>`
+                 <button class="btn ghost" onclick="resetMission(false)">RUN SHOWCASE AGAIN</button>`
               : `<button class="btn primary big" onclick="nextCrew()">NEXT CREW &rarr;</button>
                  <button class="btn ghost" onclick="resetMission(true)">RERUN THIS CREW</button>`)}
           ${isCast?'':`<button class="btn" onclick="openLog('${R.m.id}')">LOG THE BUILD</button>`}
@@ -1975,7 +2140,7 @@ function openDiagram(i){
 }
 function closeDiagram(){ document.getElementById('viewer').classList.remove('show'); }
 
-/* ---------- check-in (CIRC Tank) ---------- */
+/* ---------- check-in (optional showcase) ---------- */
 function openCheckin(id){ ci = { id }; ciErr=''; screen='checkin'; render(); }
 function renderCheckin(){
   const m = missions.find(x=>x.id===ci.id);
@@ -2001,7 +2166,7 @@ function renderCheckin(){
         </div>`).join('') || '<p class="note" style="grid-column:1/-1;margin:0">No teams checked in yet.</p>'}
     </div>
     <div class="actions">
-      <button class="btn primary big" onclick="startTankFromCheckin()" ${teams.length?'':'disabled'}>START TANK &rarr;</button>
+      <button class="btn primary big" onclick="startTankFromCheckin()" ${teams.length?'':'disabled'}>START SHOWCASE &rarr;</button>
       ${teams.length?`<button class="btn ghost" onclick="clearTeams()">CLEAR ROSTER</button>`:''}
     </div>
   </div>`;
@@ -2040,7 +2205,7 @@ function openLoadout(id){
 function renderLoadout(){
   const m = missions.find(x=>x.id===lo.id);
   const done = lo.items.filter(x=>x.ok).length;
-  const accent = m.type==='broadcast' ? 'var(--current)' : (m.type==='tank' ? 'var(--tank)' : 'var(--ion)');
+  const accent = m.type==='broadcast' ? 'var(--current)' : (m.type==='tank' ? 'var(--tank)' : (m.type==='grow' ? 'var(--grow)' : 'var(--ion)'));
   app.innerHTML = `
   <div class="loadout">
     <button class="btn ghost" onclick="backFromLoadout()">&larr; BACK</button>
@@ -2090,8 +2255,9 @@ function renderEditor(){
     <div class="field"><label>MISSION TYPE</label>
       <div class="typeSel">
         <button class="btn ${editing.type==='lesson'?'on':''}" onclick="setType('lesson')">LESSON OPS</button>
+        <button class="btn ${editing.type==='grow'?'on':''}" onclick="setType('grow')">GROW LAB</button>
         <button class="btn ${editing.type==='broadcast'?'on':''}" onclick="setType('broadcast')">BROADCAST</button>
-        <button class="btn ${editing.type==='tank'?'on':''}" onclick="setType('tank')">CIRC TANK</button>
+        <button class="btn ${editing.type==='tank'?'on':''}" onclick="setType('tank')">OPTIONAL SHOWCASE</button>
       </div>
     </div>
     <div class="field"><label>GRADE BAND</label>
@@ -2292,6 +2458,7 @@ function normalizeClasses(){
   let changed = false;
   classes.forEach(c=>{
     if(c.lessonState === undefined){ c.lessonState = null; changed = true; }
+    if(!Array.isArray(c.completedMissionIds)){ c.completedMissionIds = []; changed = true; }
     /* grade wins. Once a class has a grade, drop any legacy step 1 mode field. A class with a mode but no grade keeps working and the picker prompts for a grade. */
     if(c.grade && c.mode !== undefined){ delete c.mode; changed = true; }
   });
@@ -2306,6 +2473,14 @@ function littlesOn(){ return currentMode()==='cadet' || !!(typeof R!=='undefined
 function setActiveClass(id){ activeClassId = id || null; saveActive(); const c = activeClass(); if(c && c.grade) homeBand = gradeToTier(c.grade); screen='home'; render(); }
 function setClassGrade(id, g){ const c = findClass(id); if(!c || GRADES.indexOf(g)<0) return; c.grade = g; if(c.mode !== undefined) delete c.mode; saveClasses(); if(activeClassId===id) homeBand = gradeToTier(g); render(); }
 function recordLessonState(missionId, run){ const c = activeClass(); if(!c) return; c.lessonState = { missionId, run: run||1 }; saveClasses(); }
+function markLessonComplete(missionId){
+  const c = activeClass();
+  if(!c) return;
+  if(!Array.isArray(c.completedMissionIds)) c.completedMissionIds = [];
+  if(!c.completedMissionIds.includes(missionId)) c.completedMissionIds.push(missionId);
+  c.lessonState = null;
+  saveClasses();
+}
 function lessonSummary(c){
   if(!c || !c.lessonState) return null;
   const m = missions.find(x=>x.id===c.lessonState.missionId);
@@ -2319,6 +2494,283 @@ if(initialActiveClass && initialActiveClass.grade) homeBand = classTier(initialA
 const uid = () => 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 const todayKey = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
 const prettyDay = k => { const [y,m,d]=k.split('-'); return new Date(+y,+m-1,+d).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}); };
+
+/* ---------- teacher today: editable five-day operating plan ---------- */
+const TEACHER_PLAN_KEY = 'missionControl.teacherPlan.v1';
+const TEACHER_TODAY_KEY = 'missionControl.teacherToday.v1';
+const TEACHER_TYPES = ['teach','prep','lunch','support','duty'];
+function defaultTeacherPlan(){
+  return {
+    status:'provisional',
+    days:[
+      {day:1,label:'DAY 1',events:[
+        {time:'9:05-9:40',type:'teach',label:'Teaching block 1'},
+        {time:'9:43-10:55',type:'support',label:'Open support or setup'},
+        {time:'11:00-11:35',type:'teach',label:'Teaching block 2'},
+        {time:'11:40-12:15',type:'teach',label:'Teaching block 3'},
+        {time:'12:20-12:50',type:'lunch',label:'Lunch'},
+        {time:'12:50-1:25',type:'prep',label:'Prep'},
+        {time:'1:30-2:05',type:'support',label:'Open support or follow-up'},
+        {time:'2:10-2:45',type:'teach',label:'Teaching block 4'},
+        {time:'2:50-3:25',type:'duty',label:'A&E or assigned duty'}
+      ]},
+      {day:2,label:'DAY 2',events:[
+        {time:'9:05-9:40',type:'teach',label:'Teaching block 1'},
+        {time:'9:43-10:55',type:'support',label:'Open support or setup'},
+        {time:'11:00-11:35',type:'teach',label:'Teaching block 2'},
+        {time:'11:40-12:15',type:'teach',label:'Teaching block 3'},
+        {time:'12:20-12:50',type:'lunch',label:'Lunch'},
+        {time:'12:50-1:25',type:'prep',label:'Prep'},
+        {time:'1:30-2:05',type:'support',label:'Open support or follow-up'},
+        {time:'2:10-2:45',type:'teach',label:'Teaching block 4'},
+        {time:'2:50-3:25',type:'duty',label:'A&E or assigned duty'}
+      ]},
+      {day:3,label:'DAY 3',events:[
+        {time:'9:05-11:35',type:'support',label:'Assigned support, coverage, or setup'},
+        {time:'11:40-12:15',type:'lunch',label:'Lunch'},
+        {time:'12:20-12:50',type:'support',label:'WIN or assigned support'},
+        {time:'12:50-1:25',type:'prep',label:'Prep'},
+        {time:'1:30-2:05',type:'support',label:'Assigned support or intervention'},
+        {time:'2:10-2:45',type:'teach',label:'Teaching block 1'},
+        {time:'2:50-3:25',type:'duty',label:'A&E or assigned duty'}
+      ]},
+      {day:4,label:'DAY 4',events:[
+        {time:'9:05-12:15',type:'support',label:'Assigned support, WIN, or setup'},
+        {time:'12:20-12:50',type:'lunch',label:'Lunch'},
+        {time:'12:50-1:35',type:'support',label:'Open support or follow-up'},
+        {time:'1:35-2:10',type:'prep',label:'Prep'},
+        {time:'2:15-2:45',type:'support',label:'Assigned support or intervention'},
+        {time:'2:50-3:25',type:'duty',label:'A&E or assigned duty'}
+      ]},
+      {day:5,label:'DAY 5',events:[
+        {time:'9:05-9:40',type:'teach',label:'Teaching block 1'},
+        {time:'9:43-10:55',type:'support',label:'Open support or setup'},
+        {time:'11:00-11:35',type:'teach',label:'Teaching block 2'},
+        {time:'11:40-12:15',type:'teach',label:'Teaching block 3'},
+        {time:'12:20-12:50',type:'lunch',label:'Lunch'},
+        {time:'12:50-1:25',type:'prep',label:'Prep'},
+        {time:'1:30-2:05',type:'support',label:'Open support or follow-up'},
+        {time:'2:10-2:45',type:'teach',label:'Teaching block 4'},
+        {time:'2:50-3:25',type:'duty',label:'A&E or assigned duty'}
+      ]}
+    ]
+  };
+}
+function normalizeTeacherPlan(raw){
+  const base = defaultTeacherPlan();
+  if(!raw || typeof raw!=='object') return base;
+  const status = raw.status==='official' ? 'official' : 'provisional';
+  const supplied = Array.isArray(raw.days) ? raw.days : [];
+  const days = base.days.map(def=>{
+    const found = supplied.find(d=>Number(d && d.day)===def.day);
+    if(!found || !Array.isArray(found.events)) return def;
+    const events = found.events.filter(e=>e && typeof e.time==='string' && typeof e.label==='string').map(e=>({
+      time:e.time.trim() || 'TIME TBD',
+      type:TEACHER_TYPES.includes(String(e.type||'').toLowerCase()) ? String(e.type).toLowerCase() : 'support',
+      label:e.label.trim() || 'Open block'
+    }));
+    return {day:def.day,label:`DAY ${def.day}`,events};
+  });
+  return {status,days};
+}
+let teacherPlan = normalizeTeacherPlan(Store.read(TEACHER_PLAN_KEY, null));
+let teacherToday = Store.read(TEACHER_TODAY_KEY, {date:todayKey(),day:1,step:0,done:false});
+function saveTeacherPlan(){ Store.write(TEACHER_PLAN_KEY, teacherPlan); }
+function saveTeacherToday(){ Store.write(TEACHER_TODAY_KEY, teacherToday); }
+function ensureTeacherToday(){
+  if(!teacherToday || typeof teacherToday!=='object') teacherToday = {date:todayKey(),day:1,step:0,done:false};
+  if(!teacherPlan.days.some(d=>d.day===Number(teacherToday.day))) teacherToday.day = 1;
+  if(teacherToday.date!==todayKey()){
+    teacherToday.date = todayKey();
+    teacherToday.step = 0;
+    teacherToday.done = false;
+    saveTeacherToday();
+  }
+  teacherToday.step = Math.max(0, Number(teacherToday.step)||0);
+  teacherToday.done = !!teacherToday.done;
+}
+function teacherTypeLabel(type){
+  return ({teach:'Teaching block',prep:'Protected prep',lunch:'Lunch',support:'Non-teaching block',duty:'Assigned duty'})[type] || 'Non-teaching block';
+}
+function teacherBlockCount(day){ return day.events.filter(e=>e.type==='teach').length; }
+function teacherEventStep(event){
+  if(event.type==='teach') return {
+    kind:'teach',
+    time:event.time,
+    title:event.label,
+    body:'Set the active class, confirm its grade, then open the suggested mission. Use the supply check while students enter. <b>The runner carries the full 35-minute period.</b>'
+  };
+  if(event.type==='lunch') return {
+    kind:'lunch',
+    time:event.time,
+    title:event.label,
+    body:'Eat, get water, and step away from the room if you can. This block is not hidden prep time.'
+  };
+  if(event.type==='prep') return {
+    kind:'prep',
+    time:event.time,
+    title:event.label,
+    body:'Choose one useful outcome: stage the next materials, answer the one urgent message, or write the next lesson note. Stop when prep ends.'
+  };
+  if(event.type==='duty') return {
+    kind:'duty',
+    time:event.time,
+    title:event.label,
+    body:'Follow the assigned duty. If the assignment changes, write the new label in Edit Schedule so tomorrow does not depend on memory.'
+  };
+  return {
+    kind:'support',
+    time:event.time,
+    title:event.label,
+    body:'Follow the official assignment if one exists. If not, use this block for setup, student follow-up, or one task for tomorrow. Do not invent extra work.'
+  };
+}
+function teacherDaySteps(day){
+  const steps = [
+    {
+      kind:'arrival',
+      time:'Before students',
+      title:'Arrive and steady the room',
+      body:'Open Mission Control. Put out only the first materials. Check the announcement notes, water, and the first student group. Everything else can stay closed.'
+    },
+    {
+      kind:'announcement',
+      time:'Morning',
+      title:'Run or confirm announcements',
+      body:'If you are on air, open Morning Broadcast and follow the rundown. If another crew owns it today, confirm the handoff and move on.'
+    }
+  ];
+  day.events.forEach(event=>{
+    steps.push(teacherEventStep(event));
+    if(event.type==='teach'){
+      steps.push({
+        kind:'reset',
+        time:'After '+event.time,
+        title:'Reset after '+event.label,
+        body:'Parts home, tables clear, one useful note captured, and only the next materials out. Use three calm minutes. Perfection is not required.'
+      });
+    }
+  });
+  steps.push({
+    kind:'shutdown',
+    time:'Before leaving',
+    title:'Close the day',
+    body:'Save one note about what worked, stage the first bin for tomorrow, check the next rotation day, and leave the rest of the job here.'
+  });
+  return steps;
+}
+function teacherDayView(){
+  ensureTeacherToday();
+  const day = teacherPlan.days.find(d=>d.day===teacherToday.day) || teacherPlan.days[0];
+  const steps = teacherDaySteps(day);
+  const index = Math.min(Math.max(0,teacherToday.step), Math.max(0,steps.length-1));
+  if(index!==teacherToday.step){ teacherToday.step=index; saveTeacherToday(); }
+  const done = !!teacherToday.done;
+  const current = done ? {
+    kind:'complete',
+    time:'Leave work at work',
+    title:'Day complete',
+    body:'The operating plan is finished. <b>You do not need to keep rehearsing the day.</b> Move to the next rotation day when you are ready.'
+  } : steps[index];
+  return {day,steps,index,done,current,teachCount:teacherBlockCount(day)};
+}
+function setTeacherDay(day){
+  if(!teacherPlan.days.some(d=>d.day===day)) return;
+  teacherToday = {date:todayKey(),day,step:0,done:false};
+  saveTeacherToday();
+  screen='home';
+  render();
+}
+function advanceTeacherStep(){
+  const view = teacherDayView();
+  if(view.index>=view.steps.length-1) teacherToday.done=true;
+  else teacherToday.step=view.index+1;
+  saveTeacherToday();
+  renderHome();
+}
+function backTeacherStep(){
+  const view = teacherDayView();
+  if(view.done){ teacherToday.done=false; teacherToday.step=view.steps.length-1; }
+  else teacherToday.step=Math.max(0,view.index-1);
+  saveTeacherToday();
+  renderHome();
+}
+function resetTeacherDay(){
+  teacherToday.step=0;
+  teacherToday.done=false;
+  teacherToday.date=todayKey();
+  saveTeacherToday();
+  renderHome();
+}
+function nextTeacherDay(){ setTeacherDay((teacherToday.day%5)+1); }
+function openTeacherPlan(){ screen='teacherplan'; render(); }
+function teacherEventLines(day){
+  return day.events.map(e=>`${e.time} | ${e.type.toUpperCase()} | ${e.label}`).join('\n');
+}
+function renderTeacherPlan(){
+  app.innerHTML = `
+  <div class="editor">
+    <button class="btn ghost" onclick="screen='home';render()">&larr; HOME</button>
+    <h2>TEACHER SCHEDULE</h2>
+    <p class="note" style="margin-top:0">The starting template comes from the photographed Middle School CIRC five-day rotation. It is intentionally marked provisional. Replace it when the school gives you the official K-6 schedule.</p>
+    <div class="field"><label>PLAN STATUS</label>
+      <select id="teacherPlanStatus">
+        <option value="provisional" ${teacherPlan.status==='provisional'?'selected':''}>HISTORICAL TEMPLATE, PROVISIONAL</option>
+        <option value="official" ${teacherPlan.status==='official'?'selected':''}>OFFICIAL WORKING SCHEDULE</option>
+      </select>
+    </div>
+    <p class="note">Use one line per event: TIME | TYPE | LABEL. Allowed types are TEACH, PREP, LUNCH, SUPPORT, and DUTY. Line order is the order Mission Control will walk you through.</p>
+    ${teacherPlan.days.map(day=>`
+      <div class="plan-day-card">
+        <h3>Day ${day.day} · ${teacherBlockCount(day)} Teaching Block${teacherBlockCount(day)===1?'':'s'}</h3>
+        <div class="field"><label>EVENTS</label><textarea id="teacherDay${day.day}" spellcheck="false">${esc(teacherEventLines(day))}</textarea></div>
+      </div>`).join('')}
+    <div class="actions">
+      <button class="btn primary big" onclick="saveTeacherPlanEditor()">SAVE SCHEDULE</button>
+      <button class="btn ghost" onclick="resetTeacherPlanDefaults()">RESTORE HISTORICAL TEMPLATE</button>
+    </div>
+  </div>`;
+}
+function parseTeacherEventLines(text, dayNumber){
+  const events=[];
+  const lines=String(text||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  for(let i=0;i<lines.length;i++){
+    const parts=lines[i].split('|').map(s=>s.trim());
+    if(parts.length<3) return {error:`Day ${dayNumber}, line ${i+1} needs TIME | TYPE | LABEL.`};
+    const time=parts.shift();
+    const type=String(parts.shift()||'').toLowerCase();
+    const label=parts.join(' | ').trim();
+    if(!TEACHER_TYPES.includes(type)) return {error:`Day ${dayNumber}, line ${i+1} has an unknown type. Use TEACH, PREP, LUNCH, SUPPORT, or DUTY.`};
+    if(!time || !label) return {error:`Day ${dayNumber}, line ${i+1} needs both a time and a label.`};
+    events.push({time,type,label});
+  }
+  return {events};
+}
+function saveTeacherPlanEditor(){
+  const next={status:document.getElementById('teacherPlanStatus').value==='official'?'official':'provisional',days:[]};
+  for(let day=1;day<=5;day++){
+    const parsed=parseTeacherEventLines(document.getElementById('teacherDay'+day).value,day);
+    if(parsed.error){ alert(parsed.error); return; }
+    next.days.push({day,label:`DAY ${day}`,events:parsed.events});
+  }
+  teacherPlan=normalizeTeacherPlan(next);
+  saveTeacherPlan();
+  teacherToday.step=0;
+  teacherToday.done=false;
+  teacherToday.date=todayKey();
+  saveTeacherToday();
+  screen='home';
+  render();
+}
+function resetTeacherPlanDefaults(){
+  if(!confirm('Restore the photographed historical five-day template? Your schedule edits will be replaced.')) return;
+  teacherPlan=defaultTeacherPlan();
+  saveTeacherPlan();
+  teacherToday={date:todayKey(),day:1,step:0,done:false};
+  saveTeacherToday();
+  renderTeacherPlan();
+}
+
 function genCode(){ const a='ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<4;i++) s+=a[Math.floor(Math.random()*a.length)]; return s; }
 function findClass(id){ return classes.find(c=>c.id===id); }
 function findStudent(c, sid){ return c ? (c.students||[]).find(s=>s.id===sid) : null; }
@@ -2351,7 +2803,7 @@ function renderRoster(){
   </div>`;
   document.getElementById('newClass')?.focus();
 }
-function addClass(){ const i=document.getElementById('newClass'); const name=i.value.trim(); if(!name) return; classes.push({id:uid(), name, code:genCode(), students:[], grade:null, lessonState:null}); saveClasses(); renderRoster(); }
+function addClass(){ const i=document.getElementById('newClass'); const name=i.value.trim(); if(!name) return; classes.push({id:uid(), name, code:genCode(), students:[], grade:null, lessonState:null, completedMissionIds:[]}); saveClasses(); renderRoster(); }
 function openClass(id){ roster={classId:id}; renderRoster(); }
 function renderClassDetail(){
   const c=findClass(roster.classId); if(!c){ roster={}; renderRoster(); return; }

@@ -8,7 +8,7 @@ index.html must stay byte identical to mission-control.html.
 - One single HTML file, inline CSS and JS, no new dependencies, no build step, works offline from a saved copy.
 - Black background, neon cyan #00E5FF, blue #3E6BFF, violet #C44DFF. Chakra Petch for display headers, Lexend for body.
 - Title stays MISSION CONTROL, ECMS, EMBRACE THE CHALLENGE.
-- Preserve every existing feature exactly: phase countdown timers (Space pauses and resumes, N skips), 4 letter class join codes, tap your name rosters, the student home screen, Broadcast mode, CIRC Tank, Loadout, Team Check-In, all state in localStorage on one device.
+- Preserve every existing feature exactly: phase countdown timers (Space pauses and resumes, N skips), 4 letter class join codes, tap your name rosters, the student home screen, Broadcast mode, the optional team showcase, Loadout, Team Check-In, all state in localStorage on one device.
 - Never use em dashes or en dashes anywhere, including code comments and UI text.
 - One numbered step per session. Never push to GitHub unless Kenny's message contains the literal word push.
 
@@ -16,7 +16,9 @@ index.html must stay byte identical to mission-control.html.
 1. [DONE 2026-07-17] Grade band modes set per class and persisted per class: K-1 Cadet, 2-3 Pilot, 4-6 Commander, with the class picker loading a class's mode, roster, and lesson state instantly. NOTE: step 1's independent mode storage was superseded by step 1B below (grade is now the single source of truth).
 1B. [DONE 2026-07-17] Architecture correction: unify step 1's banding with the existing K-6 content system. Class stores GRADE (K-6); flight mode and content tier both derive from grade; active class auto filters the library to its tier; Cadet absorbs the existing K-2 littles display (one system). See Step 1B detail below.
 1C. [DONE 2026-07-25] Teacher calm-start pass: add one unmistakable Run Today's Mission panel that selects the active class's saved lesson or the first matching starter lesson, previews the complete 35-minute phase flow, opens the existing loadout and runner unchanged, and includes a four-step first-day routine. Responsive and keyboard-accessible, with no new storage or dependencies.
-2. [PENDING] Cadet (K-1): operable with zero reading, every control icon plus color with optional audio through the built in SpeechSynthesis API only, touch targets about twice normal size, the CIRC Tank timer rendered as a draining fuel tank instead of digits with a soft chime at phase changes and never a klaxon, Team Check-In becomes tap an emoji or color, typography flipped so Lexend dominates with Chakra Petch on big headers only and no all caps.
+1D. [DONE 2026-07-30] Teacher Today operating flow: add an editable five-day rotation above the lesson launcher, one calm next action at a time, morning-announcement and shutdown prompts, resets after teaching blocks, and fast fallbacks for technology, time, behavior, and missing materials. The supplied schedule is clearly labeled as a provisional historical template until Kenny receives the official K-6 schedule. Plan and daily progress stay on this device in localStorage.
+1E. [DONE 2026-07-30] Safe curriculum and Grow Lab release: class mission completion advances to the next built-in lesson, three recurring grade-band hydroponics missions add observation, care, data, and systems work, unsafe height and launcher directions are corrected, competition language favors evidence and improvement, CIRC Tank is labeled as an optional showcase, and the late-class fallback is a true 25-minute rescue.
+2. [PENDING] Cadet (K-1): operable with zero reading, every control icon plus color with optional audio through the built in SpeechSynthesis API only, touch targets about twice normal size, the optional showcase timer rendered as a draining fuel tank instead of digits with a soft chime at phase changes and never a klaxon, Team Check-In becomes tap an emoji or color, typography flipped so Lexend dominates with Chakra Petch on big headers only and no all caps.
 3. [PENDING] Pilot (2-3): short words plus icons, density between Cadet and Commander.
 4. [PENDING] Commander (4-6): keeps the current v0.2 look unchanged.
 5. [PENDING] Per band run counters, each mission runs about 13 sections per cycle.
@@ -35,7 +37,34 @@ Added to mission-control.html and mirrored to index.html:
 
 Verified in a real browser served on localhost: 21 of 21 assertions pass, no app console errors, zero em or en dashes, index.html byte identical to mission-control.html.
 
-Not pushed to GitHub. Waiting on the literal word push.
+Historical status when this step closed: not pushed to GitHub. Publication still required Kenny's literal word `push`.
+
+## Step 1E detail (safe curriculum and Grow Lab)
+- Completing a built-in lesson now records its id in `completedMissionIds`, clears the active lesson, and suggests the next incomplete lesson by arc. After all available lessons are complete, the sequence starts again instead of returning null.
+- Existing classes migrate in place with an empty completion list. New classes start with one.
+- Mission storage is `missionControl.missions.v5`, with fallback through v4, v3, and v2. Custom mission ids remain preserved when the safer built-in library loads.
+- Grow Lab adds one recurring 35-minute mission for K-2, grades 3-4, and grades 5-6. All three use observation, measurement, evidence, handoff, and cleanup. Only an adult handles nutrients, pH changes, electrical equipment, pump work, sanitation approval, and harvest approval.
+- Drop activities no longer direct children to climb chairs or stools. Higher drops are teacher-only, landing zones have safety lines, and reusable passengers replace eggs.
+- Launcher activities require soft ammo, teacher signals, below-shoulder launches, and a clear call before retrieval.
+- Paper-column loading is teacher-controlled and stops at the first unsafe lean or buckle. Newspaper shelters are tested with a backpack or box, never a child inside.
+- The binary activity is described honestly as a simplified classroom encoding model.
+- Upcycle Lab now centers repair, usefulness, accessibility, and waste reduction instead of pretend sales.
+- Photo directions are conditional on school policy. CIRC Tank is an optional showcase until the school confirms it.
+- The late-class rescue now totals 25 minutes: 3 launch, 14 build, 3 share, 5 reset.
+
+## Step 1D detail (teacher operating flow)
+- The home screen now begins with a five-day Teacher Today panel before the lesson launcher.
+- Each rotation day expands into arrival, announcements, scheduled blocks, a reset after every teaching block, and a leave-work-at-work shutdown action.
+- The next action is the only prominent instruction. Mark Done and Back move through the day without changing lesson, roster, timer, or student data.
+- Teaching actions open the existing suggested mission. Morning-announcement actions open the existing broadcast mission.
+- Edit Schedule accepts simple `TIME | TYPE | LABEL` lines for each day. Allowed types are TEACH, PREP, LUNCH, SUPPORT, and DUTY.
+- The default 4, 4, 1, 0, 4 teaching-block pattern is a historical middle-school reference, not an official K-6 schedule. The UI says so and lets Kenny switch the status to official only after replacing it.
+- New localStorage keys are `missionControl.teacherPlan.v1` and `missionControl.teacherToday.v1`. Existing keys and migrations are unchanged.
+- Fast fallbacks cover technology failure, a late class, an overstimulated room, and missing materials.
+
+Verified locally in Chrome: all five rotation buttons render, Day 3 reports one teaching block, Mark Done advances the action, schedule edits save and survive reload, Restore Historical Template returns to provisional status, the existing Today Mission panel remains, and the 390-pixel mobile view has no horizontal overflow. JavaScript syntax check clean, no app console or page errors, `git diff --check` clean, zero em or en dashes, and index.html byte identical to mission-control.html.
+
+Historical status when this step closed: not pushed to GitHub. Publication still required Kenny's literal word `push`.
 
 ## Step 1B detail (architecture correction, for resume)
 Grade is now the single source of truth. Nothing stores mode independently.
@@ -54,4 +83,4 @@ Grep report requested in 1B:
 
 Verified in a real browser served on localhost: 30 of 30 assertions pass (grade to mode and tier derivation, grade-2 and grade-3 both Pilot, grade-2 library shows only K-2, grade-3 library shows only 3-4, view all override, cadet drives littles, legacy migration, grade drops mode). Zero em or en dashes. node syntax check clean. index.html byte identical to mission-control.html.
 
-Not pushed to GitHub. Waiting on the literal word push.
+Historical status when this step closed: not pushed to GitHub. Publication still required Kenny's literal word `push`.
