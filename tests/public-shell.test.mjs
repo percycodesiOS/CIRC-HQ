@@ -44,6 +44,8 @@ test("public shell exposes the approved name and exact navigation", async () => 
   const html = await readPublicSource("index.html");
   assert.match(html, />\s*CIRC HQ\s*</);
   assert.match(html, />\s*The Playbook\s*</);
+  assert.doesNotMatch(html, /class="brand-mark"/);
+  assert.doesNotMatch(html, /<span[^>]*>\s*CIRC\s*<\/span>/);
   assert.doesNotMatch(html, /Mission Control|Teaching Zone/i);
 
   const nav = html.match(/<nav[\s\S]*?<\/nav>/i)?.[0] ?? "";
@@ -102,6 +104,8 @@ test("normal startup contains no demo schedule and keeps default Today copy quie
 
 test("simplified shell keeps readable colors and 44px controls", async () => {
   const css = await readPublicSource("app.css");
+  assert.doesNotMatch(css, /\.brand-mark\b/);
+  assert.doesNotMatch(css, /\.brand-lockup strong \+ span\s*\{\s*display:\s*none/);
   assert.match(css, /--ink:\s*#243341/);
   assert.match(css, /--secondary:\s*#526576/);
   assert.match(css, /--canvas:\s*#f5f9fc/);

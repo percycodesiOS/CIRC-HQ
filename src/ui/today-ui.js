@@ -89,6 +89,7 @@ function weatherPresentation(weather) {
       temperature: current.temperature ?? "",
       feelsLike: current.feelsLike ?? "",
       condition: current.condition ?? "Weather",
+      ...(weather.status === "stale" ? { caveat: "Updated earlier" } : {}),
       icon: getWeatherIcon(current.weatherCode)
     };
   }

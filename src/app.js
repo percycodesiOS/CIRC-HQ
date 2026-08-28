@@ -122,17 +122,25 @@ function buildNextCard(next) {
   ]);
 }
 
-function buildWeatherCard(weather) {
+export function buildWeatherCard(weather) {
   const copy = weather.status === "unavailable"
     ? [element("p", { className: "weather-unavailable", text: weather.label })]
     : [
         element("strong", { className: "weather-temp", text: weather.temperature }),
         element("span", { className: "weather-feels", text: `Feels ${weather.feelsLike}` }),
-        element("span", { className: "weather-condition", text: weather.condition })
+        element("span", { className: "weather-condition", text: weather.condition }),
+        weather.caveat
+          ? element("span", { className: "weather-caveat", text: weather.caveat })
+          : null
       ];
   return element("section", {
     className: `weather-card ${weather.status}`,
-    attributes: { "aria-label": "Current weather" }
+    attributes: {
+      "aria-label":
+        weather.status === "stale"
+          ? "Current weather. Updated earlier."
+          : "Current weather"
+    }
   }, [svgIcon(weather.icon), element("div", { className: "weather-copy" }, copy)]);
 }
 

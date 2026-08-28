@@ -178,3 +178,31 @@ test("missing weather is short and never blocks the schedule", () => {
   assert.equal(presentation.dashboard.now.title, "Media Lab");
   assert.equal(presentation.dashboard.next.title, "Planning");
 });
+
+test("stale cached weather stays distinct from ready and unavailable weather", () => {
+  const stale = buildTodayPresentation(model({
+    weather: {
+      status: "stale",
+      stale: true,
+      label: "72°F, feels 70°F (stale)",
+      current: {
+        weatherCode: 2,
+        temperature: "72°F",
+        feelsLike: "70°F",
+        condition: "Partly cloudy"
+      }
+    }
+  })).dashboard.weather;
+  const ready = buildTodayPresentation(model()).dashboard.weather;
+  const unavailable = buildTodayPresentation(model({
+    weather: { status: "unavailable", label: "Weather unavailable" }
+  })).dashboard.weather;
+
+  assert.equal(stale.status, "stale");
+  assert.equal(stale.caveat, "Updated earlier");
+  assert.equal(ready.status, "ready");
+  assert.equal(ready.caveat, undefined);
+  assert.equal(unavailable.status, "unavailable");
+  assert.notDeepEqual(stale, ready);
+  assert.notDeepEqual(stale, unavailable);
+});

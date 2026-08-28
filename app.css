@@ -143,13 +143,9 @@ h2 { font-size: 1.15rem; }
 .brand-lockup {
   display: flex;
   min-width: max-content;
-  align-items: center;
-  gap: 10px;
-}
-
-.brand-lockup > span:last-child {
-  display: flex;
   flex-direction: column;
+  justify-content: center;
+  gap: 0;
 }
 
 .brand-lockup strong {
@@ -161,19 +157,6 @@ h2 { font-size: 1.15rem; }
   color: var(--secondary);
   font-size: 0.75rem;
   font-weight: 500;
-}
-
-.brand-mark {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  place-items: center;
-  background: var(--blue);
-  color: var(--heading);
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
 }
 
 .primary-nav {
@@ -416,6 +399,18 @@ h2 { font-size: 1.15rem; }
 
 .weather-unavailable { margin: 0; }
 
+.weather-card.stale {
+  border-color: var(--warning-border);
+  background: #fffdf7;
+}
+
+.weather-caveat {
+  margin-top: 2px;
+  color: #715b22;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
 .duty-card.upcoming {
   border-color: var(--warning-border);
   background: var(--warning);
@@ -575,12 +570,6 @@ h2 { font-size: 1.15rem; }
   .site-header { position: static; }
 
   .header-inner { padding: 8px 14px 7px; }
-  .brand-lockup strong + span { display: none; }
-
-  .brand-mark {
-    width: 40px;
-    height: 40px;
-  }
 
   .primary-nav { gap: 0; }
   .primary-nav button { font-size: 0.7rem; }
