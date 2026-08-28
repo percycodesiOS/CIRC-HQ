@@ -132,6 +132,7 @@ export function getWeatherSummary(payload) {
 
   const currentModel = {
     time: current.time ?? null,
+    weatherCode: current.weather_code,
     temperature: degrees(current.temperature_2m),
     feelsLike: degrees(current.apparent_temperature),
     precipitation: `${current.precipitation} in`,

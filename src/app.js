@@ -1,6 +1,7 @@
 import { validateTeacherPlan } from "./model/teacher-plan.js";
 import { createWeatherService } from "./services/weather.js";
 import { LocalStore } from "./storage/local-store.js";
+import { buildTodayPresentation } from "./ui/today-ui.js";
 import { buildTodayViewModel } from "./ui/view-model.js";
 
 function element(tagName, options = {}, children = []) {
@@ -24,35 +25,26 @@ function localDateKey(date) {
   ].join("-");
 }
 
-function timeRange(event) {
-  return event ? `${event.startLabel} to ${event.endLabel}` : "None remaining today";
-}
-
-function priorityCard(className, label, value, meta, liveClock = false) {
-  const valueNode = element("strong", {
-    className: `value${liveClock ? " clock-value" : ""}`,
-    text: value,
-    attributes: liveClock ? { "data-live-clock": "" } : {}
-  });
-  return element("section", { className: `priority-card ${className}` }, [
-    element("span", { className: "label", text: label }),
-    valueNode,
-    element("span", { className: "meta", text: meta })
-  ]);
-}
-
 function buildHeading(model, onBoard) {
   const boardButton = element("button", {
     className: "board-button",
-    text: "Put it on the board",
+    text: "Open Board",
     attributes: { type: "button" }
   });
   boardButton.addEventListener("click", onBoard);
+  const cycle = model.cycle.day ? `Day ${model.cycle.day}` : "No cycle day";
   return element("div", { className: "page-heading" }, [
     element("div", {}, [
-      element("p", { className: "eyebrow", text: "Today" }),
-      element("h1", { text: "The Playbook" }),
-      element("p", { className: "date-line", text: model.clock.dateLabel })
+      element("h1", { text: "Today" }),
+      element("p", { className: "date-line", text: model.clock.dateLabel }),
+      element("p", { className: "day-clock" }, [
+        element("span", { text: cycle }),
+        element("span", {
+          className: "clock-value",
+          text: model.clock.timeLabel,
+          attributes: { "data-live-clock": "" }
+        })
+      ])
     ]),
     boardButton
   ]);
@@ -77,197 +69,144 @@ function buildTeacherPicker(model, onSelect) {
   }, children);
 }
 
-function buildPriority(model) {
-  const cycleValue = model.cycle.day ? `Day ${model.cycle.day}` : "No cycle day";
-  const currentValue = model.current?.title ?? model.currentLabel;
-  const currentMeta = model.current
-    ? `${timeRange(model.current)} | ${model.countdown?.label ?? ""}`
-    : model.countdown?.label ?? "No countdown";
-  const nextValue = model.next?.title ?? "None remaining today";
-  const nextMeta = model.next ? model.next.startLabel : "Day complete";
-  const activeDuty = model.duties.active;
-  const dutyAlert = model.alerts.duty;
-  const dutyValue = activeDuty
-    ? model.duties.event.title
-    : dutyAlert
-      ? `${dutyAlert.label} in ${dutyAlert.minutes}m`
-      : "No duty now";
-  const dutyMeta = activeDuty
-    ? `${model.duties.assignment} | ${model.duties.location}`
-    : dutyAlert
-      ? `${dutyAlert.assignment} | ${dutyAlert.location}`
-      : "Duty alert is clear";
-
-  return element("div", { className: "today-priority" }, [
-    priorityCard("clock", cycleValue, model.clock.timeLabel, model.cycle.source, true),
-    priorityCard("current", "Current", currentValue, currentMeta),
-    priorityCard("next", "Next", nextValue, nextMeta),
-    priorityCard("duty", activeDuty ? "Duty active" : "Duty", dutyValue, dutyMeta)
-  ]);
-}
-
-function buildStatusStrip(model) {
-  const cards = [
-    element("div", {
-      className: `status-card${model.weather.status === "unavailable" ? " warning" : ""}`,
-      text: model.weather.label
-    })
-  ];
-  if (model.specialEvents.length) {
-    const event = model.specialEvents[0];
-    cards.push(
-      element("div", {
-        className: "status-card warning",
-        text: `${event.title}: ${event.timeLabel}`
-      })
-    );
-  } else {
-    cards.push(element("div", { className: "status-card", text: model.sync.label }));
-  }
-  return element("div", { className: "status-strip" }, cards);
-}
-
-function buildTimeline(model) {
-  const list = element("div", { className: "timeline" });
-  if (!model.timeline.length) {
-    list.append(
-      element("div", { className: "empty-schedule" }, [
-        element("strong", { text: model.currentLabel }),
-        element("p", { text: model.nextAction || "No events are available for this day." })
-      ])
-    );
-  }
-  for (const event of model.timeline) {
-    list.append(
-      element("article", { className: `timeline-row ${event.state}` }, [
-        element("div", {
-          className: "timeline-time",
-          text: `${event.startLabel} to ${event.endLabel}`
-        }),
-        element("div", {}, [
-          element("div", { className: "timeline-title", text: event.title }),
-          element("span", { className: "timeline-state", text: event.state })
-        ])
-      ])
-    );
-  }
-  return element("section", { className: "timeline-column" }, [
-    element("h2", { text: "Full timeline" }),
-    list
-  ]);
-}
-
-function buildResetCard() {
-  const guidance = element("p", {
-    className: "reset-guidance",
-    text: "Choose a reset only when you need one."
-  });
-  const choices = {
-    Technology: "Pause the screen, name the offline next step, then continue.",
-    Time: "Protect the essential outcome and move the rest to the next block.",
-    Behavior: "Stop, restate the expectation, and restart with one clear action.",
-    Materials: "Use the closest safe substitute and note what needs restocked."
-  };
-  const buttons = Object.entries(choices).map(([label, text]) => {
-    const button = element("button", {
-      text: label,
-      attributes: { type: "button" }
-    });
-    button.addEventListener("click", () => {
-      guidance.textContent = text;
-    });
-    return button;
-  });
-  return element("section", { className: "card" }, [
-    element("p", { className: "eyebrow", text: "One-tap reset" }),
-    element("h2", { text: "Reset the block" }),
-    element("div", { className: "reset-actions" }, buttons),
-    guidance
-  ]);
-}
-
-function buildOperations(model) {
-  const weatherChildren = [
-    element("p", { className: "eyebrow", text: "Duty weather" }),
-    element("h2", { text: model.weather.label }),
-    element("p", { text: model.weather.detail || "Schedule remains available if weather cannot load." })
-  ];
-  for (const forecast of model.weather.dutyForecasts ?? []) {
-    weatherChildren.push(
-      element("p", {
-        text: `${forecast.timeLabel}: ${forecast.condition}, ${forecast.precipitationProbability} rain, ${forecast.temperature}, wind ${forecast.wind}`
-      })
-    );
-  }
-  weatherChildren.push(
-    element("a", {
-      text: "Weather by Open-Meteo",
-      attributes: {
-        href: "https://open-meteo.com/",
-        target: "_blank",
-        rel: "noreferrer"
-      }
-    })
-  );
-  const children = [element("section", { className: "card" }, weatherChildren)];
-  if (model.specialEvents.length) {
-    const special = model.specialEvents[0];
-    children.push(
-      element("section", { className: "card special-banner" }, [
-        element("p", { className: "eyebrow", text: "Special event" }),
-        element("h2", { text: special.title }),
-        element("p", { text: special.timeLabel })
-      ])
-    );
-  }
-  children.push(
-    element("section", { className: "card" }, [
-      element("p", { className: "eyebrow", text: "Sync status" }),
-      element("h2", { text: model.sync.label }),
-      element("p", { text: "The Playbook remains usable in local mode." })
-    ]),
-    buildResetCard()
-  );
-  return element("aside", {
-    className: "operations-column",
-    attributes: { "aria-label": "Today details" }
-  }, children);
-}
-
-function buildPlanNotice(model, navigate) {
+function buildPlanNotice(presentation, navigate) {
   const button = element("button", {
     className: "primary-action",
-    text: "Open Settings",
+    text: presentation.actionLabel,
     attributes: { type: "button" }
   });
   button.addEventListener("click", () => navigate("settings"));
-  return element("section", { className: "empty-schedule" }, [
-    element("h2", {
-      text: model.status === "plan-unsupported" ? "Plan format not supported" : "Teacher plan needed"
-    }),
-    element("p", { text: model.nextAction }),
+  return element("section", { className: "setup-card" }, [
+    element("h2", { text: presentation.title }),
     button
   ]);
 }
 
-function buildToday(model, actions) {
+function svgIcon(icon) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", icon.label);
+  svg.setAttribute("class", `weather-icon weather-icon-${icon.name}`);
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "1.8");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  for (const definition of icon.paths) {
+    const child = document.createElementNS("http://www.w3.org/2000/svg", definition.tag);
+    for (const [name, value] of Object.entries(definition)) {
+      if (name !== "tag") child.setAttribute(name, String(value));
+    }
+    svg.append(child);
+  }
+  return svg;
+}
+
+function buildNowCard(now) {
+  const timing = [];
+  if (now.endLabel) timing.push(element("span", { text: `Ends ${now.endLabel}` }));
+  if (now.countdown) timing.push(element("strong", { text: now.countdown }));
+  return element("section", { className: "now-card" }, [
+    element("p", { className: "card-label", text: "NOW" }),
+    element("h2", { text: now.title }),
+    element("div", { className: "now-timing" }, timing)
+  ]);
+}
+
+function buildNextCard(next) {
+  return element("section", { className: "next-card" }, [
+    element("p", { className: "card-label", text: "NEXT" }),
+    element("h2", { text: next.title }),
+    next.startLabel ? element("p", { className: "card-meta", text: next.startLabel }) : null
+  ]);
+}
+
+function buildWeatherCard(weather) {
+  const copy = weather.status === "unavailable"
+    ? [element("p", { className: "weather-unavailable", text: weather.label })]
+    : [
+        element("strong", { className: "weather-temp", text: weather.temperature }),
+        element("span", { className: "weather-feels", text: `Feels ${weather.feelsLike}` }),
+        element("span", { className: "weather-condition", text: weather.condition })
+      ];
+  return element("section", {
+    className: `weather-card ${weather.status}`,
+    attributes: { "aria-label": "Current weather" }
+  }, [svgIcon(weather.icon), element("div", { className: "weather-copy" }, copy)]);
+}
+
+function buildDutyCard(duty) {
+  if (!duty) return null;
+  return element("section", { className: `duty-card ${duty.state}` }, [
+    element("p", { className: "card-label", text: duty.state === "active" ? "DUTY NOW" : "DUTY SOON" }),
+    element("h2", { text: duty.title }),
+    element("p", { className: "card-meta", text: [duty.assignment, duty.location].filter(Boolean).join(" | ") })
+  ]);
+}
+
+function buildTimeline(timeline, onToggle) {
+  const button = element("button", {
+    className: "timeline-toggle",
+    text: timeline.controlLabel,
+    attributes: {
+      type: "button",
+      "aria-expanded": String(timeline.expanded),
+      "aria-controls": "full-day-list"
+    }
+  });
+  button.addEventListener("click", onToggle);
+  const children = [button];
+  if (timeline.expanded) {
+    const list = element("div", { className: "timeline", attributes: { id: "full-day-list" } });
+    for (const entry of timeline.rows) {
+      list.append(element("article", { className: `timeline-row ${entry.state}` }, [
+        element("div", { className: "timeline-time", text: entry.timeLabel }),
+        element("div", { className: "timeline-title", text: entry.title }),
+        entry.stateCue ? element("span", { className: "timeline-state", text: entry.stateCue }) : null
+      ]));
+    }
+    children.push(list);
+  }
+  return element("section", { className: "full-day" }, children);
+}
+
+function buildToday(model, actions, options) {
+  const presentation = buildTodayPresentation(model, options);
   const children = [buildHeading(model, () => actions.navigate("board"))];
-  if (model.teacher.options.length) {
+  if (presentation.showTeacherSelector) {
     children.push(buildTeacherPicker(model, actions.selectTeacher));
   }
-  if (["plan-required", "plan-unsupported", "teacher-unavailable"].includes(model.status)) {
-    children.push(buildPlanNotice(model, actions.navigate));
+  if (presentation.setup) {
+    children.push(buildPlanNotice(presentation.setup, actions.navigate));
     return element("section", { attributes: { "data-view": "today" } }, children);
   }
 
-  children.push(
-    buildPriority(model),
-    buildStatusStrip(model),
-    element("div", { className: "today-grid" }, [
-      buildTimeline(model),
-      buildOperations(model)
-    ])
-  );
+  const dashboard = presentation.dashboard;
+  const companionCards = [
+    buildNextCard(dashboard.next),
+    buildWeatherCard(dashboard.weather),
+    buildDutyCard(dashboard.duty)
+  ].filter(Boolean);
+  children.push(element("div", { className: "today-overview" }, [
+    buildNowCard(dashboard.now),
+    element("div", { className: "today-companions" }, companionCards)
+  ]));
+  if (dashboard.special) {
+    children.push(element("div", {
+      className: "special-banner",
+      text: `${dashboard.special.title}: ${dashboard.special.timeLabel}`
+    }));
+  }
+  children.push(buildTimeline(dashboard.timeline, actions.toggleTimeline));
+  children.push(element("details", { className: "today-details" }, [
+    element("summary", { text: "Details" }),
+    element("p", { text: dashboard.quietStatus }),
+    element("a", {
+      text: "Weather by Open-Meteo",
+      attributes: { href: "https://open-meteo.com/", target: "_blank", rel: "noreferrer" }
+    })
+  ]));
   return element("section", { attributes: { "data-view": "today" } }, children);
 }
 
@@ -409,6 +348,7 @@ export function renderApp(root, services = {}) {
     null;
   let weather = { status: "unavailable", label: "Weather unavailable" };
   let stagedPlan = null;
+  let timelineExpanded = false;
   let lastBoundaryKey = "";
   let lastRenderedMinute = "";
 
@@ -446,6 +386,7 @@ export function renderApp(root, services = {}) {
 
   function navigate(nextRoute) {
     route = nextRoute;
+    if (nextRoute !== "today") timelineExpanded = false;
     render();
     root.focus({ preventScroll: true });
   }
@@ -458,14 +399,20 @@ export function renderApp(root, services = {}) {
   function replaceState(nextState) {
     state = nextState;
     selectedTeacherId = state.plan?.teachers?.[0]?.id ?? null;
+    timelineExpanded = false;
+    render();
+  }
+
+  function toggleTimeline() {
+    timelineExpanded = !timelineExpanded;
     render();
   }
 
   function render() {
     const model = todayModel();
-    const actions = { navigate, selectTeacher };
+    const actions = { navigate, selectTeacher, toggleTimeline };
     let view;
-    if (route === "today") view = buildToday(model, actions);
+    if (route === "today") view = buildToday(model, actions, { timelineExpanded });
     else if (route === "board") view = boardRoute(model, navigate);
     else if (route === "curriculum") {
       view = emptyRoute("Curriculum", "Curriculum planning tools arrive in Task 5. Imported teacher data remains unchanged.");

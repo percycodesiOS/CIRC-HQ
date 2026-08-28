@@ -89,3 +89,42 @@ test("tracked public code contains no private schedule labels or forbidden dashe
   assert.doesNotMatch(combined, /\.innerHTML\s*=/);
   assert.doesNotMatch(combined, /[\u2013\u2014]/u);
 });
+
+test("normal startup contains no demo schedule and keeps default Today copy quiet", async () => {
+  const files = await listJavaScriptFiles(path.join(ROOT, "src"));
+  const sources = await Promise.all(files.map((file) => readFile(file, "utf8")));
+  const combined = sources.join("\n");
+
+  assert.doesNotMatch(combined, /Teacher A|Teacher B|Studio [A-Z]|Evening event/);
+  assert.doesNotMatch(combined, /No duty now/);
+  assert.doesNotMatch(combined, /One-tap reset|Sync status|Duty weather/);
+});
+
+test("simplified shell keeps readable colors and 44px controls", async () => {
+  const css = await readPublicSource("app.css");
+  assert.match(css, /--ink:\s*#243341/);
+  assert.match(css, /--secondary:\s*#526576/);
+  assert.match(css, /--canvas:\s*#f5f9fc/);
+  assert.match(css, /min-width:\s*44px/);
+  assert.match(css, /min-height:\s*44px/);
+
+  const channel = (value) => {
+    const normalized = value / 255;
+    return normalized <= 0.04045
+      ? normalized / 12.92
+      : ((normalized + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance = (hex) => {
+    const parts = hex.match(/[0-9a-f]{2}/gi).map((part) => channel(parseInt(part, 16)));
+    return 0.2126 * parts[0] + 0.7152 * parts[1] + 0.0722 * parts[2];
+  };
+  const contrast = (first, second) => {
+    const light = Math.max(luminance(first), luminance(second));
+    const dark = Math.min(luminance(first), luminance(second));
+    return (light + 0.05) / (dark + 0.05);
+  };
+
+  assert.ok(contrast("243341", "f5f9fc") >= 4.5);
+  assert.ok(contrast("526576", "f5f9fc") >= 4.5);
+  assert.ok(contrast("101820", "edf6fc") >= 4.5);
+});
