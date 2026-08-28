@@ -92,7 +92,7 @@ test("classroom projection excludes teacher-private notes, duty details, and pri
       { id: "private", text: "Call guardian", visibility: "teacher-private" }
     ],
     resources: [
-      { id: "public", title: "Build guide", url: "https://example.test/guide" },
+      { id: "public", title: "Build guide", url: "https://example.test/guide", privateLink: "https://example.test/private-guide" },
       { id: "secret", title: "Roster", url: "https://example.test/roster", private: true }
     ],
     plan: {
@@ -100,7 +100,15 @@ test("classroom projection excludes teacher-private notes, duty details, and pri
       version: 1,
       calendar: {},
       teachers: [
-        { id: "teacher", days: { 1: [{ id: "duty", type: "duty", label: "Hall duty" }] } }
+        {
+          id: "teacher",
+          days: {
+            1: [
+              { id: "teach", type: "teach", label: "Build time", privateLink: "https://example.test/private-event" },
+              { id: "duty", type: "duty", label: "Hall duty" }
+            ]
+          }
+        }
       ],
       specialEvents: [],
       resources: []
@@ -109,7 +117,12 @@ test("classroom projection excludes teacher-private notes, duty details, and pri
 
   assert.deepEqual(projection.notes.map((note) => note.id), ["visible"]);
   assert.deepEqual(projection.resources.map((resource) => resource.id), ["public"]);
+  assert.equal(projection.resources[0].privateLink, undefined);
+  assert.equal(projection.plan.teachers[0].days[1][0].id, "teach");
+  assert.equal(projection.plan.teachers[0].days[1][0].privateLink, undefined);
   assert.equal(JSON.stringify(projection).includes("Hall duty"), false);
   assert.equal(JSON.stringify(projection).includes("Call guardian"), false);
   assert.equal(JSON.stringify(projection).includes("roster"), false);
+  assert.equal(JSON.stringify(projection).includes("private-guide"), false);
+  assert.equal(JSON.stringify(projection).includes("private-event"), false);
 });

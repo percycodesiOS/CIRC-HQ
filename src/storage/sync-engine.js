@@ -106,7 +106,7 @@ function mergePlan(local, remote, conflicts) {
   return timestamp(remote) > timestamp(local) ? clone(remote) : clone(local);
 }
 
-function mergePreferences(local, remote) {
+function mergePreferences(local, remote, conflicts) {
   const merged = {};
   const keys = new Set([...Object.keys(isRecord(local) ? local : {}), ...Object.keys(isRecord(remote) ? remote : {})]);
   for (const key of keys) {
@@ -114,6 +114,9 @@ function mergePreferences(local, remote) {
     const right = remote?.[key];
     if (!isRecord(left) || !isRecord(right)) {
       merged[key] = clone(right === undefined ? left : right);
+    } else if (!deepEqual(left, right) && timestamp(left) === timestamp(right)) {
+      merged[key] = clone(left);
+      conflicts.push({ collection: "preferences", id: key, reason: "equal-timestamp-divergence", local: clone(left), remote: clone(right) });
     } else {
       merged[key] = clone(timestamp(right) > timestamp(left) ? right : left);
     }
@@ -139,8 +142,12 @@ export function mergeStates(local, remote) {
       state.tombstones
     );
   }
-  state.preferences = mergePreferences(local.preferences, remote.preferences);
-  state.notes = mergeEntities("notes", local.notes, remote.notes, conflicts);
+  state.preferences = mergePreferences(local.preferences, remote.preferences, conflicts);
+  state.notes = withoutTombstonedEntities(
+    "notes",
+    mergeEntities("notes", local.notes, remote.notes, conflicts),
+    state.tombstones
+  );
   if (local.classroomFacing || remote.classroomFacing) {
     state.classroomFacing = true;
     state.notes = state.notes.filter((note) => note?.visibility === "classroom");

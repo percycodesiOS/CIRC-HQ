@@ -103,6 +103,15 @@ function classroomResource(resource) {
   return isRecord(resource) && resource.private !== true && resource.visibility !== "teacher-private";
 }
 
+function withoutPrivateLinks(value) {
+  const safe = { ...value };
+  for (const key of Object.keys(safe)) {
+    const normalized = key.toLowerCase();
+    if (normalized.includes("private") && normalized.includes("link")) delete safe[key];
+  }
+  return safe;
+}
+
 function classroomPlan(plan) {
   if (!isRecord(plan)) return null;
   const projected = clone(plan);
@@ -111,7 +120,7 @@ function classroomPlan(plan) {
     for (const [day, events] of Object.entries(teacher.days || {})) {
       safeTeacher.days[day] = (Array.isArray(events) ? events : [])
         .filter((event) => event?.type !== "duty")
-        .map(({ privateNote, dutyDetails, ...event }) => event);
+        .map(({ privateNote, dutyDetails, ...event }) => withoutPrivateLinks(event));
     }
     return safeTeacher;
   });
@@ -129,7 +138,9 @@ export function createClassroomProjection(state) {
     classes: clone(Array.isArray(source.classes) ? source.classes : []),
     lessonGuides: clone(Array.isArray(source.lessonGuides) ? source.lessonGuides : []),
     specialEvents: clone(Array.isArray(source.specialEvents) ? source.specialEvents : []),
-    resources: clone((Array.isArray(source.resources) ? source.resources : []).filter(classroomResource)),
+    resources: (Array.isArray(source.resources) ? source.resources : [])
+      .filter(classroomResource)
+      .map(withoutPrivateLinks),
     notes: clone((Array.isArray(source.notes) ? source.notes : []).filter((note) => note?.visibility === "classroom")),
     preferences: clone(isRecord(source.preferences) ? source.preferences : {})
   };

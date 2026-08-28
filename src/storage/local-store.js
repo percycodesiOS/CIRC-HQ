@@ -36,8 +36,16 @@ export class LocalStore {
 
   backup() {
     const prior = this.storage.getItem(STATE_KEY);
-    if (prior !== null) this.storage.setItem(BACKUP_KEY, prior);
-    return prior === null ? null : JSON.parse(prior);
+    if (prior === null) return { state: createInitialState(this.clock.now()), error: null };
+    this.storage.setItem(BACKUP_KEY, prior);
+    try {
+      return { state: JSON.parse(prior), error: null };
+    } catch {
+      return {
+        state: createInitialState(this.clock.now()),
+        error: "Saved playbook state could not be read"
+      };
+    }
   }
 
   importPlan(plan) {

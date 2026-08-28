@@ -48,6 +48,17 @@ test("saving retains exactly one prior version as backup", () => {
   assert.deepEqual(JSON.parse(storage.getItem(STATE_KEY)), next);
 });
 
+test("backup recovers when the primary saved state is malformed", () => {
+  const storage = memoryStorage({ [STATE_KEY]: "{not json" });
+  const store = makeStore(storage);
+
+  const result = store.backup();
+
+  assert.equal(result.state.format, "playbook.state.v1");
+  assert.match(result.error, /could not be read/i);
+  assert.equal(storage.getItem(BACKUP_KEY), "{not json");
+});
+
 test("exports the complete portable state envelope", () => {
   const storage = memoryStorage();
   const store = makeStore(storage);

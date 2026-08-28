@@ -49,6 +49,19 @@ test("records a conflict for divergent equal-timestamp entities", () => {
   assert.deepEqual(result.conflicts.map((conflict) => [conflict.collection, conflict.id]), [["resources", "guide"]]);
 });
 
+test("records a conflict for divergent equal-timestamp preferences", () => {
+  const result = mergeStates(
+    state({ preferences: { theme: { value: "dark", updatedAt: "2026-08-20T10:00:00.000Z" } } }),
+    state({ preferences: { theme: { value: "light", updatedAt: "2026-08-20T10:00:00.000Z" } } })
+  );
+
+  assert.equal(result.state.preferences.theme.value, "dark");
+  assert.deepEqual(
+    result.conflicts.map((conflict) => [conflict.collection, conflict.id]),
+    [["preferences", "theme"]]
+  );
+});
+
 test("does not merge private notes into a classroom-facing state", () => {
   const result = mergeStates(
     state({ classroomFacing: true, notes: [{ id: "welcome", text: "Welcome", visibility: "classroom", updatedAt: "2026-08-20T10:00:00.000Z" }] }),
@@ -66,6 +79,16 @@ test("preserves tombstones while omitting tombstoned live entities", () => {
 
   assert.deepEqual(result.state.resources, []);
   assert.deepEqual(result.state.tombstones.map((item) => item.id), ["retired"]);
+});
+
+test("omits a tombstoned note while preserving its tombstone", () => {
+  const result = mergeStates(
+    state({ tombstones: [{ collection: "notes", id: "private-note", deletedAt: "2026-08-22T10:00:00.000Z" }] }),
+    state({ notes: [{ id: "private-note", text: "Retired", updatedAt: "2026-08-20T10:00:00.000Z" }] })
+  );
+
+  assert.deepEqual(result.state.notes, []);
+  assert.deepEqual(result.state.tombstones.map((item) => [item.collection, item.id]), [["notes", "private-note"]]);
 });
 
 test("uses plan version before its timestamp and conflicts on divergent equal versions", () => {
