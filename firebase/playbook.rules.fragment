@@ -1,0 +1,11 @@
+// Readiness fragment only. This is not a complete, deployable Firebase ruleset.
+// Separate-project namespaces reserved for a future approved activation:
+// /playbookTeachers/{uid}
+// /playbookTenants/{tenantId}
+// /playbookTenants/{tenantId}/members/{uid}
+// /playbookTenants/{tenantId}/scheduleTemplates/{scheduleId}
+
+// Intended policy direction:
+// - A signed-in teacher may access only /playbookTeachers/{uid} for their own UID.
+// - Tenant access must require a trusted membership document for the same UID.
+// - Board mode is not a Firebase identity and has no student accounts or student writes.
