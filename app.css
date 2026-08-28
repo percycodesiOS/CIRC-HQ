@@ -529,17 +529,112 @@ h2 { font-size: 1.15rem; }
   text-decoration: none;
 }
 
-.board-placeholder {
+.tool-grid {
   display: grid;
-  min-height: 60vh;
-  place-items: center;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
-.board-placeholder .card {
-  width: min(100%, 680px);
-  padding: 28px;
+.tool-card,
+.legacy-library,
+.private-resources,
+.board-heading,
+.board-section {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.tool-card summary {
+  min-height: 52px;
+  padding: 15px 17px;
+  cursor: pointer;
+  color: var(--heading);
+  font-weight: 650;
+}
+
+.tool-card > p,
+.tool-card > ul {
+  margin: 0;
+  padding: 0 17px 17px;
+}
+
+.tool-card > ul { padding-left: 38px; }
+
+.private-card { border-color: #b9d8ef; }
+
+.legacy-library,
+.private-resources {
+  margin-top: 16px;
+  padding: 20px;
+}
+
+.legacy-library p,
+.private-resources p { color: var(--secondary); }
+
+.plain-list {
+  margin: 0;
+  padding-left: 22px;
+}
+
+.plain-list li + li { margin-top: 7px; }
+
+.status-note,
+.empty-note { color: var(--secondary); }
+
+.resource-row {
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+
+.settings-row {
+  display: grid;
+  margin-top: 10px;
+  grid-template-columns: minmax(130px, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.settings-row input,
+.settings-row select {
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.board-view {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.board-heading {
+  grid-column: 1 / -1;
+  padding: 24px;
   text-align: center;
 }
+
+.board-heading h1 { font-size: clamp(2rem, 7vw, 4.6rem); }
+
+.board-lesson,
+.board-process { color: var(--secondary); }
+
+.board-countdown {
+  display: block;
+  margin: 12px 0;
+  color: var(--heading);
+  font-size: clamp(2rem, 8vw, 5rem);
+}
+
+.board-section { padding: 20px; }
+
+.board-section h2 { color: var(--blue-dark); }
 
 @media (max-width: 800px) {
   .header-inner {
@@ -561,7 +656,11 @@ h2 { font-size: 1.15rem; }
   }
 
   .today-overview,
-  .settings-grid { grid-template-columns: minmax(0, 1fr); }
+  .settings-grid,
+  .tool-grid,
+  .board-view { grid-template-columns: minmax(0, 1fr); }
+
+  .settings-row { grid-template-columns: minmax(0, 1fr); }
 
   .now-card { min-height: 200px; }
 }

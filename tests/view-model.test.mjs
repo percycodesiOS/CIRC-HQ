@@ -280,3 +280,27 @@ test("untimed special events remain explicitly untimed", () => {
   assert.equal(model.specialEvents.length, 1);
   assert.equal(model.specialEvents[0].timeLabel, "Time not entered");
 });
+
+test("v1-converted label and dutyDetails fields drive Today without inventing title metadata", () => {
+  const plan = makePlan();
+  const arrival = plan.teachers[0].days["1"].find((entry) => entry.type === "duty");
+  arrival.label = "Generic arrival responsibility";
+  delete arrival.title;
+  arrival.dutyDetails = {
+    label: "Arrival",
+    assignment: "Zones 1 through 3",
+    location: "Point 2"
+  };
+  delete arrival.duty;
+
+  const model = buildTodayViewModel(todayInput({
+    plan,
+    dateKey: "2026-08-27",
+    now: new Date("2026-08-27T08:40:00-04:00"),
+    nowMinutes: 8 * 60 + 40
+  }));
+
+  assert.equal(model.current.title, "Generic arrival responsibility");
+  assert.equal(model.duties.assignment, "Zones 1 through 3");
+  assert.equal(model.duties.location, "Point 2");
+});

@@ -18,9 +18,14 @@ function formatTime(minutes) {
 
 function displayTitle(event) {
   if (!event) return "";
-  return event.title === "Check assignment"
-    ? "Check assignment, confirmation needed"
-    : event.title || "Untitled event";
+  const title = event.title || event.label || "Untitled event";
+  return event.confirmation?.status === "needed" || title === "Check assignment"
+    ? `${title}, confirmation needed`
+    : title;
+}
+
+function dutyDetails(event) {
+  return event?.dutyDetails ?? event?.duty ?? {};
 }
 
 function displayEvent(event) {
@@ -133,10 +138,10 @@ export function getDutyAlert(
   return {
     eventId: upcoming.event.id,
     title: displayTitle(upcoming.event),
-    label: upcoming.event.duty?.label || "Duty",
+    label: dutyDetails(upcoming.event).label || "Duty",
     minutes: upcoming.minutes,
-    assignment: upcoming.event.duty?.assignment || "Assignment not entered",
-    location: upcoming.event.duty?.location || "Location not entered"
+    assignment: dutyDetails(upcoming.event).assignment || "Assignment not entered",
+    location: dutyDetails(upcoming.event).location || "Location not entered"
   };
 }
 
@@ -151,7 +156,7 @@ function specialEventsForDate(plan, dateKey) {
           : null;
       return {
         id: event.id,
-        title: event.title || "Special event",
+        title: event.title || event.label || "Special event",
         timeLabel: Number.isInteger(startMinutes)
           ? formatTime(startMinutes)
           : "Time not entered"
@@ -270,8 +275,8 @@ export function buildTodayViewModel(input = {}) {
     duties: {
       active: Boolean(activeDuty),
       event: displayEvent(activeDuty),
-      assignment: activeDuty?.duty?.assignment || "",
-      location: activeDuty?.duty?.location || ""
+      assignment: dutyDetails(activeDuty).assignment || "",
+      location: dutyDetails(activeDuty).location || ""
     },
     specialEvents: specialEventsForDate(plan, input.dateKey),
     weather: input.weather?.label ? structuredClone(input.weather) : unavailableWeather(),

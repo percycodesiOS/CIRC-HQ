@@ -1,8 +1,98 @@
-import { validateTeacherPlan } from "./model/teacher-plan.js";
+import { buildBoardProjection } from "./model/access.js";
 import { createWeatherService } from "./services/weather.js";
 import { LocalStore } from "./storage/local-store.js";
+import { buildBoardView } from "./ui/board.js";
+import { buildCurriculumView } from "./ui/curriculum.js";
+import { buildRoomView } from "./ui/room.js";
+import {
+  applyPlanImport,
+  exportSettingsBackup,
+  previewClosure,
+  previewCycleDayOverride,
+  previewMakeupDayStatus,
+  previewPlanImport,
+  previewSpecialEvent
+} from "./ui/settings.js";
 import { buildTodayPresentation } from "./ui/today-ui.js";
 import { buildTodayViewModel } from "./ui/view-model.js";
+
+function localhostName(hostname) {
+  return ["127.0.0.1", "localhost", "::1", "[::1]"].includes(hostname);
+}
+
+export async function loadPrivateSeedOnLocalhost({
+  hostname,
+  fetchImpl = globalThis.fetch,
+  store
+}) {
+  if (!localhostName(hostname)) {
+    return { status: "not-localhost", state: store?.load?.().state ?? null, nextAction: null };
+  }
+  let planResponse;
+  try {
+    planResponse = await fetchImpl("/__private__/plan.json", { cache: "no-store" });
+  } catch {
+    return { status: "not-found", state: store.load().state, nextAction: null };
+  }
+  if (!planResponse?.ok) {
+    return { status: "not-found", state: store.load().state, nextAction: null };
+  }
+  const planText = await planResponse.text();
+  let source;
+  try {
+    source = JSON.parse(planText);
+  } catch {
+    return {
+      status: "invalid-plan",
+      state: store.load().state,
+      nextAction: "Open Settings and choose a valid schedule file."
+    };
+  }
+
+  let migrationOptions;
+  if (source?.format === "playbook.teacherPlan.v1") {
+    let optionsResponse;
+    try {
+      optionsResponse = await fetchImpl("/__private__/migration-options.json", { cache: "no-store" });
+    } catch {
+      optionsResponse = null;
+    }
+    if (!optionsResponse?.ok) {
+      return {
+        status: "migration-options-required",
+        state: store.load().state,
+        nextAction: "Open Settings and check the private migration options."
+      };
+    }
+    try {
+      migrationOptions = JSON.parse(await optionsResponse.text());
+    } catch {
+      return {
+        status: "migration-options-required",
+        state: store.load().state,
+        nextAction: "Open Settings and check the private migration options."
+      };
+    }
+  }
+
+  const current = store.load().state.plan;
+  const preview = previewPlanImport(current, planText, { migrationOptions });
+  if (!preview.ok) {
+    return {
+      status: "preview-failed",
+      state: store.load().state,
+      nextAction: "Open Settings to review the schedule import problem."
+    };
+  }
+  const applied = applyPlanImport(store, preview.previewToken);
+  return applied.ok
+    ? { status: "applied", state: applied.state, nextAction: null }
+    : {
+        status: "apply-failed",
+        state: store.load().state,
+        nextAction: "Open Settings and preview the schedule again."
+      };
+}
 
 function element(tagName, options = {}, children = []) {
   const node = document.createElement(tagName);
@@ -69,7 +159,7 @@ function buildTeacherPicker(model, onSelect) {
   }, children);
 }
 
-function buildPlanNotice(presentation, navigate) {
+function buildPlanNotice(presentation, navigate, detail = "") {
   const button = element("button", {
     className: "primary-action",
     text: presentation.actionLabel,
@@ -78,6 +168,7 @@ function buildPlanNotice(presentation, navigate) {
   button.addEventListener("click", () => navigate("settings"));
   return element("section", { className: "setup-card" }, [
     element("h2", { text: presentation.title }),
+    detail ? element("p", { text: detail }) : null,
     button
   ]);
 }
@@ -186,7 +277,11 @@ function buildToday(model, actions, options) {
     children.push(buildTeacherPicker(model, actions.selectTeacher));
   }
   if (presentation.setup) {
-    children.push(buildPlanNotice(presentation.setup, actions.navigate));
+    children.push(buildPlanNotice(
+      presentation.setup,
+      actions.navigate,
+      actions.privateSeedMessage
+    ));
     return element("section", { attributes: { "data-view": "today" } }, children);
   }
 
@@ -218,52 +313,158 @@ function buildToday(model, actions, options) {
   return element("section", { attributes: { "data-view": "today" } }, children);
 }
 
-function emptyRoute(title, message) {
-  return element("section", { className: "empty-view" }, [
-    element("p", { className: "eyebrow", text: "The Playbook" }),
-    element("h1", { text: title }),
-    element("p", { text: message })
-  ]);
+function textList(items, className = "plain-list") {
+  const list = element("ul", { className });
+  for (const item of Array.isArray(items) ? items : []) {
+    list.append(element("li", { text: item }));
+  }
+  return list;
 }
 
-function boardRoute(model, navigate) {
+function boardRoute(state, model, navigate) {
+  const projection = buildBoardProjection(state, model.current?.id);
+  const board = buildBoardView(projection);
   const exit = element("button", {
     className: "primary-action",
     text: "Return to Today",
     attributes: { type: "button" }
   });
   exit.addEventListener("click", () => navigate("today"));
-  return element("section", { className: "board-placeholder" }, [
-    element("div", { className: "card" }, [
+  const lesson = [
+    board.objective ? element("section", { className: "board-section" }, [
+      element("h2", { text: "Objective" }),
+      element("p", { text: board.objective })
+    ]) : null,
+    board.steps.length ? element("section", { className: "board-section" }, [
+      element("h2", { text: "Steps" }),
+      textList(board.steps)
+    ]) : null,
+    board.materials.length ? element("section", { className: "board-section" }, [
+      element("h2", { text: "Materials" }),
+      textList(board.materials)
+    ]) : null,
+    board.safety ? element("section", { className: "board-section" }, [
+      element("h2", { text: "Safety" }),
+      element("p", { text: board.safety })
+    ]) : null,
+    board.cleanup ? element("section", { className: "board-section" }, [
+      element("h2", { text: "Cleanup" }),
+      element("p", { text: board.cleanup })
+    ]) : null,
+    board.exitPrompt ? element("section", { className: "board-section" }, [
+      element("h2", { text: "Exit" }),
+      element("p", { text: board.exitPrompt })
+    ]) : null
+  ].filter(Boolean);
+  return element("section", { className: "board-view", attributes: { "data-view": "board" } }, [
+    element("div", { className: "board-heading" }, [
       element("p", { className: "eyebrow", text: "Board" }),
-      element("h1", { text: model.current?.title || model.next?.title || "Board is ready for setup" }),
-      element("p", {
-        text: "The full classroom-facing Board arrives in Task 5. This preview does not expose teacher notes or duty details."
-      }),
+      element("h1", { text: board.classTitle || model.current?.title || "Board is ready when a class is active" }),
+      board.lessonTitle ? element("p", { className: "board-lesson", text: board.lessonTitle }) : null,
+      board.countdown ? element("strong", { className: "board-countdown", text: board.countdown }) : null,
+      board.currentProcessStep ? element("p", { className: "board-process", text: `Current step: ${board.currentProcessStep}` }) : null,
       exit
+    ]),
+    ...lesson
+  ]);
+}
+
+function curriculumRoute(state, model) {
+  const view = buildCurriculumView(model.current ?? model.next ?? {}, state);
+  const cards = view.cards.map((card, index) => {
+    const content = Array.isArray(card.value)
+      ? (card.value.length ? textList(card.value) : element("p", { text: "Nothing added yet" }))
+      : element("p", { text: card.value || "Nothing added yet" });
+    return element("details", {
+      className: `tool-card${card.visibility === "teacher-private" ? " private-card" : ""}`,
+      attributes: index === 0 ? { open: "" } : {}
+    }, [
+      element("summary", { text: card.label }),
+      content
+    ]);
+  });
+  return element("section", { attributes: { "data-view": "curriculum" } }, [
+    element("div", { className: "page-heading" }, [
+      element("div", {}, [
+        element("p", { className: "eyebrow", text: "The Playbook" }),
+        element("h1", { text: "Curriculum" }),
+        element("p", { className: "date-line", text: `${view.title} | ${view.status}` })
+      ])
+    ]),
+    element("div", { className: "tool-grid" }, cards),
+    element("section", { className: "legacy-library" }, [
+      element("h2", { text: view.legacyLibrary.title }),
+      element("p", { text: `${view.legacyLibrary.count} preserved experiences remain in the classroom runner.` }),
+      element("a", {
+        className: "button-link",
+        text: "Open Legacy Activity Library",
+        attributes: { href: view.legacyLibrary.href }
+      })
     ])
   ]);
 }
 
-function countEvents(plan) {
-  return plan.teachers.reduce(
-    (total, teacher) =>
-      total + Object.values(teacher.days).reduce(
-        (sum, events) => sum + (Array.isArray(events) ? events.length : 0),
-        0
-      ),
-    0
-  );
+function roomRoute(state) {
+  const view = buildRoomView(state);
+  const sections = view.genericSections.map((section) => element("details", {
+    className: "tool-card"
+  }, [
+    element("summary", { text: section.title }),
+    section.status ? element("p", { className: "status-note", text: section.status }) : null,
+    textList(section.items)
+  ]));
+  const privateResources = view.privateResources.length
+    ? view.privateResources.map((resource) => element("article", { className: "resource-row" }, [
+        element("h3", { text: resource.title }),
+        typeof resource.note === "string" ? element("p", { text: resource.note }) : null,
+        typeof resource.href === "string" ? element("a", { text: "Open resource", attributes: { href: resource.href } }) : null
+      ]))
+    : [element("p", { className: "empty-note", text: view.privateResourceStatus })];
+  return element("section", { attributes: { "data-view": "room" } }, [
+    element("div", { className: "page-heading" }, [
+      element("div", {}, [
+        element("p", { className: "eyebrow", text: "The Playbook" }),
+        element("h1", { text: "Room" }),
+        element("p", { className: "date-line", text: "Generic operating help and your saved private references" })
+      ])
+    ]),
+    element("div", { className: "tool-grid" }, sections),
+    element("section", { className: "private-resources" }, [
+      element("h2", { text: "Private resources" }),
+      ...privateResources
+    ])
+  ]);
+}
+
+function scheduleRoute(state, navigate) {
+  const plan = state.plan;
+  const teacherCount = Array.isArray(plan?.teachers) ? plan.teachers.length : 0;
+  const button = element("button", { className: "primary-action", text: "Open schedule settings", attributes: { type: "button" } });
+  button.addEventListener("click", () => navigate("settings"));
+  return element("section", { attributes: { "data-view": "schedule" } }, [
+    element("div", { className: "page-heading" }, [
+      element("div", {}, [
+        element("p", { className: "eyebrow", text: "The Playbook" }),
+        element("h1", { text: "Schedule" }),
+        element("p", { className: "date-line", text: teacherCount ? `${teacherCount} teacher schedule loaded` : "Schedule not loaded yet" })
+      ])
+    ]),
+    element("section", { className: "setup-card" }, [
+      element("h2", { text: "Safe schedule changes" }),
+      element("p", { text: "Preview imports and calendar changes in Settings before applying them." }),
+      button
+    ])
+  ]);
 }
 
 function settingsRoute(context) {
   const importMessage = element("p", {
     className: "import-message",
-    text: "Choose a playbook.teacherPlan.v2 JSON file. The older private v1 format is not migrated in this task."
+    text: context.privateSeedMessage || "Choose a supported teacher-plan JSON file to preview changes."
   });
   const applyButton = element("button", {
     className: "primary-action",
-    text: "Apply validated plan",
+    text: "Apply",
     attributes: { type: "button", disabled: "" }
   });
   const picker = element("input", {
@@ -271,7 +472,7 @@ function settingsRoute(context) {
   });
 
   picker.addEventListener("change", async () => {
-    context.stagedPlan = null;
+    context.previewToken = null;
     applyButton.setAttribute("disabled", "");
     const file = picker.files?.[0];
     if (!file) {
@@ -279,28 +480,83 @@ function settingsRoute(context) {
       return;
     }
     try {
-      const candidate = JSON.parse(await file.text());
-      const validated = validateTeacherPlan(candidate);
-      if (!validated.ok) throw new Error("unsupported");
-      context.stagedPlan = validated.value;
+      const preview = previewPlanImport(context.state.plan, await file.text(), {
+        migrationOptions: context.migrationOptions
+      });
+      if (!preview.ok) throw new Error("unsupported");
+      context.previewToken = preview.previewToken;
       applyButton.removeAttribute("disabled");
-      importMessage.textContent = `Ready to apply ${validated.value.teachers.length} teacher view(s) and ${countEvents(validated.value)} scheduled event(s).`;
+      importMessage.textContent = `Preview changes: ${preview.summary.teacherCount} teacher view(s), ${preview.summary.eventCount} scheduled event(s), ${preview.summary.addedCount} added, ${preview.summary.removedCount} removed, ${preview.summary.changedCount} changed.`;
     } catch {
-      importMessage.textContent = "This file is unsupported or invalid. A validated v2 plan is required. Existing local data was not changed.";
+      importMessage.textContent = "This file is unsupported or invalid. Existing local data was not changed. Check local migration options for a private v1 file.";
     }
   });
 
   applyButton.addEventListener("click", () => {
-    if (!context.stagedPlan) return;
-    const result = context.store.importPlan(context.stagedPlan);
+    if (!context.previewToken) return;
+    const result = applyPlanImport(context.store, context.previewToken);
     if (!result.ok) {
-      importMessage.textContent = "The plan could not be applied. Existing local data was not changed.";
+      importMessage.textContent = "Apply needs the exact current preview. Preview the change again.";
       return;
     }
     context.replaceState(result.state);
-    context.stagedPlan = null;
+    context.previewToken = null;
     applyButton.setAttribute("disabled", "");
     importMessage.textContent = "Validated plan applied on this browser.";
+  });
+
+  const stage = (preview) => {
+    context.previewToken = preview.ok ? preview.previewToken : null;
+    if (preview.ok) {
+      applyButton.removeAttribute("disabled");
+      importMessage.textContent = "Preview changes is ready. Select Apply to save it.";
+    } else {
+      applyButton.setAttribute("disabled", "");
+      importMessage.textContent = "That change could not be previewed. Existing local data was not changed.";
+    }
+  };
+
+  const closureDate = element("input", { attributes: { type: "date", "aria-label": "Closure date" } });
+  const closureButton = element("button", { text: "Add closure", attributes: { type: "button" } });
+  closureButton.addEventListener("click", () => stage(previewClosure(context.state.plan, closureDate.value)));
+
+  const makeupDate = element("input", { attributes: { type: "date", "aria-label": "Makeup date" } });
+  const makeupStatus = element("select", { attributes: { "aria-label": "Makeup-day status" } }, [
+    element("option", { text: "Pending", attributes: { value: "pending" } }),
+    element("option", { text: "Instructional", attributes: { value: "instructional" } }),
+    element("option", { text: "Closed", attributes: { value: "closed" } })
+  ]);
+  const makeupButton = element("button", { text: "Set makeup-day status", attributes: { type: "button" } });
+  makeupButton.addEventListener("click", () => stage(previewMakeupDayStatus(
+    context.state.plan,
+    makeupDate.value,
+    makeupStatus.value
+  )));
+
+  const cycleDate = element("input", { attributes: { type: "date", "aria-label": "Cycle override date" } });
+  const cycleDay = element("input", { attributes: { type: "number", min: "1", max: "5", inputmode: "numeric", "aria-label": "Cycle day" } });
+  const cycleButton = element("button", { text: "Set cycle-day override", attributes: { type: "button" } });
+  cycleButton.addEventListener("click", () => stage(previewCycleDayOverride(
+    context.state.plan,
+    cycleDate.value,
+    Number(cycleDay.value)
+  )));
+
+  const specialDate = element("input", { attributes: { type: "date", "aria-label": "Special event date" } });
+  const specialLabel = element("input", { attributes: { type: "text", "aria-label": "Special event title", placeholder: "Event title" } });
+  const specialButton = element("button", { text: "Add special event", attributes: { type: "button" } });
+  specialButton.addEventListener("click", () => stage(previewSpecialEvent(context.state.plan, {
+    date: specialDate.value,
+    label: specialLabel.value
+  })));
+
+  const exportButton = element("button", { text: "Export backup", attributes: { type: "button" } });
+  exportButton.addEventListener("click", () => {
+    const blob = new Blob([exportSettingsBackup(context.store)], { type: "application/json" });
+    const href = URL.createObjectURL(blob);
+    const link = element("a", { attributes: { href, download: "circ-hq-backup.json" } });
+    link.click();
+    URL.revokeObjectURL(href);
   });
 
   return element("section", {}, [
@@ -313,13 +569,25 @@ function settingsRoute(context) {
     ]),
     element("div", { className: "settings-grid" }, [
       element("section", {}, [
-        element("h2", { text: "Schedule import" }),
+        element("h2", { text: "Import schedule" }),
         importMessage,
         picker,
         applyButton
       ]),
       element("section", {}, [
-        element("h2", { text: "Cloud status" }),
+        element("h2", { text: "Calendar overrides" }),
+        element("div", { className: "settings-row" }, [closureDate, closureButton]),
+        element("div", { className: "settings-row" }, [makeupDate, makeupStatus, makeupButton]),
+        element("div", { className: "settings-row" }, [cycleDate, cycleDay, cycleButton]),
+        element("div", { className: "settings-row" }, [specialDate, specialLabel, specialButton])
+      ]),
+      element("section", {}, [
+        element("h2", { text: "Backup" }),
+        element("p", { text: "Export a complete local backup before a major change." }),
+        exportButton
+      ]),
+      element("section", {}, [
+        element("h2", { text: "Cloud activation status" }),
         element("p", { text: "Cloud setup is not configured. Local mode remains fully usable." })
       ]),
       element("section", {}, [
@@ -355,7 +623,8 @@ export function renderApp(root, services = {}) {
     state.plan?.teachers?.[0]?.id ??
     null;
   let weather = { status: "unavailable", label: "Weather unavailable" };
-  let stagedPlan = null;
+  let previewToken = null;
+  let privateSeedMessage = "";
   let timelineExpanded = false;
   let lastBoundaryKey = "";
   let lastRenderedMinute = "";
@@ -418,25 +687,32 @@ export function renderApp(root, services = {}) {
 
   function render() {
     const model = todayModel();
-    const actions = { navigate, selectTeacher, toggleTimeline };
+    const actions = {
+      navigate,
+      selectTeacher,
+      toggleTimeline,
+      privateSeedMessage
+    };
     let view;
     if (route === "today") view = buildToday(model, actions, { timelineExpanded });
-    else if (route === "board") view = boardRoute(model, navigate);
-    else if (route === "curriculum") {
-      view = emptyRoute("Curriculum", "Curriculum planning tools arrive in Task 5. Imported teacher data remains unchanged.");
-    } else if (route === "schedule") {
-      view = emptyRoute("Schedule", "The full schedule editor arrives in Task 5. Use Settings to import a validated plan now.");
-    } else if (route === "room") {
-      view = emptyRoute("Room", "Room inventory tools arrive in Task 5. No equipment or safety status is assumed here.");
-    } else {
+    else if (route === "board") view = boardRoute(state, model, navigate);
+    else if (route === "curriculum") view = curriculumRoute(state, model);
+    else if (route === "schedule") view = scheduleRoute(state, navigate);
+    else if (route === "room") view = roomRoute(state);
+    else {
       const context = {
         store,
-        get stagedPlan() {
-          return stagedPlan;
+        get state() {
+          return state;
         },
-        set stagedPlan(value) {
-          stagedPlan = value;
+        get previewToken() {
+          return previewToken;
         },
+        set previewToken(value) {
+          previewToken = value;
+        },
+        migrationOptions: services.migrationOptions,
+        privateSeedMessage,
         replaceState
       };
       view = settingsRoute(context);
@@ -454,6 +730,25 @@ export function renderApp(root, services = {}) {
   }
 
   render();
+
+  const privateSeedPromise = services.loadPrivateSeed === false
+    ? Promise.resolve({ status: "disabled", state, nextAction: null })
+    : loadPrivateSeedOnLocalhost({
+        hostname: services.hostname ?? window.location.hostname,
+        fetchImpl: services.fetchImpl ?? window.fetch.bind(window),
+        store
+      }).then((result) => {
+        if (result.status === "applied") {
+          state = result.state;
+          selectedTeacherId = state.plan?.teachers?.[0]?.id ?? null;
+          privateSeedMessage = "";
+          render();
+        } else if (result.nextAction) {
+          privateSeedMessage = result.nextAction;
+          render();
+        }
+        return result;
+      });
 
   const timer = window.setInterval(() => {
     const currentTime = now();
@@ -484,6 +779,7 @@ export function renderApp(root, services = {}) {
   return {
     navigate,
     selectTeacher,
+    ready: privateSeedPromise,
     destroy() {
       window.clearInterval(timer);
       for (const button of navButtons) button.replaceWith(button.cloneNode(true));
