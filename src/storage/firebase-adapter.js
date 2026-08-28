@@ -1,6 +1,22 @@
 import { mergeStates } from "./sync-engine.js";
 
 const FIREBASE_MODULE_ROOT = "https://www.gstatic.com/firebasejs/10.12.2";
+const PRIVATE_STATE_FIELDS = [
+  "format",
+  "schemaVersion",
+  "updatedAt",
+  "plan",
+  "teacherProgress",
+  "checklist",
+  "classes",
+  "lessonGuides",
+  "specialEvents",
+  "resources",
+  "notes",
+  "preferences",
+  "tombstones",
+  "classroomFacing"
+];
 
 function errorMessage(error) {
   return error instanceof Error ? error.message : String(error);
@@ -20,7 +36,11 @@ function unavailableResult(status) {
 }
 
 export function buildTeacherDocumentPatch(state) {
-  return { playbookPrivateV1: structuredClone(state) };
+  const privateState = {};
+  for (const field of PRIVATE_STATE_FIELDS) {
+    if (Object.hasOwn(state ?? {}, field)) privateState[field] = structuredClone(state[field]);
+  }
+  return { playbookPrivateV1: privateState };
 }
 
 export function createFirebaseAdapter({ config = null, firebase = null, merge = mergeStates } = {}) {
@@ -112,4 +132,14 @@ export async function createBrowserFirebaseDependencies(config) {
     getDocument: readDocument,
     setDocument: (path, patch, options) => firestoreModule.setDoc(firestoreModule.doc(database, path), patch, options)
   };
+}
+
+export async function createBrowserFirebaseAdapter({ config = null, loadDependencies = createBrowserFirebaseDependencies } = {}) {
+  if (config === null || config === undefined) return createFirebaseAdapter();
+  try {
+    const firebase = await loadDependencies(config);
+    return createFirebaseAdapter({ config, firebase });
+  } catch {
+    return createFirebaseAdapter({ config });
+  }
 }

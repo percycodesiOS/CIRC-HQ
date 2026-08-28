@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createFirebaseAdapter, buildTeacherDocumentPatch } from "../src/storage/firebase-adapter.js";
+import { createBrowserFirebaseAdapter, createFirebaseAdapter, buildTeacherDocumentPatch } from "../src/storage/firebase-adapter.js";
 
 function state(overrides = {}) {
   return {
@@ -39,16 +39,18 @@ function firebaseDouble({ uid = "kenny-uid", remoteState = null, loadError = nul
 }
 
 test("buildTeacherDocumentPatch protects the private state boundary", () => {
-  const privateState = state({ role: "admin", tenantId: "tenant-a", claims: { teacher: true }, credential: "secret" });
+  const privateState = state({ role: "admin", tenantId: "tenant-a", claims: { teacher: true }, credential: "secret", unrecognizedSensitiveField: "exclude me" });
 
   const patch = buildTeacherDocumentPatch(privateState);
 
   assert.deepEqual(Object.keys(patch), ["playbookPrivateV1"]);
-  assert.deepEqual(patch.playbookPrivateV1, privateState);
-  assert.equal("role" in patch, false);
-  assert.equal("tenantId" in patch, false);
-  assert.equal("claims" in patch, false);
-  assert.equal("credential" in patch, false);
+  assert.equal(patch.playbookPrivateV1.format, "playbook.state.v1");
+  assert.deepEqual(patch.playbookPrivateV1.resources, []);
+  assert.equal("role" in patch.playbookPrivateV1, false);
+  assert.equal("tenantId" in patch.playbookPrivateV1, false);
+  assert.equal("claims" in patch.playbookPrivateV1, false);
+  assert.equal("credential" in patch.playbookPrivateV1, false);
+  assert.equal("unrecognizedSensitiveField" in patch.playbookPrivateV1, false);
 });
 
 test("uses the signed-in teacher's exact private document path and merges newer remote state before saving", async () => {
@@ -90,4 +92,15 @@ test("keeps local mode usable when Firebase configuration is absent", async () =
   assert.equal(adapter.status, "not-configured");
   assert.deepEqual(await adapter.loadPrivateState(), { status: "not-configured", state: null, error: null });
   assert.deepEqual(await adapter.savePrivateState(state()), { status: "not-configured", state: null, error: null });
+});
+
+test("guards browser initialization failures with cloud-blocked local-usable behavior", async () => {
+  const adapter = await createBrowserFirebaseAdapter({
+    config: { apiKey: "injected-test-value" },
+    loadDependencies: async () => { throw new Error("module unavailable"); }
+  });
+
+  assert.equal(adapter.status, "cloud-blocked");
+  assert.deepEqual(await adapter.loadPrivateState(), { status: "cloud-blocked", state: null, error: null });
+  assert.deepEqual(await adapter.savePrivateState(state()), { status: "cloud-blocked", state: null, error: null });
 });

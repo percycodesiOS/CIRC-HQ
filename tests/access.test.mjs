@@ -31,3 +31,25 @@ test("buildBoardProjection exposes only the active classroom content", () => {
     currentProcessStep: "Test the pattern"
   });
 });
+
+test("buildBoardProjection excludes nested private data from materials and directions", () => {
+  const state = {
+    classes: [{ id: "class-5", title: "Period 2 Grade 5" }],
+    lessonGuides: [{
+      id: "lesson-1",
+      title: "Binary Basics",
+      materials: ["Cards", { text: "Private device", teacherNotes: "Do not show", firebaseUid: "kenny" }],
+      directions: ["Pair up", { step: "Secret", dutyDetails: "Hall", privateLink: "https://private.example" }]
+    }],
+    specialEvents: [{ id: "event-1", classId: "class-5", lessonGuideId: "lesson-1", countdown: "04:00", currentProcessStep: "Test the pattern" }]
+  };
+
+  const projection = buildBoardProjection(state, "event-1");
+
+  assert.deepEqual(projection.materials, ["Cards"]);
+  assert.deepEqual(projection.directions, ["Pair up"]);
+  assert.equal(JSON.stringify(projection).includes("teacherNotes"), false);
+  assert.equal(JSON.stringify(projection).includes("firebaseUid"), false);
+  assert.equal(JSON.stringify(projection).includes("dutyDetails"), false);
+  assert.equal(JSON.stringify(projection).includes("privateLink"), false);
+});

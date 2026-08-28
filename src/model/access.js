@@ -6,6 +6,10 @@ function findById(items, id) {
   return (Array.isArray(items) ? items : []).find((item) => item?.id === id) ?? null;
 }
 
+function publicStrings(value) {
+  return (Array.isArray(value) ? value : []).filter((item) => typeof item === "string");
+}
+
 export function getAccessMode(session = {}) {
   if (!session.configured) return "local";
   if (!session.user?.uid) return "signed-out";
@@ -23,8 +27,8 @@ export function buildBoardProjection(state, eventId) {
     classTitle: typeof classroom.title === "string" ? classroom.title : "",
     countdown: typeof event.countdown === "string" ? event.countdown : "",
     lessonTitle: typeof lesson.title === "string" ? lesson.title : "",
-    materials: structuredClone(Array.isArray(lesson.materials) ? lesson.materials : []),
-    directions: structuredClone(Array.isArray(lesson.directions) ? lesson.directions : []),
+    materials: publicStrings(lesson.materials),
+    directions: publicStrings(lesson.directions),
     currentProcessStep: typeof event.currentProcessStep === "string" ? event.currentProcessStep : ""
   };
 }
