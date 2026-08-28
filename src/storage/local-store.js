@@ -14,6 +14,12 @@ function admittedState(value) {
   return admitResourceState(value, { source: "local" });
 }
 
+function parseAdmittedState(raw) {
+  const state = JSON.parse(raw);
+  if (state?.format !== STATE_FORMAT) throw new Error("unexpected format");
+  return admittedState(state);
+}
+
 export class LocalStore {
   constructor(storage, clock = { now: () => new Date().toISOString() }) {
     this.storage = storage;
@@ -24,9 +30,7 @@ export class LocalStore {
     const raw = this.storage.getItem(STATE_KEY);
     if (raw === null) return { state: migrateLegacyState(this.storage, this.clock.now()).state, error: null };
     try {
-      const state = JSON.parse(raw);
-      if (state?.format !== STATE_FORMAT) throw new Error("unexpected format");
-      return { state: admittedState(state), error: null };
+      return { state: parseAdmittedState(raw), error: null };
     } catch {
       return { state: createInitialState(this.clock.now()), error: "Saved playbook state could not be read" };
     }
@@ -36,9 +40,9 @@ export class LocalStore {
     const previous = this.storage.getItem(STATE_KEY);
     if (previous !== null) {
       try {
-        this.storage.setItem(BACKUP_KEY, JSON.stringify(admittedState(JSON.parse(previous))));
+        this.storage.setItem(BACKUP_KEY, JSON.stringify(parseAdmittedState(previous)));
       } catch {
-        this.storage.setItem(BACKUP_KEY, previous);
+        // Preserve the last known-good backup when prior state cannot be admitted.
       }
     }
     const admitted = admittedState(state);
@@ -49,9 +53,8 @@ export class LocalStore {
   backup() {
     const prior = this.storage.getItem(STATE_KEY);
     if (prior === null) return { state: createInitialState(this.clock.now()), error: null };
-    this.storage.setItem(BACKUP_KEY, prior);
     try {
-      const state = admittedState(JSON.parse(prior));
+      const state = parseAdmittedState(prior);
       this.storage.setItem(BACKUP_KEY, JSON.stringify(state));
       return { state, error: null };
     } catch {

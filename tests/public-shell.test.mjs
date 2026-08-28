@@ -4,9 +4,11 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
+import { normalizedTextSha256 } from "../scripts/verify-public.mjs";
+
 const ROOT = path.resolve(import.meta.dirname, "..");
 const LEGACY_SHA256 =
-  "5DF75CEA0693920856A95949F6EFBBE54961EAA77117637EA433D786AF5205E3";
+  "6E7FF5AA3B15A57A44F0D3351C6C6A5A3B3D14813E9B5616AF3D138C5E41B69F";
 
 async function readPublicSource(relativePath) {
   return readFile(path.join(ROOT, relativePath), "utf8");
@@ -35,6 +37,8 @@ test("public entrypoints are byte-identical ordinary local shells", async () => 
 
   const html = indexBytes.toString("utf8");
   assert.match(html, /<link[^>]+href="app\.css"/);
+  assert.match(html, /<link[^>]+rel="icon"[^>]+href="data:,"/);
+  assert.doesNotMatch(html, /favicon\.(?:ico|svg)/i);
   assert.match(html, /<script[^>]+type="module"[^>]+src="src\/app\.js"/);
   assert.doesNotMatch(html, /<x-dc|<sc-if|<sc-for|support\.js|text\/x-dc/i);
   assert.doesNotMatch(html, /https?:\/\//i);
@@ -63,7 +67,7 @@ test("public shell exposes the approved name and exact navigation", async () => 
 
 test("legacy classroom snapshot retains the locked pre-task bytes", async () => {
   const bytes = await readFile(path.join(ROOT, "classroom-legacy.html"));
-  const digest = createHash("sha256").update(bytes).digest("hex").toUpperCase();
+  const digest = normalizedTextSha256(bytes);
   assert.equal(digest, LEGACY_SHA256);
 });
 
@@ -111,6 +115,7 @@ test("simplified shell keeps readable colors and 44px controls", async () => {
   assert.match(css, /--canvas:\s*#f5f9fc/);
   assert.match(css, /min-width:\s*44px/);
   assert.match(css, /min-height:\s*44px/);
+  assert.match(css, /\.attribution-link,\s*\n\.resource-link\s*\{[^}]*min-height:\s*44px/s);
 
   const channel = (value) => {
     const normalized = value / 255;

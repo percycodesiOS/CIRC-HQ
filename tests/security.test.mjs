@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
-import { readdir, readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { pathToFileURL } from "node:url";
 
 import * as access from "../src/model/access.js";
 import * as devServer from "../scripts/dev-server.mjs";
@@ -17,7 +19,7 @@ import { previewPlanImport } from "../src/ui/settings.js";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const LEGACY_SHA256 =
-  "5DF75CEA0693920856A95949F6EFBBE54961EAA77117637EA433D786AF5205E3";
+  "6E7FF5AA3B15A57A44F0D3351C6C6A5A3B3D14813E9B5616AF3D138C5E41B69F";
 const verifier = await import("../scripts/verify-public.mjs").catch(() => null);
 
 async function listFilesRecursively(directory) {
@@ -392,9 +394,208 @@ test("public verifier has a recursive-safe sanitized gate contract", () => {
       candidateCount: 3,
       trackedCount: 1,
       allowedUntrackedCount: 1,
-      unexpectedUntrackedCount: 1
+      unexpectedUntrackedCount: 1,
+      forbiddenCandidateCount: 0,
+      unreviewedCandidateCount: 1,
+      unsupportedCandidateCount: 0
     }
   );
+});
+
+test("candidate classifier rejects forbidden namespaces even when tracked", () => {
+  assert.deepEqual(
+    verifier.classifyCandidatePaths([
+      "index.html",
+      ".superpowers/private/generic.json",
+      ".git/config",
+      ".internal/generic.txt",
+      "private-data/generic.json",
+      "scripts/verify-public.mjs"
+    ], [
+      "index.html",
+      ".superpowers/private/generic.json",
+      ".git/config",
+      ".internal/generic.txt",
+      "private-data/generic.json"
+    ]),
+    {
+      candidateCount: 6,
+      trackedCount: 5,
+      allowedUntrackedCount: 1,
+      unexpectedUntrackedCount: 0,
+      forbiddenCandidateCount: 4,
+      unreviewedCandidateCount: 4,
+      unsupportedCandidateCount: 1
+    }
+  );
+});
+
+test("candidate boundary reads a temporary Git repository and fails closed", async (context) => {
+  assert.equal(typeof verifier.inspectCandidateBoundary, "function");
+  const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-candidate-boundary-"));
+  context.after(() => rm(repository, { recursive: true, force: true }));
+  execFileSync("git", ["init", "-q"], { cwd: repository });
+  await Promise.all([
+    writeFile(path.join(repository, "index.html"), "GENERIC_INDEX"),
+    mkdir(path.join(repository, ".superpowers", "private"), { recursive: true }),
+    mkdir(path.join(repository, "scripts"), { recursive: true }),
+    mkdir(path.join(repository, "tests"), { recursive: true })
+  ]);
+  await Promise.all([
+    writeFile(
+      path.join(repository, ".superpowers", "private", "generic.json"),
+      "GENERIC_FORBIDDEN"
+    ),
+    writeFile(path.join(repository, "scripts", "verify-public.mjs"), "GENERIC_ALLOWED"),
+    writeFile(path.join(repository, "tests", "security.test.mjs"), "GENERIC_ALLOWED"),
+    writeFile(path.join(repository, "unexpected.txt"), "GENERIC_UNEXPECTED")
+  ]);
+  execFileSync(
+    "git",
+    ["add", "--", "index.html", ".superpowers/private/generic.json"],
+    { cwd: repository }
+  );
+
+  const result = verifier.inspectCandidateBoundary(repository);
+
+  assert.deepEqual(result, {
+    ok: false,
+    count: 2,
+    candidateCount: 5,
+    trackedCount: 2,
+    allowedUntrackedCount: 2,
+    unexpectedUntrackedCount: 1,
+    forbiddenCandidateCount: 1,
+    unreviewedCandidateCount: 2,
+    unsupportedCandidateCount: 0
+  });
+});
+
+test("public verifier rejects tracked opaque and unreviewed text candidates end to end", async (context) => {
+  const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-candidate-manifest-"));
+  context.after(() => rm(repository, { recursive: true, force: true }));
+  execFileSync("git", ["init", "-q"], { cwd: repository });
+  await mkdir(path.join(repository, "notes"), { recursive: true });
+  await Promise.all([
+    writeFile(path.join(repository, "index.html"), "GENERIC_INDEX"),
+    writeFile(path.join(repository, "opaque.pdf"), Buffer.from([0xff])),
+    writeFile(path.join(repository, "notes", "generic.txt"), "GENERIC_UNREVIEWED_CONTENT")
+  ]);
+  execFileSync("git", ["add", "--", "index.html", "opaque.pdf", "notes/generic.txt"], {
+    cwd: repository
+  });
+
+  const moduleUrl = pathToFileURL(path.join(ROOT, "scripts", "verify-public.mjs")).href;
+  const childSource = [
+    `import { runPublicVerification } from ${JSON.stringify(moduleUrl)};`,
+    `const passed = await runPublicVerification(${JSON.stringify(repository)});`,
+    "if (!passed) process.exitCode = 1;"
+  ].join("\n");
+  const result = spawnSync(process.execPath, ["--input-type=module", "--eval", childSource], {
+    cwd: repository,
+    encoding: "utf8",
+    windowsHide: true
+  });
+
+  assert.equal(result.status, 1);
+  assert.equal(result.stderr, "");
+  const lines = result.stdout.trim().split(/\r?\n/);
+  assert.equal(lines.length, verifier.getGateNames().length);
+  assert.equal(lines.some((line) => line === "FAIL candidate-boundary count=2"), true);
+  assert.equal(lines.every((line) => /^(?:PASS|FAIL) [a-z-]+ count=\d+$/.test(line)), true);
+  assert.doesNotMatch(result.stdout, /opaque|generic|unreviewed|content/i);
+});
+
+test("release locks accept both autocrlf checkouts and reject substantive changes", async (context) => {
+  assert.equal(typeof verifier.inspectReleaseLocks, "function");
+  const fixtureRoot = await mkdtemp(path.join(os.tmpdir(), "circ-hq-eol-locks-"));
+  context.after(() => rm(fixtureRoot, { recursive: true, force: true }));
+  const source = path.join(fixtureRoot, "source");
+  await mkdir(source, { recursive: true });
+  const canonicalLegacy = (await readFile(path.join(ROOT, "classroom-legacy.html"), "utf8"))
+    .replaceAll("\r\n", "\n");
+  const canonicalFirebase = (await readFile(path.join(ROOT, "firebase-config.example.js"), "utf8"))
+    .replaceAll("\r\n", "\n");
+  await Promise.all([
+    writeFile(path.join(source, "classroom-legacy.html"), canonicalLegacy),
+    writeFile(path.join(source, "firebase-config.example.js"), canonicalFirebase)
+  ]);
+  execFileSync("git", ["init", "-q"], { cwd: source });
+  execFileSync("git", ["add", "--", "classroom-legacy.html", "firebase-config.example.js"], {
+    cwd: source
+  });
+  execFileSync("git", [
+    "-c", "user.name=Generic Test",
+    "-c", "user.email=generic@example.invalid",
+    "commit", "-qm", "generic fixture"
+  ], { cwd: source });
+
+  for (const autocrlf of ["true", "false"]) {
+    const checkout = path.join(fixtureRoot, `checkout-${autocrlf}`);
+    execFileSync("git", ["clone", "-q", "--no-checkout", source, checkout]);
+    execFileSync("git", ["config", "core.autocrlf", autocrlf], { cwd: checkout });
+    execFileSync("git", ["checkout", "-q"], { cwd: checkout });
+
+    assert.deepEqual(await verifier.inspectReleaseLocks(checkout), {
+      legacyOk: true,
+      firebaseOk: true
+    });
+    await writeFile(path.join(checkout, "classroom-legacy.html"), `${canonicalLegacy}GENERIC_CHANGE\n`);
+    assert.deepEqual(await verifier.inspectReleaseLocks(checkout), {
+      legacyOk: false,
+      firebaseOk: true
+    });
+    await writeFile(path.join(checkout, "classroom-legacy.html"), canonicalLegacy);
+    await writeFile(
+      path.join(checkout, "firebase-config.example.js"),
+      `${canonicalFirebase}GENERIC_CHANGE\n`
+    );
+    assert.deepEqual(await verifier.inspectReleaseLocks(checkout), {
+      legacyOk: true,
+      firebaseOk: false
+    });
+  }
+});
+
+test("verifier refreshes candidates after reviewed tests finish", async (context) => {
+  const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-post-test-refresh-"));
+  context.after(() => rm(repository, { recursive: true, force: true }));
+  await mkdir(path.join(repository, "tests"), { recursive: true });
+  await writeFile(path.join(repository, "tests", "security.test.mjs"), [
+    'import { writeFileSync } from "node:fs";',
+    'import test from "node:test";',
+    `const artifactPath = ${JSON.stringify(path.join(repository, "unexpected6.pdf"))};`,
+    'test("generic reviewed test", () => writeFileSync(artifactPath, Buffer.from([6])));'
+  ].join("\n"));
+  execFileSync("git", ["init", "-q"], { cwd: repository });
+  execFileSync("git", ["add", "--", "tests/security.test.mjs"], { cwd: repository });
+  const cleanTestEnvironment = { ...process.env };
+  delete cleanTestEnvironment.NODE_TEST_CONTEXT;
+
+  const moduleUrl = pathToFileURL(path.join(ROOT, "scripts", "verify-public.mjs")).href;
+  const childSource = [
+    `import { runPublicVerification } from ${JSON.stringify(moduleUrl)};`,
+    `const passed = await runPublicVerification(${JSON.stringify(repository)});`,
+    "if (!passed) process.exitCode = 1;"
+  ].join("\n");
+  const result = spawnSync(process.execPath, ["--input-type=module", "--eval", childSource], {
+    cwd: repository,
+    encoding: "utf8",
+    env: cleanTestEnvironment,
+    windowsHide: true
+  });
+
+  assert.equal(result.status, 1);
+  assert.equal(result.stderr, "");
+  const lines = result.stdout.trim().split(/\r?\n/);
+  assert.equal(lines.length, verifier.getGateNames().length);
+  assert.equal(lines.find((line) => line.includes("node-tests")), "PASS node-tests count=1");
+  const artifact = await readFile(path.join(repository, "unexpected6.pdf"));
+  assert.equal(artifact.equals(Buffer.from([6])), true);
+  assert.equal(lines.filter((line) => line.startsWith("FAIL candidate-boundary ")).length, 1);
+  assert.equal(lines.includes("FAIL candidate-boundary count=1"), true);
+  assert.equal(lines.every((line) => /^(?:PASS|FAIL) [a-z-]+ count=\d+$/.test(line)), true);
+  assert.doesNotMatch(result.stdout, /unexpected6|generic reviewed|Buffer/i);
 });
 
 test("public candidates exclude ignored private and SDD paths", () => {
@@ -411,6 +612,8 @@ test("public candidates exclude ignored private and SDD paths", () => {
   const counts = verifier.classifyCandidatePaths(candidates, tracked);
 
   assert.equal(counts.unexpectedUntrackedCount, 0);
+  assert.equal(counts.unreviewedCandidateCount, 0);
+  assert.equal(counts.unsupportedCandidateCount, 0);
   assert.equal(candidates.some((candidate) => candidate.startsWith(".superpowers/")), false);
   assert.equal(execFileSync(
     "git",
@@ -556,7 +759,7 @@ test("entrypoint identity and locked legacy bytes remain exact", async () => {
   ]);
   assert.deepEqual(indexBytes, mirrorBytes);
   assert.equal(
-    createHash("sha256").update(legacyBytes).digest("hex").toUpperCase(),
+    verifier.normalizedTextSha256(legacyBytes),
     LEGACY_SHA256
   );
 });

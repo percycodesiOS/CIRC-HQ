@@ -342,6 +342,7 @@ function buildToday(model, actions, options) {
     element("summary", { text: "Details" }),
     element("p", { text: dashboard.quietStatus }),
     element("a", {
+      className: "attribution-link",
       text: "Weather by Open-Meteo",
       attributes: { href: "https://open-meteo.com/", target: "_blank", rel: "noreferrer" }
     })
@@ -448,13 +449,15 @@ function roomRoute(state) {
     textList(section.items)
   ]));
   const privateResources = view.privateResources.length
-    ? view.privateResources.map((resource) => element("article", { className: "resource-row" }, [
+    ? view.privateResources.map((resource, index) => element("article", { className: "resource-row" }, [
         element("h3", { text: resource.title }),
         typeof resource.note === "string" ? element("p", { text: resource.note }) : null,
         typeof resource.safeHref === "string" ? element("a", {
+          className: "resource-link",
           text: "Open resource",
           attributes: {
             href: resource.safeHref,
+            "aria-label": `Open ${resource.title}, ${resource.external ? "external" : "local"} resource ${index + 1}`,
             ...(resource.external
               ? { target: "_blank", rel: "noopener noreferrer" }
               : {})
@@ -645,6 +648,7 @@ function settingsRoute(context) {
         element("h2", { text: "Weather resource" }),
         element("p", { text: "Forecast data is provided by Open-Meteo when available." }),
         element("a", {
+          className: "attribution-link",
           text: "Open-Meteo attribution",
           attributes: { href: "https://open-meteo.com/", target: "_blank", rel: "noreferrer" }
         })
@@ -671,8 +675,10 @@ export function renderApp(root, services = {}) {
   let lastBoundaryKey = "";
   let lastRenderedMinute = "";
   const siteHeader = document.querySelector(".site-header");
+  const liveStatus = document.getElementById("app-status");
   const navButtons = [...document.querySelectorAll("[data-route]")];
   const siteHeaderSnapshot = snapshotAttributes(siteHeader);
+  const liveStatusSnapshot = snapshotAttributes(liveStatus);
   const navSnapshots = navButtons.map((button) => snapshotAttributes(button));
 
   const now = () => services.clock?.now?.() ?? new Date();
@@ -699,21 +705,24 @@ export function renderApp(root, services = {}) {
   }
 
   function setBoardShell(active) {
-    if (!siteHeader) return;
     if (active) {
-      siteHeader.setAttribute("hidden", "");
-      siteHeader.setAttribute("inert", "");
-      siteHeader.setAttribute("aria-hidden", "true");
+      for (const node of [siteHeader, liveStatus].filter(Boolean)) {
+        node.setAttribute("hidden", "");
+        node.setAttribute("inert", "");
+        node.setAttribute("aria-hidden", "true");
+      }
+      if (liveStatus) liveStatus.textContent = "";
       return;
     }
     restoreAttributes(siteHeader, siteHeaderSnapshot);
+    restoreAttributes(liveStatus, liveStatusSnapshot);
+    if (liveStatus) liveStatus.textContent = "";
   }
 
   function announceBoundary(model) {
     const key = `${model.status}:${model.current?.id ?? "none"}:${model.next?.id ?? "none"}:${model.duties.active}`;
-    if (lastBoundaryKey && key !== lastBoundaryKey) {
-      const live = document.getElementById("app-status");
-      if (live) live.textContent = `Schedule updated. ${model.currentLabel}.`;
+    if (route === "today" && lastBoundaryKey && key !== lastBoundaryKey) {
+      if (liveStatus) liveStatus.textContent = `Schedule updated. ${model.currentLabel}.`;
     }
     lastBoundaryKey = key;
   }
@@ -850,6 +859,8 @@ export function renderApp(root, services = {}) {
     destroy() {
       window.clearInterval(timer);
       restoreAttributes(siteHeader, siteHeaderSnapshot);
+      restoreAttributes(liveStatus, liveStatusSnapshot);
+      if (liveStatus) liveStatus.textContent = "";
       navButtons.forEach((button, index) => restoreAttributes(button, navSnapshots[index]));
       for (const button of navButtons) button.replaceWith(button.cloneNode(true));
     }

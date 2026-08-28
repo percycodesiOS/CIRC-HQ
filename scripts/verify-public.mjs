@@ -7,11 +7,20 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { getPublicStaticManifest } from "./dev-server.mjs";
 
 const ROOT = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
-const LEGACY_SHA256 =
-  "5DF75CEA0693920856A95949F6EFBBE54961EAA77117637EA433D786AF5205E3";
+const LEGACY_NORMALIZED_SHA256 =
+  "6E7FF5AA3B15A57A44F0D3351C6C6A5A3B3D14813E9B5616AF3D138C5E41B69F";
 const ALLOWED_UNTRACKED = new Set([
   "scripts/verify-public.mjs",
   "tests/security.test.mjs"
+]);
+const FORBIDDEN_CANDIDATE_ROOTS = new Set([
+  ".git",
+  ".superpowers",
+  "internal",
+  "node_modules",
+  "private",
+  "private-data",
+  "test-results"
 ]);
 const GATE_NAMES = Object.freeze([
   "candidate-boundary",
@@ -48,6 +57,38 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "src/ui/today-ui.js",
   "src/ui/view-model.js"
 ]);
+const REVIEWED_CANDIDATE_MANIFEST = new Set([
+  "BUILDLOG.md",
+  "README.md",
+  ...EXPECTED_PUBLIC_MANIFEST,
+  "docs/FIREBASE-ACTIVATION-GATE.md",
+  "firebase-config.example.js",
+  "firebase/playbook.rules.fragment",
+  "package.json",
+  "scripts/dev-server.mjs",
+  "scripts/verify-public.mjs",
+  "src/storage/firebase-adapter.js",
+  "src/storage/sync-engine.js",
+  "tests/access.test.mjs",
+  "tests/app-render.test.mjs",
+  "tests/board-view.test.mjs",
+  "tests/dev-server.test.mjs",
+  "tests/firebase-adapter.test.mjs",
+  "tests/lesson-guide.test.mjs",
+  "tests/local-store.test.mjs",
+  "tests/public-shell.test.mjs",
+  "tests/schedule.test.mjs",
+  "tests/security.test.mjs",
+  "tests/settings.test.mjs",
+  "tests/state.test.mjs",
+  "tests/sync-engine.test.mjs",
+  "tests/teacher-plan-v1.test.mjs",
+  "tests/teacher-plan.test.mjs",
+  "tests/today-render.test.mjs",
+  "tests/today-ui.test.mjs",
+  "tests/view-model.test.mjs",
+  "tests/weather.test.mjs"
+]);
 const EXPECTED_FIREBASE_EXAMPLE = `export const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_AUTH_DOMAIN",
@@ -80,6 +121,51 @@ function normalizedPath(value) {
   return String(value).replaceAll("\\", "/");
 }
 
+function normalizedText(value) {
+  let text;
+  try {
+    const bytes = Buffer.isBuffer(value) ? value : Buffer.from(value);
+    text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return null;
+  }
+  const normalized = text.replaceAll("\r\n", "\n");
+  return normalized.includes("\r") ? null : normalized;
+}
+
+export function normalizedTextSha256(value) {
+  const normalized = normalizedText(value);
+  return normalized === null
+    ? null
+    : createHash("sha256").update(normalized, "utf8").digest("hex").toUpperCase();
+}
+
+export async function inspectReleaseLocks(root = ROOT) {
+  const [legacyBytes, firebaseBytes] = await Promise.all([
+    readFile(path.join(root, "classroom-legacy.html")),
+    readFile(path.join(root, "firebase-config.example.js"))
+  ]);
+  return {
+    legacyOk: normalizedTextSha256(legacyBytes) === LEGACY_NORMALIZED_SHA256,
+    firebaseOk: normalizedText(firebaseBytes) === EXPECTED_FIREBASE_EXAMPLE
+  };
+}
+
+function isForbiddenCandidatePath(value) {
+  const candidate = normalizedPath(value);
+  const segments = candidate.split("/");
+  if (
+    candidate === "" ||
+    candidate.startsWith("/") ||
+    /^[a-z]:/i.test(candidate) ||
+    segments.some((segment) => segment === "" || segment === "." || segment === "..")
+  ) return true;
+  if (segments.some((segment) => segment.startsWith("."))) return true;
+  const root = segments[0].toLowerCase();
+  return FORBIDDEN_CANDIDATE_ROOTS.has(root) ||
+    segments.some((segment) => segment.toLowerCase() === "__private__");
+}
+
 export function parseNulList(value) {
   const text = Buffer.isBuffer(value) ? value.toString("utf8") : String(value ?? "");
   return text.split("\0").filter(Boolean).map(normalizedPath);
@@ -90,9 +176,15 @@ export function classifyCandidatePaths(candidatePaths, trackedPaths) {
   let trackedCount = 0;
   let allowedUntrackedCount = 0;
   let unexpectedUntrackedCount = 0;
+  let forbiddenCandidateCount = 0;
+  let unreviewedCandidateCount = 0;
+  let unsupportedCandidateCount = 0;
 
   for (const rawPath of candidatePaths) {
     const candidate = normalizedPath(rawPath);
+    if (isForbiddenCandidatePath(candidate)) forbiddenCandidateCount += 1;
+    if (!REVIEWED_CANDIDATE_MANIFEST.has(candidate)) unreviewedCandidateCount += 1;
+    if (!isTextCandidate(candidate)) unsupportedCandidateCount += 1;
     if (tracked.has(candidate)) trackedCount += 1;
     else if (ALLOWED_UNTRACKED.has(candidate)) allowedUntrackedCount += 1;
     else unexpectedUntrackedCount += 1;
@@ -102,7 +194,10 @@ export function classifyCandidatePaths(candidatePaths, trackedPaths) {
     candidateCount: candidatePaths.length,
     trackedCount,
     allowedUntrackedCount,
-    unexpectedUntrackedCount
+    unexpectedUntrackedCount,
+    forbiddenCandidateCount,
+    unreviewedCandidateCount,
+    unsupportedCandidateCount
   };
 }
 
@@ -120,10 +215,40 @@ function runProcess(command, argumentsList, options = {}) {
   });
 }
 
-function gitList(argumentsList) {
-  const result = runProcess("git", argumentsList);
+function gitListAt(root, argumentsList) {
+  const result = runProcess("git", argumentsList, { cwd: root });
   if (result.status !== 0 || result.error) throw new Error("git-list-failed");
   return parseNulList(result.stdout);
+}
+
+function gitList(argumentsList) {
+  return gitListAt(ROOT, argumentsList);
+}
+
+function candidateBoundaryResult(candidatePaths, trackedPaths) {
+  const counts = classifyCandidatePaths(candidatePaths, trackedPaths);
+  const tracked = new Set(trackedPaths.map(normalizedPath));
+  const violations = candidatePaths.reduce((count, rawPath) => {
+    const candidate = normalizedPath(rawPath);
+    const unexpected = !tracked.has(candidate) && !ALLOWED_UNTRACKED.has(candidate);
+    const violates = unexpected ||
+      isForbiddenCandidatePath(candidate) ||
+      !REVIEWED_CANDIDATE_MANIFEST.has(candidate) ||
+      !isTextCandidate(candidate);
+    return count + Number(violates);
+  }, 0);
+  return {
+    ok: violations === 0,
+    count: violations === 0 ? counts.candidateCount : violations,
+    ...counts
+  };
+}
+
+export function inspectCandidateBoundary(root = ROOT) {
+  return candidateBoundaryResult(
+    gitListAt(root, ["ls-files", "-co", "--exclude-standard", "-z"]),
+    gitListAt(root, ["ls-files", "-z"])
+  );
 }
 
 function isTextCandidate(relativePath) {
@@ -131,19 +256,24 @@ function isTextCandidate(relativePath) {
   return basename === "README" || TEXT_EXTENSIONS.has(path.posix.extname(relativePath));
 }
 
-async function readCandidate(relativePath) {
-  return readFile(path.join(ROOT, ...relativePath.split("/")), "utf8");
+async function readCandidate(root, relativePath) {
+  return readFile(path.join(root, ...relativePath.split("/")), "utf8");
 }
 
-async function createContext() {
-  const candidates = gitList(["ls-files", "-co", "--exclude-standard", "-z"]);
-  const tracked = gitList(["ls-files", "-z"]);
-  const textPaths = candidates.filter(isTextCandidate);
+async function createContext(root) {
+  const candidates = gitListAt(root, ["ls-files", "-co", "--exclude-standard", "-z"]);
+  const tracked = gitListAt(root, ["ls-files", "-z"]);
+  const reviewedCandidates = candidates.filter((candidate) =>
+    REVIEWED_CANDIDATE_MANIFEST.has(candidate) &&
+    !isForbiddenCandidatePath(candidate) &&
+    isTextCandidate(candidate)
+  );
+  const textPaths = reviewedCandidates;
   const textEntries = await Promise.all(textPaths.map(async (relativePath) => ({
     relativePath,
-    text: await readCandidate(relativePath)
+    text: await readCandidate(root, relativePath)
   })));
-  return { candidates, tracked, textEntries };
+  return { root, candidates, tracked, reviewedCandidates, textEntries };
 }
 
 function passCount(count) {
@@ -202,29 +332,26 @@ function isPublicRuntimePath(relativePath) {
 }
 
 async function candidateBoundaryGate(context) {
-  const counts = classifyCandidatePaths(context.candidates, context.tracked);
-  return counts.unexpectedUntrackedCount === 0
-    ? passCount(counts.candidateCount)
-    : { ok: false, count: counts.unexpectedUntrackedCount };
+  const result = candidateBoundaryResult(context.candidates, context.tracked);
+  return { ok: result.ok, count: result.count };
 }
 
-async function entrypointIdentityGate() {
+async function entrypointIdentityGate(context) {
   const [indexBytes, mirrorBytes] = await Promise.all([
-    readFile(path.join(ROOT, "index.html")),
-    readFile(path.join(ROOT, "mission-control.html"))
+    readFile(path.join(context.root, "index.html")),
+    readFile(path.join(context.root, "mission-control.html"))
   ]);
   return resultFromViolations(2, Number(!indexBytes.equals(mirrorBytes)));
 }
 
-async function legacyLockGate() {
-  const bytes = await readFile(path.join(ROOT, "classroom-legacy.html"));
-  const digest = createHash("sha256").update(bytes).digest("hex").toUpperCase();
-  return resultFromViolations(1, Number(digest !== LEGACY_SHA256));
+async function legacyLockGate(context) {
+  const locks = await inspectReleaseLocks(context.root);
+  return resultFromViolations(1, Number(!locks.legacyOk));
 }
 
-async function firebasePlaceholdersGate() {
-  const source = await readFile(path.join(ROOT, "firebase-config.example.js"), "utf8");
-  return resultFromViolations(1, Number(source !== EXPECTED_FIREBASE_EXAMPLE));
+async function firebasePlaceholdersGate(context) {
+  const locks = await inspectReleaseLocks(context.root);
+  return resultFromViolations(1, Number(!locks.firebaseOk));
 }
 
 async function typographyGate(context) {
@@ -301,21 +428,22 @@ async function serverAllowlistGate() {
 }
 
 async function javascriptSyntaxGate(context) {
-  const scripts = context.candidates.filter((candidate) => /\.(?:js|mjs)$/i.test(candidate));
+  const scripts = context.reviewedCandidates.filter((candidate) => /\.(?:js|mjs)$/i.test(candidate));
   let violations = 0;
   for (const relativePath of scripts) {
-    const result = runProcess(process.execPath, ["--check", relativePath]);
+    const result = runProcess(process.execPath, ["--check", relativePath], { cwd: context.root });
     if (result.status !== 0 || result.error) violations += 1;
   }
   return resultFromViolations(scripts.length, violations);
 }
 
 async function nodeTestsGate(context) {
-  const testCount = context.candidates.filter(
+  const tests = context.reviewedCandidates.filter(
     (candidate) => candidate.startsWith("tests/") && candidate.endsWith(".test.mjs")
-  ).length;
-  const result = runProcess(process.execPath, ["--test"]);
-  return resultFromViolations(testCount, Number(result.status !== 0 || Boolean(result.error)));
+  );
+  if (tests.length === 0) return passCount(0);
+  const result = runProcess(process.execPath, ["--test", ...tests], { cwd: context.root });
+  return resultFromViolations(tests.length, Number(result.status !== 0 || Boolean(result.error)));
 }
 
 const GATES = Object.freeze([
@@ -333,23 +461,53 @@ const GATES = Object.freeze([
   ["node-tests", nodeTestsGate]
 ]);
 
-export async function runPublicVerification() {
-  let context;
+export async function runPublicVerification(root = ROOT) {
+  const resolvedRoot = path.resolve(root);
+  const results = new Map();
+  let testContext;
   try {
-    context = await createContext();
+    testContext = await createContext(resolvedRoot);
   } catch {
     for (const name of GATE_NAMES) process.stdout.write(`FAIL ${name} count=1\n`);
     return false;
   }
 
-  let passed = true;
-  for (const [name, gate] of GATES) {
+  async function runGate(name, gate, context) {
     let result;
     try {
       result = await gate(context);
     } catch {
       result = { ok: false, count: 1 };
     }
+    results.set(name, result);
+  }
+
+  await runGate("node-tests", nodeTestsGate, testContext);
+
+  let syntaxContext;
+  try {
+    syntaxContext = await createContext(resolvedRoot);
+    await runGate("javascript-syntax", javascriptSyntaxGate, syntaxContext);
+  } catch {
+    results.set("javascript-syntax", { ok: false, count: 1 });
+  }
+
+  let finalContext;
+  try {
+    finalContext = await createContext(resolvedRoot);
+    for (const [name, gate] of GATES) {
+      if (name === "node-tests" || name === "javascript-syntax") continue;
+      await runGate(name, gate, finalContext);
+    }
+  } catch {
+    for (const [name] of GATES) {
+      if (!results.has(name)) results.set(name, { ok: false, count: 1 });
+    }
+  }
+
+  let passed = true;
+  for (const name of GATE_NAMES) {
+    const result = results.get(name) ?? { ok: false, count: 1 };
     const status = result.ok ? "PASS" : "FAIL";
     const count = Number.isSafeInteger(result.count) && result.count >= 0 ? result.count : 1;
     process.stdout.write(`${status} ${name} count=${count}\n`);

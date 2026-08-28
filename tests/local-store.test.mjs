@@ -48,15 +48,73 @@ test("saving retains exactly one prior version as backup", () => {
   assert.deepEqual(JSON.parse(storage.getItem(STATE_KEY)), next);
 });
 
-test("backup recovers when the primary saved state is malformed", () => {
-  const storage = memoryStorage({ [STATE_KEY]: "{not json" });
+test("save preserves the last known-good backup when prior state is malformed", () => {
+  const malformed = '{"format":"playbook.state.v1","resources":[{"href":"javascript:genericProbe=1"}]';
+  const lastKnownGood = JSON.stringify({
+    format: "playbook.state.v1",
+    updatedAt: "last-known-good",
+    resources: []
+  });
+  const storage = memoryStorage({
+    [STATE_KEY]: malformed,
+    [BACKUP_KEY]: lastKnownGood
+  });
+  const next = { format: "playbook.state.v1", schemaVersion: 1, updatedAt: NOW };
+  const store = makeStore(storage);
+
+  const saved = store.save(next);
+
+  assert.deepEqual(saved, next);
+  assert.equal(storage.getItem(BACKUP_KEY), lastKnownGood);
+  assert.notEqual(storage.getItem(BACKUP_KEY), malformed);
+  assert.deepEqual(JSON.parse(storage.getItem(STATE_KEY)), next);
+});
+
+test("backup preserves the last known-good backup when primary state is malformed", () => {
+  const malformed = '{"format":"playbook.state.v1","resources":[{"href":"javascript:genericProbe=1"}]';
+  const lastKnownGood = JSON.stringify({
+    format: "playbook.state.v1",
+    updatedAt: "last-known-good",
+    resources: []
+  });
+  const storage = memoryStorage({
+    [STATE_KEY]: malformed,
+    [BACKUP_KEY]: lastKnownGood
+  });
   const store = makeStore(storage);
 
   const result = store.backup();
 
   assert.equal(result.state.format, "playbook.state.v1");
   assert.match(result.error, /could not be read/i);
-  assert.equal(storage.getItem(BACKUP_KEY), "{not json");
+  assert.equal(storage.getItem(BACKUP_KEY), lastKnownGood);
+  assert.notEqual(storage.getItem(BACKUP_KEY), malformed);
+});
+
+test("backup writes the admitted current state on success", () => {
+  const storage = memoryStorage({
+    [STATE_KEY]: JSON.stringify({
+      format: "playbook.state.v1",
+      updatedAt: "current",
+      resources: [{
+        id: "safe-resource",
+        title: "Safe resource",
+        href: "classroom-legacy.html"
+      }, {
+        id: "unsafe-resource",
+        title: "Unsafe resource",
+        href: "javascript:genericProbe=1"
+      }]
+    }),
+    [BACKUP_KEY]: JSON.stringify({ format: "playbook.state.v1", updatedAt: "older" })
+  });
+  const store = makeStore(storage);
+
+  const result = store.backup();
+
+  assert.equal(result.error, null);
+  assert.deepEqual(result.state.resources.map((resource) => resource.id), ["safe-resource"]);
+  assert.deepEqual(JSON.parse(storage.getItem(BACKUP_KEY)), result.state);
 });
 
 test("exports the complete portable state envelope", () => {

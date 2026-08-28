@@ -78,13 +78,13 @@ function findAll(node, predicate, found = []) {
   return found;
 }
 
-function fakeDocument({ header = null, navButtons = [] } = {}) {
+function fakeDocument({ header = null, navButtons = [], status = null } = {}) {
   return {
     createElement: (tagName) => new FakeNode(tagName),
     createElementNS: (_namespace, tagName) => new FakeNode(tagName),
     querySelector: (selector) => selector === ".site-header" ? header : null,
     querySelectorAll: (selector) => selector === "[data-route]" ? navButtons : [],
-    getElementById: () => null
+    getElementById: (id) => id === "app-status" ? status : null
   };
 }
 
@@ -175,7 +175,7 @@ async function renderBoard(state) {
   }
 }
 
-async function renderRoom(state) {
+async function renderRoute(state, route) {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   const root = new FakeNode("main");
@@ -194,12 +194,16 @@ async function renderRoom(state) {
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
-    controller.navigate("room");
+    controller.navigate(route);
     return root;
   } finally {
     globalThis.document = previousDocument;
     globalThis.window = previousWindow;
   }
+}
+
+async function renderRoom(state) {
+  return renderRoute(state, "room");
 }
 
 test("rendered Board never leaks teacher-only active event fields", async () => {
@@ -299,11 +303,29 @@ test("rendered Room anchors use only admitted safeHref values", async () => {
   assert.doesNotMatch(rendered, /UNSAFE_SCRIPT_RESOURCE|UNSAFE_HTTP_RESOURCE|UNSAFE_NORMALIZED_RESOURCE/);
   assert.equal(anchors.length, 2);
   assert.equal(anchors[0].getAttribute("href"), "/classroom-legacy.html");
+  assert.equal(anchors[0].className, "resource-link");
+  assert.match(anchors[0].getAttribute("aria-label"), /^Open Safe local resource\b/);
   assert.equal(anchors[0].getAttribute("target"), null);
   assert.equal(anchors[0].getAttribute("rel"), null);
   assert.equal(anchors[1].getAttribute("href"), "https://example.invalid/generic");
+  assert.equal(anchors[1].className, "resource-link");
+  assert.match(anchors[1].getAttribute("aria-label"), /^Open Safe external resource\b/);
+  assert.notEqual(anchors[0].getAttribute("aria-label"), anchors[1].getAttribute("aria-label"));
   assert.equal(anchors[1].getAttribute("target"), "_blank");
   assert.equal(anchors[1].getAttribute("rel"), "noopener noreferrer");
+});
+
+test("Today and Settings render only scoped 44px attribution link classes", async () => {
+  const state = stateWithActiveEvent("teach");
+  for (const [route, label] of [
+    ["today", "Weather by Open-Meteo"],
+    ["settings", "Open-Meteo attribution"]
+  ]) {
+    const root = await renderRoute(state, route);
+    const matches = findAll(root, (node) => node.tagName === "a" && node.textContent === label);
+    assert.equal(matches.length, 1, route);
+    assert.equal(matches[0].className, "attribution-link", route);
+  }
 });
 
 test("an actionable private-seed failure keeps Today usable and shows one Settings recovery action", async () => {
@@ -465,6 +487,97 @@ test("Board hides and inerts the real header until Return to Today or destroy re
     controller.destroy();
     assert.deepEqual([...header.attributes.entries()], originalAttributes);
     assert.deepEqual(navButtons.map((button) => [...button.attributes.entries()]), originalNavAttributes);
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("Board keeps the live region isolated across timer boundaries and restores Today safely", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const header = new FakeNode("header");
+  header.className = "site-header";
+  header.setAttribute("data-shell-marker", "unchanged");
+  const status = new FakeNode("div");
+  status.className = "visually-hidden";
+  status.setAttribute("aria-live", "polite");
+  const navButtons = ["today", "curriculum", "schedule", "room", "settings"].map((route) => {
+    const button = new FakeNode("button");
+    button.dataset = { route };
+    button.setAttribute("data-route", route);
+    header.append(button);
+    return button;
+  });
+  navButtons[0].setAttribute("aria-current", "page");
+  const originalHeaderAttributes = [...header.attributes.entries()];
+  const originalStatusAttributes = [...status.attributes.entries()];
+  let currentTime = new Date("2026-08-20T09:10:00-04:00");
+  let timerCallback = null;
+  const state = stateWithActiveEvent("prep");
+  state.plan.teachers[0].days[1] = [
+    {
+      id: "event-a",
+      type: "prep",
+      label: "GENERIC_INTERNAL_A",
+      start: "09:00",
+      end: "09:30"
+    },
+    {
+      id: "event-b",
+      type: "prep",
+      label: "GENERIC_INTERNAL_B",
+      start: "09:30",
+      end: "10:00"
+    },
+    {
+      id: "event-c",
+      type: "prep",
+      label: "GENERIC_INTERNAL_C",
+      start: "10:00",
+      end: "10:30"
+    }
+  ];
+  globalThis.document = fakeDocument({ header, navButtons, status });
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: (callback) => {
+      timerCallback = callback;
+      return 1;
+    },
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: memoryStore(state),
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => currentTime }
+    });
+    await controller.ready;
+
+    controller.navigate("board");
+    assert.equal(status.hasAttribute("hidden"), true);
+    assert.equal(status.hasAttribute("inert"), true);
+    assert.equal(status.getAttribute("aria-hidden"), "true");
+    assert.equal(status.textContent, "");
+
+    currentTime = new Date("2026-08-20T09:31:00-04:00");
+    timerCallback();
+    assert.equal(status.textContent, "");
+    assert.equal(status.hasAttribute("inert"), true);
+    assert.doesNotMatch(status.textContent, /GENERIC_INTERNAL/);
+
+    controller.navigate("today");
+    assert.deepEqual([...header.attributes.entries()], originalHeaderAttributes);
+    assert.deepEqual([...status.attributes.entries()], originalStatusAttributes);
+    assert.equal(status.textContent, "");
+
+    currentTime = new Date("2026-08-20T10:01:00-04:00");
+    timerCallback();
+    assert.match(status.textContent, /GENERIC_INTERNAL_C/);
   } finally {
     globalThis.document = previousDocument;
     globalThis.window = previousWindow;
