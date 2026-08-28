@@ -1,3 +1,4 @@
+import { admitResourceState } from "../model/access.js";
 import { createInitialState, migrateLegacyState, STATE_FORMAT } from "../model/state.js";
 import { validateTeacherPlan } from "../model/teacher-plan.js";
 
@@ -7,6 +8,10 @@ export const DEVICE_KEY = "circHQ.playbook.device.v1";
 
 function clone(value) {
   return structuredClone(value);
+}
+
+function admittedState(value) {
+  return admitResourceState(value, { source: "local" });
 }
 
 export class LocalStore {
@@ -21,7 +26,7 @@ export class LocalStore {
     try {
       const state = JSON.parse(raw);
       if (state?.format !== STATE_FORMAT) throw new Error("unexpected format");
-      return { state: clone(state), error: null };
+      return { state: admittedState(state), error: null };
     } catch {
       return { state: createInitialState(this.clock.now()), error: "Saved playbook state could not be read" };
     }
@@ -29,9 +34,16 @@ export class LocalStore {
 
   save(state) {
     const previous = this.storage.getItem(STATE_KEY);
-    if (previous !== null) this.storage.setItem(BACKUP_KEY, previous);
-    this.storage.setItem(STATE_KEY, JSON.stringify(clone(state)));
-    return clone(state);
+    if (previous !== null) {
+      try {
+        this.storage.setItem(BACKUP_KEY, JSON.stringify(admittedState(JSON.parse(previous))));
+      } catch {
+        this.storage.setItem(BACKUP_KEY, previous);
+      }
+    }
+    const admitted = admittedState(state);
+    this.storage.setItem(STATE_KEY, JSON.stringify(admitted));
+    return admittedState(admitted);
   }
 
   backup() {
@@ -39,7 +51,9 @@ export class LocalStore {
     if (prior === null) return { state: createInitialState(this.clock.now()), error: null };
     this.storage.setItem(BACKUP_KEY, prior);
     try {
-      return { state: JSON.parse(prior), error: null };
+      const state = admittedState(JSON.parse(prior));
+      this.storage.setItem(BACKUP_KEY, JSON.stringify(state));
+      return { state, error: null };
     } catch {
       return {
         state: createInitialState(this.clock.now()),

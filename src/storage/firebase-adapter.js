@@ -1,3 +1,4 @@
+import { admitResourceState } from "../model/access.js";
 import { mergeStates } from "./sync-engine.js";
 
 const FIREBASE_MODULE_ROOT = "https://www.gstatic.com/firebasejs/10.12.2";
@@ -36,9 +37,10 @@ function unavailableResult(status) {
 }
 
 export function buildTeacherDocumentPatch(state) {
+  const admitted = admitResourceState(state, { source: "local" });
   const privateState = {};
   for (const field of PRIVATE_STATE_FIELDS) {
-    if (Object.hasOwn(state ?? {}, field)) privateState[field] = structuredClone(state[field]);
+    if (Object.hasOwn(admitted, field)) privateState[field] = structuredClone(admitted[field]);
   }
   return { playbookPrivateV1: privateState };
 }
@@ -51,7 +53,13 @@ export function createFirebaseAdapter({ config = null, firebase = null, merge = 
     if (status !== "ready") return unavailableResult(status);
     try {
       const remoteState = await firebase.getDocument(documentPath(currentUser(firebase)?.uid));
-      return { status: "loaded", state: remoteState ?? null, error: null };
+      return {
+        status: "loaded",
+        state: remoteState
+          ? admitResourceState(remoteState, { source: "authorized-cloud" })
+          : null,
+        error: null
+      };
     } catch (error) {
       return { status: "load-error", state: null, error: errorMessage(error) };
     }

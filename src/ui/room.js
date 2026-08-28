@@ -1,3 +1,5 @@
+import { admitResource } from "../model/access.js";
+
 const GENERIC_SECTIONS = [
   {
     title: "Morning setup",
@@ -59,122 +61,16 @@ const GENERIC_SECTIONS = [
   }
 ];
 
-const ROOM_APP_ORIGIN = "https://circ-hq.invalid";
-const ROOM_PUBLIC_APP_PATHS = new Set([
-  "/",
-  "/index.html",
-  "/mission-control.html",
-  "/classroom-legacy.html"
-]);
-
-function decodedForInspection(value) {
-  let decoded = value;
-  for (let pass = 0; pass < 3; pass += 1) {
-    let next;
-    try {
-      next = decodeURIComponent(decoded);
-    } catch {
-      return null;
-    }
-    if (next === decoded) return decoded;
-    decoded = next;
-  }
-  return decoded;
-}
-
-function hasUnsafeRawEncoding(value) {
-  return /%(?![0-9a-f]{2})/i.test(value) ||
-    /%(?:0[0-9a-f]|1[0-9a-f]|20|23|25|2e|2f|3a|3f|5c|7f)/i.test(value);
-}
-
-function hasUnsafeRawPath(pathname, rejectInternalSegments) {
-  if (!pathname || pathname.includes("%")) return true;
-  const segments = pathname.split("/").filter(Boolean);
-  return segments.some((segment) =>
-    segment === "." ||
-    segment === ".." ||
-    (rejectInternalSegments && segment.startsWith("."))
-  );
-}
-
-function splitRelativeHref(value) {
-  const query = value.indexOf("?");
-  const fragment = value.indexOf("#");
-  const boundaries = [query, fragment].filter((index) => index !== -1);
-  const pathEnd = boundaries.length ? Math.min(...boundaries) : value.length;
-  return {
-    rawPath: value.slice(0, pathEnd),
-    suffix: value.slice(pathEnd)
-  };
-}
-
-function admittedHref(value) {
-  if (value === undefined) return { safeHref: null, external: false };
-  if (typeof value !== "string" || value === "" || value !== value.trim()) return null;
-  const inspected = decodedForInspection(value);
-  if (
-    inspected === null ||
-    /[\u0000-\u0020\u007f]/.test(inspected) ||
-    inspected.includes("\\") ||
-    inspected.startsWith("//") ||
-    hasUnsafeRawEncoding(value)
-  ) return null;
-
-  const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(inspected)?.[1]?.toLowerCase() ?? null;
-  if (scheme) {
-    if (scheme !== "https") return null;
-    try {
-      const rawAbsolute = /^https:\/\/[^/?#]+([^?#]*)(?:[?#]|$)/i.exec(value);
-      if (!rawAbsolute || hasUnsafeRawPath(rawAbsolute[1] || "/", false)) return null;
-      const parsed = new URL(value);
-      if (
-        parsed.protocol !== "https:" ||
-        !parsed.hostname ||
-        parsed.username ||
-        parsed.password
-      ) return null;
-      return { safeHref: parsed.href, external: true };
-    } catch {
-      return null;
-    }
-  }
-
-  try {
-    const { rawPath, suffix } = splitRelativeHref(value);
-    const admittedPath = rawPath.startsWith("/") ? rawPath : `/${rawPath}`;
-    if (
-      hasUnsafeRawPath(admittedPath, true) ||
-      !ROOM_PUBLIC_APP_PATHS.has(admittedPath)
-    ) return null;
-    const parsed = new URL(value, `${ROOM_APP_ORIGIN}/`);
-    if (
-      parsed.origin !== ROOM_APP_ORIGIN ||
-      parsed.pathname !== admittedPath ||
-      `${parsed.search}${parsed.hash}` !== suffix
-    ) return null;
-    return {
-      safeHref: `${parsed.pathname}${parsed.search}${parsed.hash}`,
-      external: false
-    };
-  } catch {
-    return null;
-  }
-}
-
 function admitPrivateResource(resource) {
-  const hasRequiredFields = resource?.visibility === "teacher-private" &&
-    resource.validated === true &&
-    ["local", "authorized-cloud"].includes(resource.source) &&
-    typeof resource.id === "string" && resource.id.trim() !== "" &&
-    typeof resource.title === "string" && resource.title.trim() !== "";
-  if (!hasRequiredFields) return null;
-  const href = admittedHref(resource.href);
-  if (!href) return null;
+  const admitted = admitResource(resource);
+  if (!admitted) return null;
   return {
-    id: resource.id,
-    title: resource.title,
-    ...(typeof resource.note === "string" ? { note: resource.note } : {}),
-    ...(href.safeHref ? { safeHref: href.safeHref, external: href.external } : {})
+    id: admitted.id,
+    title: admitted.title,
+    ...(typeof admitted.note === "string" ? { note: admitted.note } : {}),
+    ...(admitted.href
+      ? { safeHref: admitted.href, external: admitted.external }
+      : {})
   };
 }
 

@@ -1,3 +1,4 @@
+import { buildBoardProjection } from "./access.js";
 import { validateTeacherPlan } from "./teacher-plan.js";
 
 export const STATE_FORMAT = "playbook.state.v1";
@@ -99,49 +100,6 @@ export function migrateLegacyState(storage, nowIso) {
   return { state, notes };
 }
 
-function classroomResource(resource) {
-  return isRecord(resource) && resource.private !== true && resource.visibility !== "teacher-private";
-}
-
-function withoutPrivateLinks(value) {
-  const safe = { ...value };
-  for (const key of Object.keys(safe)) {
-    const normalized = key.toLowerCase();
-    if (normalized.includes("private") && normalized.includes("link")) delete safe[key];
-  }
-  return safe;
-}
-
-function classroomPlan(plan) {
-  if (!isRecord(plan)) return null;
-  const projected = clone(plan);
-  projected.teachers = (Array.isArray(projected.teachers) ? projected.teachers : []).map((teacher) => {
-    const safeTeacher = { ...teacher, days: {} };
-    for (const [day, events] of Object.entries(teacher.days || {})) {
-      safeTeacher.days[day] = (Array.isArray(events) ? events : [])
-        .filter((event) => event?.type !== "duty")
-        .map(({ privateNote, dutyDetails, ...event }) => withoutPrivateLinks(event));
-    }
-    return safeTeacher;
-  });
-  return projected;
-}
-
-export function createClassroomProjection(state) {
-  const source = isRecord(state) ? state : createInitialState(null);
-  return {
-    format: STATE_FORMAT,
-    schemaVersion: STATE_SCHEMA_VERSION,
-    updatedAt: source.updatedAt ?? null,
-    plan: classroomPlan(source.plan),
-    checklist: (Array.isArray(source.checklist) ? source.checklist : []).filter((item) => item?.visibility !== "teacher-private"),
-    classes: clone(Array.isArray(source.classes) ? source.classes : []),
-    lessonGuides: clone(Array.isArray(source.lessonGuides) ? source.lessonGuides : []),
-    specialEvents: clone(Array.isArray(source.specialEvents) ? source.specialEvents : []),
-    resources: (Array.isArray(source.resources) ? source.resources : [])
-      .filter(classroomResource)
-      .map(withoutPrivateLinks),
-    notes: clone((Array.isArray(source.notes) ? source.notes : []).filter((note) => note?.visibility === "classroom")),
-    preferences: clone(isRecord(source.preferences) ? source.preferences : {})
-  };
+export function createClassroomProjection(state, eventId, options = {}) {
+  return buildBoardProjection(state, eventId, options);
 }

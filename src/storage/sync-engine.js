@@ -1,3 +1,5 @@
+import { admitResourceState } from "../model/access.js";
+
 const ENTITY_COLLECTIONS = [
   "resources",
   "checklist",
@@ -127,28 +129,45 @@ function mergePreferences(local, remote, conflicts) {
 export function mergeStates(local, remote) {
   if (!isRecord(local)) throw new TypeError("local state must be an object");
   if (!isRecord(remote)) {
-    return { state: clone(local), conflicts: [{ reason: "remote-unavailable" }] };
+    return {
+      state: admitResourceState(local, { source: "local" }),
+      conflicts: [{ reason: "remote-unavailable" }]
+    };
   }
 
+  const admittedLocal = admitResourceState(local, { source: "local" });
+  const admittedRemote = admitResourceState(remote, { source: "authorized-cloud" });
+
   const conflicts = [];
-  const state = clone(local);
-  state.updatedAt = timestamp(remote) > timestamp(local) ? remote.updatedAt : local.updatedAt;
-  state.tombstones = mergeTombstones(local.tombstones, remote.tombstones);
-  state.plan = mergePlan(local.plan, remote.plan, conflicts);
+  const state = clone(admittedLocal);
+  state.updatedAt = timestamp(admittedRemote) > timestamp(admittedLocal)
+    ? admittedRemote.updatedAt
+    : admittedLocal.updatedAt;
+  state.tombstones = mergeTombstones(admittedLocal.tombstones, admittedRemote.tombstones);
+  state.plan = mergePlan(admittedLocal.plan, admittedRemote.plan, conflicts);
   for (const collection of ENTITY_COLLECTIONS) {
     state[collection] = withoutTombstonedEntities(
       collection,
-      mergeEntities(collection, local[collection], remote[collection], conflicts),
+      mergeEntities(
+        collection,
+        admittedLocal[collection],
+        admittedRemote[collection],
+        conflicts
+      ),
       state.tombstones
     );
   }
-  state.preferences = mergePreferences(local.preferences, remote.preferences, conflicts);
+  state.preferences = mergePreferences(
+    admittedLocal.preferences,
+    admittedRemote.preferences,
+    conflicts
+  );
   state.notes = withoutTombstonedEntities(
     "notes",
-    mergeEntities("notes", local.notes, remote.notes, conflicts),
+    mergeEntities("notes", admittedLocal.notes, admittedRemote.notes, conflicts),
     state.tombstones
   );
-  if (local.classroomFacing || remote.classroomFacing) {
+  if (admittedLocal.classroomFacing || admittedRemote.classroomFacing) {
     state.classroomFacing = true;
     state.notes = state.notes.filter((note) => note?.visibility === "classroom");
   }

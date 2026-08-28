@@ -1,3 +1,4 @@
+import { admitResource } from "./access.js";
 import { parseLocalDate } from "./schedule.js";
 
 const PLAN_FORMAT = "playbook.teacherPlan.v2";
@@ -259,6 +260,13 @@ export function validateTeacherPlan(candidate) {
   validateSpecialEvents(value.specialEvents, errors, eventIds);
   if (!Array.isArray(value.resources)) {
     errors.push("resources must be an array");
+  } else {
+    value.resources = value.resources.flatMap((resource, index) => {
+      const admitted = admitResource(resource);
+      if (admitted) return [admitted];
+      errors.push(`resources[${index}] must match the admitted resource schema`);
+      return [];
+    });
   }
 
   return { ok: errors.length === 0, errors, value };

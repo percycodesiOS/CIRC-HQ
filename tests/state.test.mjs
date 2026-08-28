@@ -84,27 +84,26 @@ test("reads legacy values without removing their source keys", () => {
   assert.ok(result.notes.some((note) => note.includes("missionControl.teacherPlan.v1")));
 });
 
-test("classroom projection excludes teacher-private notes, duty details, and private links", () => {
+test("classroom projection returns only reviewed Board-safe fields", () => {
   const projection = createClassroomProjection({
     ...createInitialState(NOW),
-    notes: [
-      { id: "visible", text: "Welcome builders", visibility: "classroom" },
-      { id: "private", text: "Call guardian", visibility: "teacher-private" }
-    ],
-    resources: [
-      { id: "public", title: "Build guide", url: "https://example.test/guide", privateLink: "https://example.test/private-guide" },
-      { id: "secret", title: "Roster", url: "https://example.test/roster", private: true }
-    ],
     plan: {
       format: "playbook.teacherPlan.v2",
       version: 1,
       calendar: {},
       teachers: [
         {
-          id: "teacher",
+          id: "private-teacher",
           days: {
             1: [
-              { id: "teach", type: "teach", label: "Build time", privateLink: "https://example.test/private-event" },
+              {
+                id: "teach",
+                type: "teach",
+                label: "Private event label",
+                classId: "class-safe",
+                lessonGuideId: "guide-safe",
+                privateLink: "https://example.test/private-event"
+              },
               { id: "duty", type: "duty", label: "Hall duty" }
             ]
           }
@@ -112,17 +111,33 @@ test("classroom projection excludes teacher-private notes, duty details, and pri
       ],
       specialEvents: [],
       resources: []
-    }
-  });
+    },
+    classes: [{
+      id: "class-safe",
+      title: "Welcome builders",
+      visibility: "classroom",
+      reviewedForBoard: true,
+      roster: ["Private roster value"],
+      classCode: "PRIVATE"
+    }],
+    lessonGuides: [{
+      id: "guide-safe",
+      title: "Build guide",
+      visibility: "classroom",
+      reviewedForBoard: true,
+      materials: ["Paper"],
+      directions: ["Build"],
+      privateNote: "Private note"
+    }],
+    preferences: { teacherId: "private-teacher" }
+  }, "teach");
 
-  assert.deepEqual(projection.notes.map((note) => note.id), ["visible"]);
-  assert.deepEqual(projection.resources.map((resource) => resource.id), ["public"]);
-  assert.equal(projection.resources[0].privateLink, undefined);
-  assert.equal(projection.plan.teachers[0].days[1][0].id, "teach");
-  assert.equal(projection.plan.teachers[0].days[1][0].privateLink, undefined);
-  assert.equal(JSON.stringify(projection).includes("Hall duty"), false);
-  assert.equal(JSON.stringify(projection).includes("Call guardian"), false);
-  assert.equal(JSON.stringify(projection).includes("roster"), false);
-  assert.equal(JSON.stringify(projection).includes("private-guide"), false);
-  assert.equal(JSON.stringify(projection).includes("private-event"), false);
+  assert.deepEqual(projection, {
+    classTitle: "Welcome builders",
+    countdown: "",
+    lessonTitle: "Build guide",
+    materials: ["Paper"],
+    directions: ["Build"],
+    currentProcessStep: ""
+  });
 });

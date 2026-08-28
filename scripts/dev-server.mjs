@@ -34,6 +34,10 @@ const PUBLIC_STATIC_FILES = new Set([
   "src/ui/view-model.js"
 ]);
 
+export function getPublicStaticManifest() {
+  return [...PUBLIC_STATIC_FILES].sort();
+}
+
 function noStoreHeaders() {
   return {
     "Cache-Control": "no-store",

@@ -1,5 +1,40 @@
 # Mission Control - BUILDLOG
 
+## 2026-08-28 Task 6 public release verification
+
+Task 6 started from exact clean commit `c96d53a553bd537f0d7954243c3c6769f9d9856d`.
+
+- TDD first exposed two residual privacy defects: the broad classroom projection retained private state, and resource records had no single fail-closed admission boundary.
+- The classroom projection now delegates to the reviewed Board projection. It can return only reviewed class and lesson fields plus a generated countdown.
+- One shared resource schema and URL admission function now protects teacher-plan validation and import, local load and save, backup and export, sync merge, Firebase load and write patches, and Room presentation.
+- The public verifier scans the recursive `git ls-files -co --exclude-standard` candidate set, accepts only the two intended Task 6 development files while untracked, suppresses matched content and child output, and reports one gate name and count per line.
+- README now explains local teacher use, one-time private import, private GitHub boundaries, Firebase and CyberGrader separation, blocked shared sync, account-free Board behavior, the locked classroom route, and the separate publication gate.
+
+TDD counts:
+
+- Focused residual RED: 2 tests, 0 pass, 2 fail, 0 skip.
+- Focused residual GREEN: 2 tests, 2 pass, 0 fail, 0 skip.
+- Admission integration RED: 8 tests, 3 pass, 5 fail, 0 skip.
+- Admission integration GREEN: 8 tests, 8 pass, 0 fail, 0 skip.
+- Wider verifier RED: 14 tests, 12 pass, 2 fail, 0 skip.
+- Wider verifier GREEN: 14 tests, 14 pass, 0 fail, 0 skip.
+- Final SEC matrix RED: 19 tests, 18 pass, 1 fail, 0 skip.
+- Final SEC matrix GREEN: 19 tests, 19 pass, 0 fail, 0 skip.
+
+Verified commands and counts on 2026-08-28:
+
+- `npm test`: 142 tests, 141 pass, 0 fail, 1 expected private-environment skip.
+- `npm run verify`: 12 of 12 gates passed. Counts were candidate 48, entrypoints 2, legacy 1, Firebase placeholder 1, typography 48, credentials 48, privacy tokens 33374, public runtime 20, DOM sinks 17, server allowlist 19, JavaScript syntax 39, and test files 19.
+- Direct private acceptance with `PLAYBOOK_PRIVATE_PLAN` and `PLAYBOOK_PRIVATE_OPTIONS` set, then `node --test tests/teacher-plan-v1.test.mjs`: 10 tests, 10 pass, 0 fail, 0 skip. Input 60, output 60, cycle days 5, duties 10, confirmations 4, error codes 0, and source SHA256 `BD7D359590414E2FA6F1891403B71BC5772F8FE452EBD35566B55D00D6E871BD`.
+- Browser acceptance: 10 sanitized cases across 1440x900, 390x844, and 360x800. Board isolation and restore, restart recovery, Room admission, Easy first viewport, live boundary clock advancement, no horizontal overflow, 44px controls, and zero console errors all passed using generic synthetic data.
+- Locked classroom SHA256 remained `5DF75CEA0693920856A95949F6EFBBE54961EAA77117637EA433D786AF5205E3`.
+
+No push, publication, deployment, Firebase configuration, account creation, billing change, or private-data upload occurred in Task 6. GitHub Pages publication remains a separate approval and release gate.
+
+## Historical classroom build log
+
+The entries below preserve the earlier single-file classroom application's history. They do not replace the current CIRC HQ Task 6 specification or release gates.
+
 Single file classroom app for a K-6 CIRC teacher at Ehrman Crest (ECMS).
 Repo: percycodesiOS/5_MissionControl_6. Source of truth is mission-control.html.
 index.html must stay byte identical to mission-control.html.
