@@ -59,18 +59,90 @@ const GENERIC_SECTIONS = [
   }
 ];
 
-function validatedPrivateResource(resource) {
-  return resource?.visibility === "teacher-private" &&
+const ROOM_APP_ORIGIN = "https://circ-hq.invalid";
+const ROOM_PUBLIC_APP_PATHS = new Set([
+  "/",
+  "/index.html",
+  "/mission-control.html",
+  "/classroom-legacy.html"
+]);
+
+function decodedForInspection(value) {
+  let decoded = value;
+  for (let pass = 0; pass < 3; pass += 1) {
+    let next;
+    try {
+      next = decodeURIComponent(decoded);
+    } catch {
+      return null;
+    }
+    if (next === decoded) return decoded;
+    decoded = next;
+  }
+  return decoded;
+}
+
+function admittedHref(value) {
+  if (value === undefined) return { safeHref: null, external: false };
+  if (typeof value !== "string" || value === "" || value !== value.trim()) return null;
+  const inspected = decodedForInspection(value);
+  if (
+    inspected === null ||
+    /[\u0000-\u001f\u007f]/.test(inspected) ||
+    inspected.includes("\\") ||
+    inspected.startsWith("//")
+  ) return null;
+
+  const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(inspected)?.[1]?.toLowerCase() ?? null;
+  if (scheme) {
+    if (scheme !== "https") return null;
+    try {
+      const parsed = new URL(value);
+      if (
+        parsed.protocol !== "https:" ||
+        !parsed.hostname ||
+        parsed.username ||
+        parsed.password
+      ) return null;
+      return { safeHref: parsed.href, external: true };
+    } catch {
+      return null;
+    }
+  }
+
+  try {
+    const parsed = new URL(value, `${ROOM_APP_ORIGIN}/`);
+    if (parsed.origin !== ROOM_APP_ORIGIN || !ROOM_PUBLIC_APP_PATHS.has(parsed.pathname)) return null;
+    return {
+      safeHref: `${parsed.pathname}${parsed.search}${parsed.hash}`,
+      external: false
+    };
+  } catch {
+    return null;
+  }
+}
+
+function admitPrivateResource(resource) {
+  const hasRequiredFields = resource?.visibility === "teacher-private" &&
     resource.validated === true &&
     ["local", "authorized-cloud"].includes(resource.source) &&
-    typeof resource.id === "string" &&
-    typeof resource.title === "string";
+    typeof resource.id === "string" && resource.id.trim() !== "" &&
+    typeof resource.title === "string" && resource.title.trim() !== "";
+  if (!hasRequiredFields) return null;
+  const href = admittedHref(resource.href);
+  if (!href) return null;
+  return {
+    id: resource.id,
+    title: resource.title,
+    ...(typeof resource.note === "string" ? { note: resource.note } : {}),
+    ...(href.safeHref ? { safeHref: href.safeHref, external: href.external } : {})
+  };
 }
 
 export function buildRoomView(state = {}) {
   const privateResources = (Array.isArray(state.resources) ? state.resources : [])
-    .filter(validatedPrivateResource)
-    .map((resource) => structuredClone(resource));
+    .map(admitPrivateResource)
+    .filter(Boolean);
   return {
     genericSections: structuredClone(GENERIC_SECTIONS),
     privateResources,

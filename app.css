@@ -583,6 +583,24 @@ h2 { font-size: 1.15rem; }
 .status-note,
 .empty-note { color: var(--secondary); }
 
+.private-seed-recovery {
+  display: grid;
+  margin-top: 10px;
+  border: 1px solid #ddc47d;
+  border-radius: 10px;
+  padding: 8px 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  background: #fff8e6;
+  color: var(--secondary);
+}
+
+.private-seed-recovery p {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
 .resource-row {
   padding: 12px 0;
   border-top: 1px solid var(--border);

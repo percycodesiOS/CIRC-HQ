@@ -9,10 +9,29 @@ export const DEV_SERVER_HOST = "127.0.0.1";
 const CONTENT_TYPES = new Map([
   [".css", "text/css; charset=utf-8"],
   [".html", "text/html; charset=utf-8"],
-  [".js", "text/javascript; charset=utf-8"],
-  [".json", "application/json; charset=utf-8"],
-  [".mjs", "text/javascript; charset=utf-8"],
-  [".svg", "image/svg+xml"]
+  [".js", "text/javascript; charset=utf-8"]
+]);
+
+const PUBLIC_STATIC_FILES = new Set([
+  "index.html",
+  "mission-control.html",
+  "classroom-legacy.html",
+  "app.css",
+  "src/app.js",
+  "src/model/access.js",
+  "src/model/lesson-guide.js",
+  "src/model/schedule.js",
+  "src/model/state.js",
+  "src/model/teacher-plan-v1.js",
+  "src/model/teacher-plan.js",
+  "src/services/weather.js",
+  "src/storage/local-store.js",
+  "src/ui/board.js",
+  "src/ui/curriculum.js",
+  "src/ui/room.js",
+  "src/ui/settings.js",
+  "src/ui/today-ui.js",
+  "src/ui/view-model.js"
 ]);
 
 function noStoreHeaders() {
@@ -24,6 +43,18 @@ function noStoreHeaders() {
 
 function notFound() {
   return { status: 404, headers: noStoreHeaders(), body: "" };
+}
+
+function methodNotAllowed(headers = {}) {
+  return {
+    status: 405,
+    headers: {
+      ...headers,
+      "Cache-Control": "no-store",
+      Allow: "GET, HEAD"
+    },
+    body: ""
+  };
 }
 
 function unsafePathname(pathname) {
@@ -57,18 +88,19 @@ export function createPrivateSeedRoute(
   };
 }
 
-function resolveStaticPath(root, pathname) {
-  if (unsafePathname(pathname)) return null;
+function publicStaticPath(root, pathname) {
   let decoded;
   try {
     decoded = decodeURIComponent(pathname);
   } catch {
     return null;
   }
-  const requested = decoded === "/" ? "/index.html" : decoded;
-  const candidate = path.resolve(root, `.${requested}`);
-  const relative = path.relative(root, candidate);
-  return relative.startsWith("..") || path.isAbsolute(relative) ? null : candidate;
+  if (decoded.includes("\\") || /[\u0000-\u001f\u007f]/.test(decoded)) return null;
+  const segments = decoded.split("/").filter(Boolean);
+  if (segments.some((segment) => segment === ".." || segment.startsWith("."))) return null;
+  const requested = decoded === "/" ? "index.html" : segments.join("/");
+  if (!PUBLIC_STATIC_FILES.has(requested)) return null;
+  return path.join(root, ...requested.split("/"));
 }
 
 export function createDevServer({
@@ -83,17 +115,28 @@ export function createDevServer({
   );
   return createServer(async (request, response) => {
     const url = new URL(request.url ?? "/", `http://${DEV_SERVER_HOST}`);
+    const method = request.method ?? "GET";
+    if (method !== "GET" && method !== "HEAD") {
+      const privateRequest = url.pathname.startsWith("/__private__/");
+      const result = methodNotAllowed(privateRequest ? noStoreHeaders() : {});
+      response.writeHead(result.status, result.headers);
+      response.end();
+      return;
+    }
     if (url.pathname.startsWith("/__private__/")) {
       const route = url.pathname === "/__private__/plan.json" ? planRoute : optionsRoute;
       const result = await route(url.pathname);
       response.writeHead(result.status, result.headers);
-      response.end(result.body);
+      response.end(method === "HEAD" ? undefined : result.body);
       return;
     }
-    const file = resolveStaticPath(path.resolve(root), url.pathname);
+    const file = publicStaticPath(path.resolve(root), url.pathname);
     if (!file) {
-      response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
-      response.end("Not found");
+      response.writeHead(404, {
+        "Cache-Control": "no-store",
+        "Content-Type": "text/plain; charset=utf-8"
+      });
+      response.end(method === "HEAD" ? undefined : "Not found");
       return;
     }
     try {
@@ -103,10 +146,14 @@ export function createDevServer({
         "Content-Type": CONTENT_TYPES.get(path.extname(file).toLowerCase()) ?? "application/octet-stream",
         "Cache-Control": "no-store"
       });
-      createReadStream(file).pipe(response);
+      if (method === "HEAD") response.end();
+      else createReadStream(file).pipe(response);
     } catch {
-      response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
-      response.end("Not found");
+      response.writeHead(404, {
+        "Cache-Control": "no-store",
+        "Content-Type": "text/plain; charset=utf-8"
+      });
+      response.end(method === "HEAD" ? undefined : "Not found");
     }
   });
 }

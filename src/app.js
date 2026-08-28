@@ -115,6 +115,23 @@ function localDateKey(date) {
   ].join("-");
 }
 
+function snapshotAttributes(node) {
+  if (!node?.attributes) return [];
+  return Array.from(node.attributes, (attribute) =>
+    Array.isArray(attribute)
+      ? [attribute[0], attribute[1]]
+      : [attribute.name, attribute.value]
+  );
+}
+
+function restoreAttributes(node, snapshot) {
+  if (!node?.attributes) return;
+  for (const attribute of Array.from(node.attributes)) {
+    node.removeAttribute(Array.isArray(attribute) ? attribute[0] : attribute.name);
+  }
+  for (const [name, value] of snapshot) node.setAttribute(name, value);
+}
+
 function buildHeading(model, onBoard) {
   const boardButton = element("button", {
     className: "board-button",
@@ -169,6 +186,22 @@ function buildPlanNotice(presentation, navigate, detail = "") {
   return element("section", { className: "setup-card" }, [
     element("h2", { text: presentation.title }),
     detail ? element("p", { text: detail }) : null,
+    button
+  ]);
+}
+
+function buildPrivateSeedRecovery(detail, navigate) {
+  const button = element("button", {
+    className: "secondary-action",
+    text: "Open Settings",
+    attributes: { type: "button" }
+  });
+  button.addEventListener("click", () => navigate("settings"));
+  return element("section", {
+    className: "private-seed-recovery",
+    attributes: { role: "status", "aria-live": "polite" }
+  }, [
+    element("p", { text: detail }),
     button
   ]);
 }
@@ -302,6 +335,9 @@ function buildToday(model, actions, options) {
     }));
   }
   children.push(buildTimeline(dashboard.timeline, actions.toggleTimeline));
+  if (actions.privateSeedMessage) {
+    children.push(buildPrivateSeedRecovery(actions.privateSeedMessage, actions.navigate));
+  }
   children.push(element("details", { className: "today-details" }, [
     element("summary", { text: "Details" }),
     element("p", { text: dashboard.quietStatus }),
@@ -321,9 +357,7 @@ function textList(items, className = "plain-list") {
   return list;
 }
 
-function boardRoute(state, model, navigate) {
-  const projection = buildBoardProjection(state, model.current?.id);
-  const board = buildBoardView(projection);
+function boardRoute(board, navigate) {
   const exit = element("button", {
     className: "primary-action",
     text: "Return to Today",
@@ -359,7 +393,7 @@ function boardRoute(state, model, navigate) {
   return element("section", { className: "board-view", attributes: { "data-view": "board" } }, [
     element("div", { className: "board-heading" }, [
       element("p", { className: "eyebrow", text: "Board" }),
-      element("h1", { text: board.classTitle || model.current?.title || "Board is ready when a class is active" }),
+      element("h1", { text: board.classTitle || "Board is ready when a class is active" }),
       board.lessonTitle ? element("p", { className: "board-lesson", text: board.lessonTitle }) : null,
       board.countdown ? element("strong", { className: "board-countdown", text: board.countdown }) : null,
       board.currentProcessStep ? element("p", { className: "board-process", text: `Current step: ${board.currentProcessStep}` }) : null,
@@ -417,7 +451,15 @@ function roomRoute(state) {
     ? view.privateResources.map((resource) => element("article", { className: "resource-row" }, [
         element("h3", { text: resource.title }),
         typeof resource.note === "string" ? element("p", { text: resource.note }) : null,
-        typeof resource.href === "string" ? element("a", { text: "Open resource", attributes: { href: resource.href } }) : null
+        typeof resource.safeHref === "string" ? element("a", {
+          text: "Open resource",
+          attributes: {
+            href: resource.safeHref,
+            ...(resource.external
+              ? { target: "_blank", rel: "noopener noreferrer" }
+              : {})
+          }
+        }) : null
       ]))
     : [element("p", { className: "empty-note", text: view.privateResourceStatus })];
   return element("section", { attributes: { "data-view": "room" } }, [
@@ -628,6 +670,10 @@ export function renderApp(root, services = {}) {
   let timelineExpanded = false;
   let lastBoundaryKey = "";
   let lastRenderedMinute = "";
+  const siteHeader = document.querySelector(".site-header");
+  const navButtons = [...document.querySelectorAll("[data-route]")];
+  const siteHeaderSnapshot = snapshotAttributes(siteHeader);
+  const navSnapshots = navButtons.map((button) => snapshotAttributes(button));
 
   const now = () => services.clock?.now?.() ?? new Date();
 
@@ -645,11 +691,22 @@ export function renderApp(root, services = {}) {
   }
 
   function setNavigation() {
-    for (const button of document.querySelectorAll("[data-route]")) {
+    for (const button of navButtons) {
       const active = button.dataset.route === route;
       if (active) button.setAttribute("aria-current", "page");
       else button.removeAttribute("aria-current");
     }
+  }
+
+  function setBoardShell(active) {
+    if (!siteHeader) return;
+    if (active) {
+      siteHeader.setAttribute("hidden", "");
+      siteHeader.setAttribute("inert", "");
+      siteHeader.setAttribute("aria-hidden", "true");
+      return;
+    }
+    restoreAttributes(siteHeader, siteHeaderSnapshot);
   }
 
   function announceBoundary(model) {
@@ -695,7 +752,17 @@ export function renderApp(root, services = {}) {
     };
     let view;
     if (route === "today") view = buildToday(model, actions, { timelineExpanded });
-    else if (route === "board") view = boardRoute(state, model, navigate);
+    else if (route === "board") {
+      const liveCountdown = model.current?.id && model.countdown
+        ? {
+            eventId: model.current.id,
+            minutes: model.countdown.minutes,
+            target: model.countdown.target
+          }
+        : null;
+      const board = buildBoardView(buildBoardProjection(state, model.current?.id, { liveCountdown }));
+      view = boardRoute(board, navigate);
+    }
     else if (route === "curriculum") view = curriculumRoute(state, model);
     else if (route === "schedule") view = scheduleRoute(state, navigate);
     else if (route === "room") view = roomRoute(state);
@@ -718,13 +785,13 @@ export function renderApp(root, services = {}) {
       view = settingsRoute(context);
     }
     root.replaceChildren(view);
+    setBoardShell(route === "board");
     setNavigation();
     announceBoundary(model);
     const currentTime = now();
     lastRenderedMinute = `${localDateKey(currentTime)}:${currentTime.getHours()}:${currentTime.getMinutes()}`;
   }
 
-  const navButtons = [...document.querySelectorAll("[data-route]")];
   for (const button of navButtons) {
     button.addEventListener("click", () => navigate(button.dataset.route));
   }
@@ -782,6 +849,8 @@ export function renderApp(root, services = {}) {
     ready: privateSeedPromise,
     destroy() {
       window.clearInterval(timer);
+      restoreAttributes(siteHeader, siteHeaderSnapshot);
+      navButtons.forEach((button, index) => restoreAttributes(button, navSnapshots[index]));
       for (const button of navButtons) button.replaceWith(button.cloneNode(true));
     }
   };

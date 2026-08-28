@@ -20,6 +20,30 @@ function publicStrings(value) {
   return (Array.isArray(value) ? value : []).filter((item) => typeof item === "string");
 }
 
+function reviewedForBoard(value) {
+  return isRecord(value) &&
+    value.visibility === "classroom" &&
+    value.reviewedForBoard === true;
+}
+
+function generatedCountdown(options, eventId) {
+  const live = options?.liveCountdown;
+  if (!isRecord(live)) return "";
+  const keys = Object.keys(live).sort();
+  if (
+    keys.length !== 3 ||
+    keys[0] !== "eventId" ||
+    keys[1] !== "minutes" ||
+    keys[2] !== "target" ||
+    live.eventId !== eventId ||
+    !Number.isInteger(live.minutes) ||
+    live.minutes < 0 ||
+    live.minutes > 1440 ||
+    live.target !== "end"
+  ) return "";
+  return `${live.minutes}m to end`;
+}
+
 export function getAccessMode(session = {}) {
   if (!session.configured) return "local";
   if (!session.user?.uid) return "signed-out";
@@ -28,14 +52,16 @@ export function getAccessMode(session = {}) {
   return "private-sync";
 }
 
-export function buildBoardProjection(state, eventId) {
+export function buildBoardProjection(state, eventId, options = {}) {
   const source = isRecord(state) ? state : {};
   const event = findById(source.specialEvents, eventId) ?? findPlanEvent(source.plan, eventId) ?? {};
-  const classroom = findById(source.classes, event.classId) ?? {};
-  const lesson = findById(source.lessonGuides, event.lessonGuideId) ?? {};
+  if (event.type !== "teach") return {};
+  const classroom = findById(source.classes, event.classId);
+  const lesson = findById(source.lessonGuides, event.lessonGuideId);
+  if (!reviewedForBoard(classroom) || !reviewedForBoard(lesson)) return {};
   return {
     classTitle: typeof classroom.title === "string" ? classroom.title : "",
-    countdown: typeof event.countdown === "string" ? event.countdown : "",
+    countdown: generatedCountdown(options, eventId),
     lessonTitle: typeof lesson.title === "string" ? lesson.title : "",
     materials: publicStrings(lesson.materials),
     directions: publicStrings(lesson.directions),
@@ -43,6 +69,6 @@ export function buildBoardProjection(state, eventId) {
     ...(typeof lesson.safety === "string" ? { safety: lesson.safety } : {}),
     ...(typeof lesson.cleanup === "string" ? { cleanup: lesson.cleanup } : {}),
     ...(typeof lesson.exitPrompt === "string" ? { exitPrompt: lesson.exitPrompt } : {}),
-    currentProcessStep: typeof event.currentProcessStep === "string" ? event.currentProcessStep : ""
+    currentProcessStep: typeof lesson.currentProcessStep === "string" ? lesson.currentProcessStep : ""
   };
 }
