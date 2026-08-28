@@ -1,0 +1,115 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+  createInitialState,
+  createClassroomProjection,
+  migrateLegacyState,
+  stableId
+} from "../src/model/state.js";
+
+const NOW = "2026-08-28T12:00:00.000Z";
+
+function storageWith(entries) {
+  const values = new Map(Object.entries(entries));
+  return {
+    getItem(key) {
+      return values.has(key) ? values.get(key) : null;
+    },
+    setItem(key, value) {
+      values.set(key, String(value));
+    },
+    removeItem(key) {
+      values.delete(key);
+    }
+  };
+}
+
+test("creates a versioned empty state with the supplied timestamp", () => {
+  const state = createInitialState(NOW);
+
+  assert.equal(state.format, "playbook.state.v1");
+  assert.equal(state.schemaVersion, 1);
+  assert.equal(state.updatedAt, NOW);
+  assert.deepEqual(state.checklist, []);
+  assert.deepEqual(state.teacherProgress, {});
+  assert.deepEqual(state.classes, []);
+  assert.deepEqual(state.resources, []);
+  assert.deepEqual(state.notes, []);
+  assert.deepEqual(state.preferences, {});
+});
+
+test("returns a deterministic safe ID for imported content", () => {
+  const first = stableId("check", "Buy batteries!");
+  const second = stableId("check", "Buy batteries!");
+
+  assert.equal(first, second);
+  assert.match(first, /^check-[a-z0-9]+$/);
+  assert.notEqual(first, stableId("check", "Buy chargers!"));
+});
+
+test("reads legacy values without removing their source keys", () => {
+  const plan = {
+    format: "playbook.teacherPlan.v2",
+    version: 1,
+    calendar: {
+      anchorDate: "2026-08-20",
+      anchorDay: 1,
+      lastDate: "2027-06-04",
+      noSchool: [],
+      conditionalMakeup: [],
+      overrides: {}
+    },
+    teachers: [{ id: "teacher-1", days: {} }],
+    specialEvents: [],
+    resources: []
+  };
+  const storage = storageWith({
+    "missionControl.teacherPlan.v1": JSON.stringify(plan),
+    circBuyList: JSON.stringify(["Blue tape", { text: "Markers" }]),
+    circNotes: JSON.stringify(["Call office"])
+  });
+
+  const result = migrateLegacyState(storage, NOW);
+
+  assert.deepEqual(result.state.plan, plan);
+  assert.deepEqual(
+    result.state.checklist.map((item) => item.text),
+    ["Blue tape", "Markers"]
+  );
+  assert.ok(result.state.checklist.every((item) => /^check-[a-z0-9]+$/.test(item.id)));
+  assert.deepEqual(result.state.notes.map((note) => note.text), ["Call office"]);
+  assert.equal(storage.getItem("missionControl.teacherPlan.v1"), JSON.stringify(plan));
+  assert.equal(storage.getItem("circBuyList"), JSON.stringify(["Blue tape", { text: "Markers" }]));
+  assert.equal(storage.getItem("circNotes"), JSON.stringify(["Call office"]));
+  assert.ok(result.notes.some((note) => note.includes("missionControl.teacherPlan.v1")));
+});
+
+test("classroom projection excludes teacher-private notes, duty details, and private links", () => {
+  const projection = createClassroomProjection({
+    ...createInitialState(NOW),
+    notes: [
+      { id: "visible", text: "Welcome builders", visibility: "classroom" },
+      { id: "private", text: "Call guardian", visibility: "teacher-private" }
+    ],
+    resources: [
+      { id: "public", title: "Build guide", url: "https://example.test/guide" },
+      { id: "secret", title: "Roster", url: "https://example.test/roster", private: true }
+    ],
+    plan: {
+      format: "playbook.teacherPlan.v2",
+      version: 1,
+      calendar: {},
+      teachers: [
+        { id: "teacher", days: { 1: [{ id: "duty", type: "duty", label: "Hall duty" }] } }
+      ],
+      specialEvents: [],
+      resources: []
+    }
+  });
+
+  assert.deepEqual(projection.notes.map((note) => note.id), ["visible"]);
+  assert.deepEqual(projection.resources.map((resource) => resource.id), ["public"]);
+  assert.equal(JSON.stringify(projection).includes("Hall duty"), false);
+  assert.equal(JSON.stringify(projection).includes("Call guardian"), false);
+  assert.equal(JSON.stringify(projection).includes("roster"), false);
+});

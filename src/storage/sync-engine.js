@@ -1,0 +1,149 @@
+const ENTITY_COLLECTIONS = [
+  "resources",
+  "checklist",
+  "classes",
+  "lessonGuides",
+  "specialEvents"
+];
+
+function clone(value) {
+  return structuredClone(value);
+}
+
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function deepEqual(left, right) {
+  if (Object.is(left, right)) return true;
+  if (typeof left !== typeof right || left === null || right === null) return false;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) && Array.isArray(right) && left.length === right.length && left.every((value, index) => deepEqual(value, right[index]));
+  }
+  if (typeof left !== "object") return false;
+  const leftKeys = Object.keys(left).sort();
+  const rightKeys = Object.keys(right).sort();
+  return deepEqual(leftKeys, rightKeys) && leftKeys.every((key) => deepEqual(left[key], right[key]));
+}
+
+function timestamp(value) {
+  return typeof value?.updatedAt === "string" ? value.updatedAt : "";
+}
+
+function uniqueById(items) {
+  const result = new Map();
+  for (const item of Array.isArray(items) ? items : []) {
+    if (typeof item?.id !== "string") continue;
+    const present = result.get(item.id);
+    if (!present || timestamp(item) >= timestamp(present)) result.set(item.id, clone(item));
+  }
+  return result;
+}
+
+function mergeEntities(collection, localItems, remoteItems, conflicts) {
+  const local = uniqueById(localItems);
+  const remote = uniqueById(remoteItems);
+  const merged = [];
+  const ids = new Set([...local.keys(), ...remote.keys()]);
+  for (const id of ids) {
+    const left = local.get(id);
+    const right = remote.get(id);
+    if (!left) {
+      merged.push(right);
+      continue;
+    }
+    if (!right || deepEqual(left, right)) {
+      merged.push(left);
+      continue;
+    }
+    if (timestamp(right) > timestamp(left)) {
+      merged.push(right);
+      continue;
+    }
+    if (timestamp(left) > timestamp(right)) {
+      merged.push(left);
+      continue;
+    }
+    merged.push(left);
+    conflicts.push({ collection, id, reason: "equal-timestamp-divergence", local: clone(left), remote: clone(right) });
+  }
+  return merged.sort((left, right) => left.id.localeCompare(right.id));
+}
+
+function mergeTombstones(local, remote) {
+  const merged = new Map();
+  for (const tombstone of [...(Array.isArray(local) ? local : []), ...(Array.isArray(remote) ? remote : [])]) {
+    if (typeof tombstone?.id !== "string" || typeof tombstone?.collection !== "string") continue;
+    const key = `${tombstone.collection}:${tombstone.id}`;
+    const existing = merged.get(key);
+    if (!existing || String(tombstone.deletedAt || "") >= String(existing.deletedAt || "")) {
+      merged.set(key, clone(tombstone));
+    }
+  }
+  return [...merged.values()].sort((left, right) => `${left.collection}:${left.id}`.localeCompare(`${right.collection}:${right.id}`));
+}
+
+function withoutTombstonedEntities(collection, entities, tombstones) {
+  const deleted = new Map(
+    tombstones
+      .filter((tombstone) => tombstone.collection === collection)
+      .map((tombstone) => [tombstone.id, String(tombstone.deletedAt || "")])
+  );
+  return entities.filter((entity) => {
+    const deletedAt = deleted.get(entity.id);
+    return !deletedAt || timestamp(entity) > deletedAt;
+  });
+}
+
+function mergePlan(local, remote, conflicts) {
+  if (!local) return remote ? clone(remote) : null;
+  if (!remote || deepEqual(local, remote)) return clone(local);
+  const localVersion = Number(local.version) || 0;
+  const remoteVersion = Number(remote.version) || 0;
+  if (remoteVersion > localVersion) return clone(remote);
+  if (localVersion > remoteVersion) return clone(local);
+  conflicts.push({ collection: "plan", id: "plan", reason: "equal-version-divergence", local: clone(local), remote: clone(remote) });
+  return timestamp(remote) > timestamp(local) ? clone(remote) : clone(local);
+}
+
+function mergePreferences(local, remote) {
+  const merged = {};
+  const keys = new Set([...Object.keys(isRecord(local) ? local : {}), ...Object.keys(isRecord(remote) ? remote : {})]);
+  for (const key of keys) {
+    const left = local?.[key];
+    const right = remote?.[key];
+    if (!isRecord(left) || !isRecord(right)) {
+      merged[key] = clone(right === undefined ? left : right);
+    } else {
+      merged[key] = clone(timestamp(right) > timestamp(left) ? right : left);
+    }
+  }
+  return merged;
+}
+
+export function mergeStates(local, remote) {
+  if (!isRecord(local)) throw new TypeError("local state must be an object");
+  if (!isRecord(remote)) {
+    return { state: clone(local), conflicts: [{ reason: "remote-unavailable" }] };
+  }
+
+  const conflicts = [];
+  const state = clone(local);
+  state.updatedAt = timestamp(remote) > timestamp(local) ? remote.updatedAt : local.updatedAt;
+  state.tombstones = mergeTombstones(local.tombstones, remote.tombstones);
+  state.plan = mergePlan(local.plan, remote.plan, conflicts);
+  for (const collection of ENTITY_COLLECTIONS) {
+    state[collection] = withoutTombstonedEntities(
+      collection,
+      mergeEntities(collection, local[collection], remote[collection], conflicts),
+      state.tombstones
+    );
+  }
+  state.preferences = mergePreferences(local.preferences, remote.preferences);
+  state.notes = mergeEntities("notes", local.notes, remote.notes, conflicts);
+  if (local.classroomFacing || remote.classroomFacing) {
+    state.classroomFacing = true;
+    state.notes = state.notes.filter((note) => note?.visibility === "classroom");
+  }
+  return { state, conflicts };
+}
