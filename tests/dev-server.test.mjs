@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createConnection } from "node:net";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -48,7 +49,7 @@ async function withServer(context) {
     ]);
   });
   const { port } = server.address();
-  return async (pathname, options = {}) => {
+  const request = async (pathname, options = {}) => {
     const response = await fetch(`http://${DEV_SERVER_HOST}:${port}${pathname}`, options);
     return {
       status: response.status,
@@ -57,6 +58,29 @@ async function withServer(context) {
       body: await response.text()
     };
   };
+  request.raw = (target, method = "GET") => new Promise((resolve) => {
+    const socket = createConnection({ host: DEV_SERVER_HOST, port });
+    const chunks = [];
+    const finish = () => {
+      const response = Buffer.concat(chunks);
+      const headerEnd = response.indexOf("\r\n\r\n");
+      const headerBytes = headerEnd === -1 ? response : response.subarray(0, headerEnd);
+      const body = headerEnd === -1 ? Buffer.alloc(0) : response.subarray(headerEnd + 4);
+      const status = Number(/^HTTP\/1\.1 (\d{3})/m.exec(headerBytes.toString("latin1"))?.[1] ?? 0);
+      resolve({ status, body });
+    };
+    socket.setTimeout(2_000, socket.destroy);
+    socket.once("connect", () => {
+      socket.write(`${method} ${target} HTTP/1.1\r\nHost: ${DEV_SERVER_HOST}:${port}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`);
+    });
+    socket.on("data", (chunk) => chunks.push(chunk));
+    socket.once("end", finish);
+    socket.once("close", () => {
+      if (!socket.readableEnded) finish();
+    });
+    socket.once("error", finish);
+  });
+  return request;
 }
 
 test("the real dev server serves only the explicit public runtime allowlist", async (context) => {
@@ -137,4 +161,51 @@ test("public static files reject non-GET methods and HEAD never returns a body",
     assert.equal(rejected.allow, "GET, HEAD", method);
     assert.equal(rejected.body, "", method);
   }
+});
+
+test("the real dev server rejects ambiguous raw request targets before URL parsing", async (context) => {
+  const request = await withServer(context);
+  const privateBodies = [Buffer.from("GENERIC_PRIVATE_PLAN"), Buffer.from("GENERIC_PRIVATE_OPTIONS")];
+  const ambiguousTargets = [
+    "/__private__/%2e/plan.json",
+    "/%2e/__private__/plan.json",
+    "/%2e%2e/__private__/plan.json",
+    "/public/%2e%2e/__private__/plan.json",
+    "//host.invalid/__private__/plan.json",
+    "/.hidden/%2e%2e/index.html",
+    "/__private__/%2e%2e/index.html",
+    "http://host.invalid/__private__/plan.json",
+    "host.invalid:443",
+    "/index.html#fragment",
+    "/index.html\\generic",
+    "/index.html%",
+    "/index.html%2",
+    "/index.html%zz",
+    "/__private__/%2fplan.json",
+    "/__private__/%5cplan.json",
+    "/__private__/%3aplan.json",
+    "/__private__/%25%32%65/plan.json",
+    "/__private__/%252e/plan.json",
+    "/%2e%2e%2f__private__%2fplan.json",
+    "/./index.html",
+    "/public/../index.html",
+    "/index.html%00",
+    "/index.html%0d",
+    "/index.html%0a"
+  ];
+
+  for (const target of ambiguousTargets) {
+    for (const method of ["GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"]) {
+      const response = await request.raw(target, method);
+      assert.notEqual(response.status, 200, `${method} ${target}`);
+      for (const privateBody of privateBodies) {
+        assert.notEqual(response.body.length, privateBody.length, `${method} ${target}`);
+        assert.equal(response.body.includes(privateBody), false, `${method} ${target}`);
+      }
+    }
+  }
+
+  const listenerStillAvailable = await request("/index.html");
+  assert.equal(listenerStillAvailable.status, 200);
+  assert.equal(listenerStillAvailable.body, "GENERIC_INDEX");
 });

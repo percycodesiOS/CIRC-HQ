@@ -57,6 +57,35 @@ function methodNotAllowed(headers = {}) {
   };
 }
 
+function ordinaryRequestUrl(rawTarget) {
+  if (
+    typeof rawTarget !== "string" ||
+    !rawTarget.startsWith("/") ||
+    rawTarget.startsWith("//") ||
+    /[\u0000-\u0020\u007f\\#]/.test(rawTarget) ||
+    /%(?![0-9a-f]{2})/i.test(rawTarget) ||
+    /%(?:0[0-9a-f]|1[0-9a-f]|20|23|25|2e|2f|3a|3f|5c|7f)/i.test(rawTarget)
+  ) return null;
+
+  const queryStart = rawTarget.indexOf("?");
+  const rawPathname = queryStart === -1 ? rawTarget : rawTarget.slice(0, queryStart);
+  if (
+    rawPathname.includes("%") ||
+    rawPathname.split("/").some((segment) => segment === "." || segment === "..")
+  ) return null;
+
+  try {
+    const parsed = new URL(rawTarget, `http://${DEV_SERVER_HOST}`);
+    if (
+      parsed.origin !== `http://${DEV_SERVER_HOST}` ||
+      `${parsed.pathname}${parsed.search}` !== rawTarget
+    ) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 function unsafePathname(pathname) {
   let decoded;
   try {
@@ -114,7 +143,15 @@ export function createDevServer({
     "/__private__/migration-options.json"
   );
   return createServer(async (request, response) => {
-    const url = new URL(request.url ?? "/", `http://${DEV_SERVER_HOST}`);
+    const url = ordinaryRequestUrl(request.url);
+    if (!url) {
+      response.writeHead(404, {
+        "Cache-Control": "no-store",
+        "Content-Type": "text/plain; charset=utf-8"
+      });
+      response.end();
+      return;
+    }
     const method = request.method ?? "GET";
     if (method !== "GET" && method !== "HEAD") {
       const privateRequest = url.pathname.startsWith("/__private__/");

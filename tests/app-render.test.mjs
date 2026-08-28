@@ -267,6 +267,14 @@ test("rendered Room anchors use only admitted safeHref values", async () => {
       href: "http://example.invalid/generic"
     },
     {
+      id: "unsafe-normalized-local",
+      title: "UNSAFE_NORMALIZED_RESOURCE",
+      visibility: "teacher-private",
+      validated: true,
+      source: "local",
+      href: "/.git/../index.html"
+    },
+    {
       id: "safe-local",
       title: "Safe local resource",
       visibility: "teacher-private",
@@ -288,7 +296,7 @@ test("rendered Room anchors use only admitted safeHref values", async () => {
   const rendered = textOf(root);
   const anchors = findAll(root, (node) => node.tagName === "a");
 
-  assert.doesNotMatch(rendered, /UNSAFE_SCRIPT_RESOURCE|UNSAFE_HTTP_RESOURCE/);
+  assert.doesNotMatch(rendered, /UNSAFE_SCRIPT_RESOURCE|UNSAFE_HTTP_RESOURCE|UNSAFE_NORMALIZED_RESOURCE/);
   assert.equal(anchors.length, 2);
   assert.equal(anchors[0].getAttribute("href"), "/classroom-legacy.html");
   assert.equal(anchors[0].getAttribute("target"), null);
