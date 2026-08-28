@@ -20,6 +20,7 @@ import { previewPlanImport } from "../src/ui/settings.js";
 const ROOT = path.resolve(import.meta.dirname, "..");
 const LEGACY_SHA256 =
   "6E7FF5AA3B15A57A44F0D3351C6C6A5A3B3D14813E9B5616AF3D138C5E41B69F";
+const ROOT_GITIGNORE = "/.superpowers/\n";
 const verifier = await import("../scripts/verify-public.mjs").catch(() => null);
 
 async function listFilesRecursively(directory) {
@@ -405,27 +406,33 @@ test("public verifier has a recursive-safe sanitized gate contract", () => {
 test("candidate classifier rejects forbidden namespaces even when tracked", () => {
   assert.deepEqual(
     verifier.classifyCandidatePaths([
+      ".gitignore",
+      ".env",
       "index.html",
       ".superpowers/private/generic.json",
       ".git/config",
       ".internal/generic.txt",
       "private-data/generic.json",
+      "src/.generic.js",
       "scripts/verify-public.mjs"
     ], [
+      ".gitignore",
+      ".env",
       "index.html",
       ".superpowers/private/generic.json",
       ".git/config",
       ".internal/generic.txt",
-      "private-data/generic.json"
+      "private-data/generic.json",
+      "src/.generic.js"
     ]),
     {
-      candidateCount: 6,
-      trackedCount: 5,
+      candidateCount: 9,
+      trackedCount: 8,
       allowedUntrackedCount: 1,
       unexpectedUntrackedCount: 0,
-      forbiddenCandidateCount: 4,
-      unreviewedCandidateCount: 4,
-      unsupportedCandidateCount: 1
+      forbiddenCandidateCount: 6,
+      unreviewedCandidateCount: 6,
+      unsupportedCandidateCount: 2
     }
   );
 });
@@ -442,6 +449,7 @@ test("candidate boundary reads a temporary Git repository and fails closed", asy
     mkdir(path.join(repository, "tests"), { recursive: true })
   ]);
   await Promise.all([
+    writeFile(path.join(repository, ".gitignore"), ROOT_GITIGNORE),
     writeFile(
       path.join(repository, ".superpowers", "private", "generic.json"),
       "GENERIC_FORBIDDEN"
@@ -452,17 +460,20 @@ test("candidate boundary reads a temporary Git repository and fails closed", asy
   ]);
   execFileSync(
     "git",
-    ["add", "--", "index.html", ".superpowers/private/generic.json"],
+    ["add", "--", ".gitignore", "index.html"],
     { cwd: repository }
   );
+  execFileSync("git", ["add", "-f", "--", ".superpowers/private/generic.json"], {
+    cwd: repository
+  });
 
   const result = verifier.inspectCandidateBoundary(repository);
 
   assert.deepEqual(result, {
     ok: false,
     count: 2,
-    candidateCount: 5,
-    trackedCount: 2,
+    candidateCount: 6,
+    trackedCount: 3,
     allowedUntrackedCount: 2,
     unexpectedUntrackedCount: 1,
     forbiddenCandidateCount: 1,
@@ -477,11 +488,12 @@ test("public verifier rejects tracked opaque and unreviewed text candidates end 
   execFileSync("git", ["init", "-q"], { cwd: repository });
   await mkdir(path.join(repository, "notes"), { recursive: true });
   await Promise.all([
+    writeFile(path.join(repository, ".gitignore"), ROOT_GITIGNORE),
     writeFile(path.join(repository, "index.html"), "GENERIC_INDEX"),
     writeFile(path.join(repository, "opaque.pdf"), Buffer.from([0xff])),
     writeFile(path.join(repository, "notes", "generic.txt"), "GENERIC_UNREVIEWED_CONTENT")
   ]);
-  execFileSync("git", ["add", "--", "index.html", "opaque.pdf", "notes/generic.txt"], {
+  execFileSync("git", ["add", "--", ".gitignore", "index.html", "opaque.pdf", "notes/generic.txt"], {
     cwd: repository
   });
 
@@ -508,20 +520,29 @@ test("public verifier rejects tracked opaque and unreviewed text candidates end 
 
 test("release locks accept both autocrlf checkouts and reject substantive changes", async (context) => {
   assert.equal(typeof verifier.inspectReleaseLocks, "function");
+  assert.equal(typeof verifier.inspectRepositoryIgnore, "function");
   const fixtureRoot = await mkdtemp(path.join(os.tmpdir(), "circ-hq-eol-locks-"));
   context.after(() => rm(fixtureRoot, { recursive: true, force: true }));
   const source = path.join(fixtureRoot, "source");
   await mkdir(source, { recursive: true });
+  const isolatedGlobalConfig = path.join(fixtureRoot, "isolated-global.gitconfig");
+  await writeFile(isolatedGlobalConfig, "");
+  const isolatedGitEnvironment = {
+    ...process.env,
+    GIT_CONFIG_GLOBAL: isolatedGlobalConfig,
+    GIT_CONFIG_NOSYSTEM: "1"
+  };
   const canonicalLegacy = (await readFile(path.join(ROOT, "classroom-legacy.html"), "utf8"))
     .replaceAll("\r\n", "\n");
   const canonicalFirebase = (await readFile(path.join(ROOT, "firebase-config.example.js"), "utf8"))
     .replaceAll("\r\n", "\n");
   await Promise.all([
+    writeFile(path.join(source, ".gitignore"), ROOT_GITIGNORE),
     writeFile(path.join(source, "classroom-legacy.html"), canonicalLegacy),
     writeFile(path.join(source, "firebase-config.example.js"), canonicalFirebase)
   ]);
   execFileSync("git", ["init", "-q"], { cwd: source });
-  execFileSync("git", ["add", "--", "classroom-legacy.html", "firebase-config.example.js"], {
+  execFileSync("git", ["add", "--", ".gitignore", "classroom-legacy.html", "firebase-config.example.js"], {
     cwd: source
   });
   execFileSync("git", [
@@ -532,9 +553,48 @@ test("release locks accept both autocrlf checkouts and reject substantive change
 
   for (const autocrlf of ["true", "false"]) {
     const checkout = path.join(fixtureRoot, `checkout-${autocrlf}`);
-    execFileSync("git", ["clone", "-q", "--no-checkout", source, checkout]);
-    execFileSync("git", ["config", "core.autocrlf", autocrlf], { cwd: checkout });
-    execFileSync("git", ["checkout", "-q"], { cwd: checkout });
+    execFileSync("git", ["clone", "-q", "--no-checkout", source, checkout], {
+      env: isolatedGitEnvironment
+    });
+    execFileSync("git", ["config", "core.autocrlf", autocrlf], {
+      cwd: checkout,
+      env: isolatedGitEnvironment
+    });
+    execFileSync("git", ["checkout", "-q"], {
+      cwd: checkout,
+      env: isolatedGitEnvironment
+    });
+
+    assert.equal(await verifier.inspectRepositoryIgnore(checkout), true);
+    const privateProbe = path.join(checkout, ".superpowers", "private", "generic.json");
+    await mkdir(path.dirname(privateProbe), { recursive: true });
+    await writeFile(privateProbe, "GENERIC_PRIVATE_FIXTURE");
+    const checkoutCandidates = verifier.parseNulList(execFileSync(
+      "git",
+      ["ls-files", "-co", "--exclude-standard", "-z"],
+      { cwd: checkout, env: isolatedGitEnvironment }
+    ));
+    assert.equal(checkoutCandidates.includes(".superpowers/private/generic.json"), false);
+    const ignoreAttribution = execFileSync(
+      "git",
+      ["check-ignore", "-v", "--", ".superpowers/private/generic.json"],
+      { cwd: checkout, encoding: "utf8", env: isolatedGitEnvironment }
+    );
+    assert.match(ignoreAttribution.replaceAll("\\", "/"), /^\.gitignore:1:\/\.superpowers\/\s/);
+    for (const invalidIgnore of [
+      "/.superpowers/private/\n",
+      ".superpowers/\n",
+      "/.superpowers/\n/generic-extra/\n",
+      "# generic comment\n/.superpowers/\n",
+      "/.superpowers/\r"
+    ]) {
+      await writeFile(path.join(checkout, ".gitignore"), invalidIgnore);
+      assert.equal(await verifier.inspectRepositoryIgnore(checkout), false);
+    }
+    await rm(path.join(checkout, ".gitignore"));
+    assert.equal(await verifier.inspectRepositoryIgnore(checkout), false);
+    await writeFile(path.join(checkout, ".gitignore"), ROOT_GITIGNORE);
+    assert.equal(await verifier.inspectRepositoryIgnore(checkout), true);
 
     assert.deepEqual(await verifier.inspectReleaseLocks(checkout), {
       legacyOk: true,
@@ -557,18 +617,69 @@ test("release locks accept both autocrlf checkouts and reject substantive change
   }
 });
 
+test("candidate gate rejects every substantive root ignore change", async (context) => {
+  const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-ignore-gate-"));
+  context.after(() => rm(repository, { recursive: true, force: true }));
+  await Promise.all([
+    writeFile(path.join(repository, ".gitignore"), ROOT_GITIGNORE),
+    writeFile(path.join(repository, "index.html"), "GENERIC_INDEX")
+  ]);
+  execFileSync("git", ["init", "-q"], { cwd: repository });
+  execFileSync("git", ["add", "--", ".gitignore", "index.html"], { cwd: repository });
+
+  const moduleUrl = pathToFileURL(path.join(ROOT, "scripts", "verify-public.mjs")).href;
+  const childSource = [
+    `import { runPublicVerification } from ${JSON.stringify(moduleUrl)};`,
+    `const passed = await runPublicVerification(${JSON.stringify(repository)});`,
+    "if (!passed) process.exitCode = 1;"
+  ].join("\n");
+  const runFixture = () => spawnSync(
+    process.execPath,
+    ["--input-type=module", "--eval", childSource],
+    { cwd: repository, encoding: "utf8", windowsHide: true }
+  );
+  const assertSanitized = (result, expectedCandidateLine) => {
+    assert.equal(result.status, 1);
+    assert.equal(result.stderr, "");
+    const lines = result.stdout.trim().split(/\r?\n/);
+    assert.equal(lines.length, verifier.getGateNames().length);
+    assert.equal(lines[0], expectedCandidateLine);
+    assert.equal(lines.every((line) => /^(?:PASS|FAIL) [a-z-]+ count=\d+$/.test(line)), true);
+    assert.doesNotMatch(result.stdout, /generic|superpowers|comment/i);
+  };
+
+  assertSanitized(runFixture(), "PASS candidate-boundary count=2");
+  for (const invalidIgnore of [
+    "/.superpowers/private/\n",
+    ".superpowers/\n",
+    "/.superpowers/\n/generic-extra/\n",
+    "# generic comment\n/.superpowers/\n",
+    "/.superpowers/\r"
+  ]) {
+    await writeFile(path.join(repository, ".gitignore"), invalidIgnore);
+    assertSanitized(runFixture(), "FAIL candidate-boundary count=1");
+  }
+  await rm(path.join(repository, ".gitignore"));
+  assertSanitized(runFixture(), "FAIL candidate-boundary count=1");
+});
+
 test("verifier refreshes candidates after reviewed tests finish", async (context) => {
   const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-post-test-refresh-"));
   context.after(() => rm(repository, { recursive: true, force: true }));
   await mkdir(path.join(repository, "tests"), { recursive: true });
-  await writeFile(path.join(repository, "tests", "security.test.mjs"), [
-    'import { writeFileSync } from "node:fs";',
-    'import test from "node:test";',
-    `const artifactPath = ${JSON.stringify(path.join(repository, "unexpected6.pdf"))};`,
-    'test("generic reviewed test", () => writeFileSync(artifactPath, Buffer.from([6])));'
-  ].join("\n"));
+  await Promise.all([
+    writeFile(path.join(repository, ".gitignore"), ROOT_GITIGNORE),
+    writeFile(path.join(repository, "tests", "security.test.mjs"), [
+      'import { writeFileSync } from "node:fs";',
+      'import test from "node:test";',
+      `const artifactPath = ${JSON.stringify(path.join(repository, "unexpected6.pdf"))};`,
+      'test("generic reviewed test", () => writeFileSync(artifactPath, Buffer.from([6])));'
+    ].join("\n"))
+  ]);
   execFileSync("git", ["init", "-q"], { cwd: repository });
-  execFileSync("git", ["add", "--", "tests/security.test.mjs"], { cwd: repository });
+  execFileSync("git", ["add", "--", ".gitignore", "tests/security.test.mjs"], {
+    cwd: repository
+  });
   const cleanTestEnvironment = { ...process.env };
   delete cleanTestEnvironment.NODE_TEST_CONTEXT;
 
@@ -598,7 +709,19 @@ test("verifier refreshes candidates after reviewed tests finish", async (context
   assert.doesNotMatch(result.stdout, /unexpected6|generic reviewed|Buffer/i);
 });
 
-test("public candidates exclude ignored private and SDD paths", () => {
+test("tracked root ignore policy protects private and SDD paths", async (context) => {
+  assert.equal(typeof verifier.inspectRepositoryIgnore, "function");
+  assert.equal(await verifier.inspectRepositoryIgnore(ROOT), true);
+  const ignoredProbe = path.join(
+    ROOT,
+    ".superpowers",
+    "private",
+    "generic-ignore-probe.json"
+  );
+  await mkdir(path.dirname(ignoredProbe), { recursive: true });
+  await writeFile(ignoredProbe, "GENERIC_PRIVATE_FIXTURE");
+  context.after(() => rm(ignoredProbe, { force: true }));
+
   const candidates = verifier.parseNulList(execFileSync(
     "git",
     ["ls-files", "-co", "--exclude-standard", "-z"],
@@ -615,14 +738,23 @@ test("public candidates exclude ignored private and SDD paths", () => {
   assert.equal(counts.unreviewedCandidateCount, 0);
   assert.equal(counts.unsupportedCandidateCount, 0);
   assert.equal(candidates.some((candidate) => candidate.startsWith(".superpowers/")), false);
+  assert.equal(candidates.includes(".gitignore"), true);
+  assert.equal(tracked.includes(".gitignore"), true);
+  assert.equal(candidates.includes(".superpowers/private/generic-ignore-probe.json"), false);
+  const ignoreAttribution = execFileSync(
+    "git",
+    ["check-ignore", "-v", "--", ".superpowers/private/generic-ignore-probe.json"],
+    { cwd: ROOT, encoding: "utf8" }
+  );
+  assert.match(ignoreAttribution.replaceAll("\\", "/"), /^\.gitignore:1:\/\.superpowers\/\s/);
   assert.equal(execFileSync(
     "git",
     ["ls-files", "-z", "--", ".superpowers"],
     { cwd: ROOT }
   ).length, 0);
   for (const ignoredPath of [
-    ".superpowers/private/task-5-migration-options.json",
-    ".superpowers/sdd/2026-08-27-circ-hq-playbook/task-6-report.md"
+    ".superpowers/private/generic.json",
+    ".superpowers/sdd/generic.md"
   ]) {
     const ignored = spawnSync("git", ["check-ignore", "-q", "--", ignoredPath], { cwd: ROOT });
     assert.equal(ignored.status, 0);
@@ -722,16 +854,8 @@ test("production JavaScript uses no HTML parsing sinks", async () => {
 });
 
 test("Firebase example remains inert exact placeholders", async () => {
-  const source = await readFile(path.join(ROOT, "firebase-config.example.js"), "utf8");
-  assert.equal(source, `export const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
-`);
+  const locks = await verifier.inspectReleaseLocks(ROOT);
+  assert.equal(locks.firebaseOk, true);
 });
 
 test("new public runtime has no student identity or CyberGrader path", async () => {

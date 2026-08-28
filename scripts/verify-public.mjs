@@ -9,6 +9,7 @@ import { getPublicStaticManifest } from "./dev-server.mjs";
 const ROOT = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const LEGACY_NORMALIZED_SHA256 =
   "6E7FF5AA3B15A57A44F0D3351C6C6A5A3B3D14813E9B5616AF3D138C5E41B69F";
+const EXPECTED_ROOT_GITIGNORE = "/.superpowers/\n";
 const ALLOWED_UNTRACKED = new Set([
   "scripts/verify-public.mjs",
   "tests/security.test.mjs"
@@ -58,6 +59,7 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "src/ui/view-model.js"
 ]);
 const REVIEWED_CANDIDATE_MANIFEST = new Set([
+  ".gitignore",
   "BUILDLOG.md",
   "README.md",
   ...EXPECTED_PUBLIC_MANIFEST,
@@ -151,6 +153,15 @@ export async function inspectReleaseLocks(root = ROOT) {
   };
 }
 
+export async function inspectRepositoryIgnore(root = ROOT) {
+  try {
+    const ignoreBytes = await readFile(path.join(root, ".gitignore"));
+    return normalizedText(ignoreBytes) === EXPECTED_ROOT_GITIGNORE;
+  } catch {
+    return false;
+  }
+}
+
 function isForbiddenCandidatePath(value) {
   const candidate = normalizedPath(value);
   const segments = candidate.split("/");
@@ -160,7 +171,9 @@ function isForbiddenCandidatePath(value) {
     /^[a-z]:/i.test(candidate) ||
     segments.some((segment) => segment === "" || segment === "." || segment === "..")
   ) return true;
-  if (segments.some((segment) => segment.startsWith("."))) return true;
+  if (candidate !== ".gitignore" && segments.some((segment) => segment.startsWith("."))) {
+    return true;
+  }
   const root = segments[0].toLowerCase();
   return FORBIDDEN_CANDIDATE_ROOTS.has(root) ||
     segments.some((segment) => segment.toLowerCase() === "__private__");
@@ -253,7 +266,9 @@ export function inspectCandidateBoundary(root = ROOT) {
 
 function isTextCandidate(relativePath) {
   const basename = path.posix.basename(relativePath);
-  return basename === "README" || TEXT_EXTENSIONS.has(path.posix.extname(relativePath));
+  return basename === ".gitignore" ||
+    basename === "README" ||
+    TEXT_EXTENSIONS.has(path.posix.extname(relativePath));
 }
 
 async function readCandidate(root, relativePath) {
@@ -333,7 +348,15 @@ function isPublicRuntimePath(relativePath) {
 
 async function candidateBoundaryGate(context) {
   const result = candidateBoundaryResult(context.candidates, context.tracked);
-  return { ok: result.ok, count: result.count };
+  const ignoreEntry = context.textEntries.find((entry) => entry.relativePath === ".gitignore");
+  const ignoreViolation = Number(
+    !ignoreEntry || normalizedText(ignoreEntry.text) !== EXPECTED_ROOT_GITIGNORE
+  );
+  if (result.ok && ignoreViolation === 0) return { ok: true, count: result.count };
+  return {
+    ok: false,
+    count: (result.ok ? 0 : result.count) + ignoreViolation
+  };
 }
 
 async function entrypointIdentityGate(context) {
