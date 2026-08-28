@@ -69,6 +69,19 @@ test("accepts a valid playbook.teacherPlan.v2 value without mutation", () => {
   assert.deepEqual(candidate, snapshot);
 });
 
+test("rejects schema version values other than 1", () => {
+  const candidate = makeValidPlan();
+  candidate.version = 2;
+
+  const result = validateTeacherPlan(candidate);
+
+  assert.equal(result.ok, false);
+  assert.equal(
+    result.errors.some((error) => error.includes("version must be exactly 1")),
+    true
+  );
+});
+
 test("rejects duplicate event IDs", () => {
   const candidate = makeValidPlan();
   candidate.teachers[0].days[2] = [

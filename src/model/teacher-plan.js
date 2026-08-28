@@ -249,8 +249,8 @@ export function validateTeacherPlan(candidate) {
   if (value.format !== PLAN_FORMAT) {
     errors.push(`format must be "${PLAN_FORMAT}"`);
   }
-  if (!Number.isInteger(value.version) || value.version < 1) {
-    errors.push("version must be a positive integer");
+  if (value.version !== 1) {
+    errors.push("version must be exactly 1");
   }
 
   validateCalendar(value.calendar, errors);
