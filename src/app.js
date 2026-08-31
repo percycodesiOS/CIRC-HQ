@@ -1360,9 +1360,21 @@ export function renderApp(root, services = {}) {
     return selectedRunner();
   }
 
-  function runnerLayoutKey(runner) {
+  function runnerLayoutKey(runner, model = todayModel()) {
     if (!runner) return "";
-    return `${route}:${runner.projectNumber}:${runner.timer.currentStepIndex}:${runner.timer.status}:${runner.detour?.status ?? "build"}`;
+    return [
+      route,
+      selectedTeacherId ?? "no-teacher",
+      runnerOwnerKey(),
+      runner.projectNumber,
+      runner.timer.currentStepIndex,
+      runner.timer.status,
+      runner.detour?.status ?? "build",
+      model.current?.id ?? "no-current-event",
+      model.current?.type ?? "no-current-type",
+      previewOnly ? "preview" : "live",
+      state.plan ? "plan" : "no-plan"
+    ].join(":");
   }
 
   function updateRunnerTimerText(runner) {
@@ -1383,7 +1395,12 @@ export function renderApp(root, services = {}) {
       render();
       return;
     }
-    const key = runnerLayoutKey(runner);
+    const model = todayModel();
+    if (reconcilePendingArtifactHandoff(model)) {
+      render();
+      return;
+    }
+    const key = runnerLayoutKey(runner, model);
     if (
       (route === "experience-runner" || route === "project-student") &&
       key === lastRunnerLayoutKey &&
@@ -1500,13 +1517,8 @@ export function renderApp(root, services = {}) {
     const contribution = getCurrentContribution(artifact);
     if (!contribution) return null;
     const event = currentTeachingEvent(model);
-    const runner = selectedRunner();
-    const controlsEnabled = allowControls &&
-      route === "experience-runner" &&
-      !previewOnly &&
-      runner?.projectNumber === 2 &&
-      Boolean(event) &&
-      artifact.status !== "complete";
+    const eligibility = artifactHandoffEligibility(model, artifact);
+    const controlsEnabled = allowControls && Boolean(eligibility);
     return {
       stageTitle: contribution.stageTitle,
       contributionTitle: contribution.title,
@@ -1515,15 +1527,61 @@ export function renderApp(root, services = {}) {
         ? event.title
         : "",
       controlsEnabled,
-      pendingHandoff: controlsEnabled ? pendingArtifactHandoff : null
+      pendingHandoff: controlsEnabled && pendingArtifactHandoffMatches(eligibility)
+        ? pendingArtifactHandoff.handoff
+        : null
     };
+  }
+
+  function artifactHandoffEligibility(model, artifact = artifactForTeacherDisplay(now().toISOString())) {
+    const event = currentTeachingEvent(model);
+    const runner = selectedRunner();
+    if (
+      !state.plan ||
+      previewOnly ||
+      route !== "experience-runner" ||
+      selectedProjectNumber !== 2 ||
+      runner?.projectNumber !== 2 ||
+      !event ||
+      artifact.status === "complete"
+    ) return null;
+    return {
+      eventId: event.id,
+      teacherId: selectedTeacherId,
+      runnerOwner: runnerOwnerKey(),
+      projectNumber: 2
+    };
+  }
+
+  function pendingArtifactHandoffMatches(eligibility) {
+    if (!pendingArtifactHandoff || !eligibility) return false;
+    return Object.keys(pendingArtifactHandoff).length === 5 &&
+      ["ready", "repeat", "park"].includes(pendingArtifactHandoff.handoff) &&
+      pendingArtifactHandoff.eventId === eligibility.eventId &&
+      pendingArtifactHandoff.teacherId === eligibility.teacherId &&
+      pendingArtifactHandoff.runnerOwner === eligibility.runnerOwner &&
+      pendingArtifactHandoff.projectNumber === eligibility.projectNumber;
+  }
+
+  function reconcilePendingArtifactHandoff(model = todayModel()) {
+    if (!pendingArtifactHandoff) return false;
+    if (pendingArtifactHandoffMatches(artifactHandoffEligibility(model))) return false;
+    pendingArtifactHandoff = null;
+    return true;
   }
 
   function chooseArtifactHandoff(handoff) {
     if (!["ready", "repeat", "park"].includes(handoff)) return;
     const model = todayModel();
-    if (!teacherArtifactContext(model, selectedProjectNumber, true)?.controlsEnabled) return;
-    pendingArtifactHandoff = handoff;
+    const eligibility = artifactHandoffEligibility(model);
+    if (!eligibility) return;
+    pendingArtifactHandoff = Object.freeze({
+      handoff,
+      eventId: eligibility.eventId,
+      teacherId: eligibility.teacherId,
+      runnerOwner: eligibility.runnerOwner,
+      projectNumber: eligibility.projectNumber
+    });
     render();
   }
 
@@ -1537,19 +1595,13 @@ export function renderApp(root, services = {}) {
     if (!pendingArtifactHandoff || typeof store.save !== "function") return;
     const currentTime = now();
     const model = todayModel(currentTime);
-    const event = currentTeachingEvent(model);
-    const runner = selectedRunner();
-    if (
-      previewOnly ||
-      route !== "experience-runner" ||
-      selectedProjectNumber !== 2 ||
-      runner?.projectNumber !== 2 ||
-      !event
-    ) {
+    const eligibility = artifactHandoffEligibility(model);
+    if (!pendingArtifactHandoffMatches(eligibility)) {
       pendingArtifactHandoff = null;
       render();
       return;
     }
+    const confirmedHandoff = pendingArtifactHandoff;
     const nowIso = currentTime.toISOString();
     const artifact = artifactForTeacherDisplay(nowIso);
     if (
@@ -1561,8 +1613,8 @@ export function renderApp(root, services = {}) {
       return;
     }
     const transitioned = recordArtifactHandoff(artifact, {
-      handoff: pendingArtifactHandoff,
-      eventId: event.id,
+      handoff: confirmedHandoff.handoff,
+      eventId: confirmedHandoff.eventId,
       nowIso
     });
     const nextState = structuredClone(state);
@@ -1710,6 +1762,7 @@ export function renderApp(root, services = {}) {
 
   function render() {
     const model = todayModel();
+    reconcilePendingArtifactHandoff(model);
     const projectView = buildProjectHomeView(state, {
       teacherId: selectedTeacherId,
       previewOnly
@@ -1814,7 +1867,7 @@ export function renderApp(root, services = {}) {
     const currentTime = now();
     lastRenderedMinute = `${localDateKey(currentTime)}:${currentTime.getHours()}:${currentTime.getMinutes()}`;
     lastRunnerLayoutKey = (route === "experience-runner" || route === "project-student")
-      ? runnerLayoutKey(runner)
+      ? runnerLayoutKey(runner, model)
       : "";
   }
 

@@ -246,6 +246,113 @@ async function renderRoom(state) {
   return renderRoute(state, "room");
 }
 
+function stateWithBackToBackEvents(secondType = "teach", secondStart = "09:15") {
+  const state = stateWithActiveEvent("teach");
+  const event = state.plan.teachers[0].days[1][0];
+  state.plan.teachers[0].days[1] = [
+    {
+      ...event,
+      id: "event-first",
+      label: "PRIVATE_FIRST_CLASS",
+      start: "09:00",
+      end: "09:15"
+    },
+    {
+      ...event,
+      id: "event-second",
+      type: secondType,
+      label: "PRIVATE_SECOND_CLASS",
+      start: secondStart,
+      end: "09:30"
+    }
+  ];
+  state.sharedArtifacts = {};
+  return state;
+}
+
+async function exerciseTeachingEventBoundary({ pauseRunner }) {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithBackToBackEvents();
+  const saves = [];
+  let currentTime = new Date("2026-08-20T09:10:00-04:00");
+  let timerCallback = null;
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: (callback) => {
+      timerCallback = callback;
+      return 1;
+    },
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({ state, error: null }),
+        save: (nextState) => {
+          const saved = structuredClone(nextState);
+          saves.push(saved);
+          return structuredClone(saved);
+        }
+      },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => currentTime }
+    });
+    await controller.ready;
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    if (pauseRunner) {
+      findAll(root, (node) => node.tagName === "button" && textOf(node) === "Start class")[0].click();
+      findAll(root, (node) => node.tagName === "button" && textOf(node) === "Pause")[0].click();
+      assert.match(textOf(root), /Resume/);
+    } else {
+      assert.match(textOf(root), /Start class/);
+    }
+
+    assert.equal(textOf(findAll(root, (node) => /\bartifact-class-chip\b/.test(node.className))[0]), "PRIVATE_FIRST_CLASS");
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Repeat")[0].click();
+    const staleConfirm = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Confirm handoff")[0];
+    const savesBeforeBoundary = saves.length;
+    assert.doesNotMatch(
+      textOf(findAll(root, (node) => /\bartifact-confirmation\b/.test(node.className))[0]),
+      /PRIVATE_FIRST_CLASS|PRIVATE_SECOND_CLASS/
+    );
+    assert.deepEqual(saves.at(-1).sharedArtifacts, {});
+
+    currentTime = new Date("2026-08-20T09:16:00-04:00");
+    timerCallback();
+
+    assert.equal(textOf(findAll(root, (node) => /\bartifact-class-chip\b/.test(node.className))[0]), "PRIVATE_SECOND_CLASS");
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Confirm handoff").length, 0);
+    for (const label of ["Ready", "Repeat", "Park"]) {
+      assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === label).length, 1, label);
+    }
+    staleConfirm.click();
+    assert.equal(saves.length, savesBeforeBoundary);
+    assert.deepEqual(saves.at(-1).sharedArtifacts, {});
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Repeat")[0].click();
+    const currentConfirm = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Confirm handoff")[0];
+    currentConfirm.click();
+    currentConfirm.click();
+
+    assert.equal(saves.length, savesBeforeBoundary + 1);
+    const artifact = saves.at(-1).sharedArtifacts[TECH_TERRARIUM_ARTIFACT_ID];
+    assert.equal(artifact.visits.length, 1);
+    assert.equal(artifact.visits[0].eventId, "event-second");
+    assert.equal(artifact.visits[0].handoff, "repeat");
+    assert.doesNotMatch(JSON.stringify(artifact), /PRIVATE_FIRST_CLASS|PRIVATE_SECOND_CLASS/);
+    controller.destroy();
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+}
+
 function activeArtifact({ handoff = null } = {}) {
   const artifact = createTechTerrariumArtifact({
     artifactId: TECH_TERRARIUM_ARTIFACT_ID,
@@ -827,6 +934,75 @@ test("Today and the project 2 teacher runner derive a private-safe artifact disp
     assert.match(textOf(root), /Mark living and nonliving zones/);
     assert.equal(saves.length, 2);
     controller.destroy();
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("a Ready runner clears a first-event confirmation and refreshes the class chip at a teaching boundary", async () => {
+  await exerciseTeachingEventBoundary({ pauseRunner: false });
+});
+
+test("a paused runner clears a first-event confirmation and refreshes the class chip at a teaching boundary", async () => {
+  await exerciseTeachingEventBoundary({ pauseRunner: true });
+});
+
+test("a teaching boundary into no current or non-teaching work clears pending handoffs and controls", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  try {
+    for (const scenario of ["no-current", "non-teach"]) {
+      const root = new FakeNode("main");
+      const state = stateWithBackToBackEvents(
+        scenario === "non-teach" ? "prep" : "teach",
+        scenario === "no-current" ? "09:20" : "09:15"
+      );
+      const saves = [];
+      let currentTime = new Date("2026-08-20T09:10:00-04:00");
+      let timerCallback = null;
+      globalThis.document = fakeDocument();
+      globalThis.window = {
+        location: { hostname: "example.test" },
+        setInterval: (callback) => {
+          timerCallback = callback;
+          return 1;
+        },
+        clearInterval: () => {},
+        fetch: async () => ({ ok: false })
+      };
+      const controller = renderApp(root, {
+        store: {
+          load: () => ({ state, error: null }),
+          save: (nextState) => {
+            const saved = structuredClone(nextState);
+            saves.push(saved);
+            return structuredClone(saved);
+          }
+        },
+        loadPrivateSeed: false,
+        weatherService: {},
+        clock: { now: () => currentTime }
+      });
+      await controller.ready;
+
+      findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+      findAll(root, (node) => node.tagName === "button" && textOf(node) === "Repeat")[0].click();
+      const staleConfirm = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Confirm handoff")[0];
+      const savesBeforeBoundary = saves.length;
+
+      currentTime = new Date("2026-08-20T09:16:00-04:00");
+      timerCallback();
+
+      assert.equal(findAll(root, (node) => /\bartifact-class-chip\b/.test(node.className)).length, 0, scenario);
+      for (const label of ["Ready", "Repeat", "Park", "Confirm handoff"]) {
+        assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === label).length, 0, `${scenario}:${label}`);
+      }
+      staleConfirm.click();
+      assert.equal(saves.length, savesBeforeBoundary, scenario);
+      assert.deepEqual(saves.at(-1).sharedArtifacts, {}, scenario);
+      controller.destroy();
+    }
   } finally {
     globalThis.document = previousDocument;
     globalThis.window = previousWindow;
