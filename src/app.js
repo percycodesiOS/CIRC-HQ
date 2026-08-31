@@ -651,7 +651,9 @@ function experienceRunnerRoute(project, runner, actions) {
     detourActive ? runnerDetour(runner.detour) : null,
     expired ? element("p", {
       className: "runner-expired",
-      text: "Step time is up. Choose Next Step when the class is ready.",
+      text: detourActive
+        ? "Step time is up. Return to build or choose Safe Landing."
+        : "Step time is up. Choose Next Step when the class is ready.",
       attributes: { role: "alert" }
     }) : null,
     element("section", { className: "runner-step-card" }, [

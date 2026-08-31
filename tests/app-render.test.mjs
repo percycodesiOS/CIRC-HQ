@@ -1059,6 +1059,55 @@ test("teacher detour controls hold the step, stay out of Student directions, and
   }
 });
 
+test("an expired-step detour names available recovery controls while ordinary expiry keeps Next Step guidance", async () => {
+  const state = stateWithActiveEvent("teach");
+  let expired = createExperienceRunner(EXPERIENCE_TIMING_PLANS[1], {
+    teacherKey: "teacher:teacher-alpha",
+    nowIso: "2026-08-20T13:00:00.000Z",
+    modeId: "build-new"
+  });
+  expired = applyExperienceRunnerAction(expired, "start", {
+    teacherKey: "teacher:teacher-alpha",
+    nowIso: "2026-08-20T13:00:00.000Z"
+  });
+  expired = advanceExperienceRunnerClock(expired, {
+    teacherKey: "teacher:teacher-alpha",
+    nowIso: "2026-08-20T13:03:00.000Z"
+  });
+  assert.equal(expired.timer.status, "step-expired");
+
+  const ordinaryState = structuredClone(state);
+  ordinaryState.experienceRunners = { "teacher:teacher-alpha": expired };
+  const ordinaryRoot = await renderRoute(ordinaryState, "experience-runner");
+  assert.match(textOf(ordinaryRoot), /Choose Next Step when the class is ready\./);
+  assert.equal(
+    findAll(ordinaryRoot, (node) => node.tagName === "button" && textOf(node) === "Next Step").length,
+    1
+  );
+
+  const detoured = applyExperienceRunnerAction(expired, "start-detour", {
+    teacherKey: "teacher:teacher-alpha",
+    nowIso: "2026-08-20T13:03:00.000Z"
+  });
+  const detourState = structuredClone(state);
+  detourState.experienceRunners = { "teacher:teacher-alpha": detoured };
+  const detourRoot = await renderRoute(detourState, "experience-runner");
+  const detourText = textOf(detourRoot);
+  assert.doesNotMatch(detourText, /Choose Next Step/);
+  assert.match(detourText, /Step time is up\. Return to build or choose Safe Landing\./);
+  assert.equal(
+    findAll(detourRoot, (node) => node.tagName === "button" && textOf(node) === "Next Step").length,
+    0
+  );
+  for (const label of ["Return to build", "Safe Landing"]) {
+    assert.equal(
+      findAll(detourRoot, (node) => node.tagName === "button" && textOf(node) === label).length,
+      1,
+      label
+    );
+  }
+});
+
 test("opening a stale same-project ready runner rebases it to the current scheduled end and saves once", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;

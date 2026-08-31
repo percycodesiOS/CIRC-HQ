@@ -751,6 +751,12 @@ export function applyExperienceRunnerAction(
     throw new TypeError("runner-action-invalid");
   }
   const timestamp = canonicalIso(nowIso, "nowIso");
+  if (
+    DETOUR_ACTIONS.has(action) &&
+    ["ready", "paused", "complete"].includes(runner.timer.status)
+  ) {
+    return structuredClone(runner);
+  }
   const next = advanceExperienceRunnerClock(runner, {
     teacherKey,
     nowIso: timestamp,

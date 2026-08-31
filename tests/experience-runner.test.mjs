@@ -401,6 +401,62 @@ test("detour actions stay inert while ready or paused and ordinary pause cannot 
   );
 });
 
+test("denied detour actions preserve ready paused and complete snapshots at later timestamps", () => {
+  const { applyExperienceRunnerAction, createExperienceRunner } = getRunnerModel();
+  const ready = createExperienceRunner(EXPERIENCE_TIMING_PLANS[0], {
+    teacherKey: TEACHER_KEY,
+    nowIso: NOW,
+  });
+  const running = applyExperienceRunnerAction(ready, "start", {
+    teacherKey: TEACHER_KEY,
+    nowIso: NOW,
+  });
+  const paused = applyExperienceRunnerAction(running, "pause", {
+    teacherKey: TEACHER_KEY,
+    nowIso: NOW,
+  });
+  let complete = running;
+  while (complete.timer.status !== "complete") {
+    complete = applyExperienceRunnerAction(complete, "next", {
+      teacherKey: TEACHER_KEY,
+      nowIso: NOW,
+    });
+  }
+
+  const later = "2026-08-30T12:05:00.000Z";
+  for (const source of [ready, paused, complete]) {
+    for (const action of ["start-detour", "add-detour-time", "return-to-build", "safe-landing"]) {
+      const normalizedSource = JSON.parse(JSON.stringify(source));
+      const result = applyExperienceRunnerAction(source, action, {
+        teacherKey: TEACHER_KEY,
+        nowIso: later,
+      });
+
+      assert.deepEqual(result, normalizedSource, `${source.timer.status}:${action}:result`);
+      assert.deepEqual(source, normalizedSource, `${source.timer.status}:${action}:source`);
+      assert.equal(result.lastTickAt, NOW, `${source.timer.status}:${action}:lastTickAt`);
+      assert.equal(result.updatedAt, NOW, `${source.timer.status}:${action}:updatedAt`);
+    }
+  }
+
+  const readyBeforeFailures = structuredClone(ready);
+  assert.throws(
+    () => applyExperienceRunnerAction(ready, "start-detour", {
+      teacherKey: "teacher:teacher-beta",
+      nowIso: later,
+    }),
+    /runner-teacher-mismatch/,
+  );
+  assert.throws(
+    () => applyExperienceRunnerAction(ready, "not-a-runner-action", {
+      teacherKey: TEACHER_KEY,
+      nowIso: later,
+    }),
+    /runner-action-invalid/,
+  );
+  assert.deepEqual(ready, readyBeforeFailures);
+});
+
 test("runner validation rejects malformed detour snapshots while admitting active zero", () => {
   const {
     applyExperienceRunnerAction,
