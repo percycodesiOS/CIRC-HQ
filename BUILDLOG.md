@@ -1,4 +1,16 @@
-# Mission Control - BUILDLOG
+# CIRC HQ - BUILDLOG
+
+## 2026-08-31 Task 7 staged release preparation
+
+- Prepared the release documentation from reviewed Task 4 HEAD `9ded2d1c19ca5419359307844bab0e36bfef621e` on branch `circ-hq-v1`.
+- Replaced the stale former-site instructions with the CIRC HQ identity, intended `percycodesiOS/CIRC-HQ` repository and Pages URL, current Grades 5-6 Playbook A scope, first-use and runner lifecycle, private local schedule import, designated room-browser artifact authority, and explicit Firebase-inactive boundary.
+- Documentation TDD RED ran 41 focused tests: 36 passed and 5 failed against the stale release documentation. Focused GREEN ran 41 of 41 with zero failures.
+- Full local `npm test` ran 320 tests: 319 passed, 0 failed, and 1 intentional private-fixture skip.
+- `npm run verify` passed all 15 gates: candidate boundary 86, Pages boundary 86, runtime import boundary 20, entrypoint identity 2, legacy lock 1, asset lock 3, Firebase placeholders 1, typography 83, credentials 83, privacy sentinel 89959, runtime policy 44, DOM sinks 24, server allowlist 44, JavaScript syntax 53, and Node tests 26.
+- Task 4's final re-review approved its reviewed HEAD with 0 Critical, 0 Important, and 0 Minor findings. The broad review from the release base through the final release SHA remains a separate later release step and is not claimed here.
+- `_config.yml` remained unchanged. Its Jekyll exclusions cover every reviewed nonruntime document, test, script, Firebase file, locked legacy file, and inactive source module. New security fixtures prove private, internal, test-result, private-segment, and unreviewed output candidates fail closed.
+- Repository creation, remote configuration, authentication, push, GitHub Pages activation, live-site confirmation, Firebase activation, private-plan changes, and output release notes remain separate actions. None occurred in this preparation step.
+- The exact Task 7 commit SHA is recorded after Git creates the commit; a commit cannot truthfully embed its own final SHA.
 
 ## 2026-08-30 live runner and Pages hardening checkpoint
 

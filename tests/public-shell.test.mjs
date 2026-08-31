@@ -73,6 +73,60 @@ test("public shell exposes the approved name and exact navigation", async () => 
   assert.doesNotMatch(nav, /<svg\b/i);
 });
 
+test("release documentation names the CIRC HQ repository URL and current content scope", async () => {
+  const readme = await readPublicSource("README.md");
+
+  assert.match(readme, /^# CIRC HQ \| The K-6 Playbook$/m);
+  assert.match(readme, /Repository: `percycodesiOS\/CIRC-HQ`/);
+  assert.match(readme, /Intended release URL: `https:\/\/percycodesios\.github\.io\/CIRC-HQ\/`/);
+  assert.match(readme, /current reviewed content is Grades 5-6, Playbook A only/i);
+  assert.match(readme, /does not contain complete K-6 content/i);
+  assert.match(readme, /K-4 and Playbook B are not present/i);
+  assert.doesNotMatch(readme, /https:\/\/percycodesios\.github\.io\/5_MissionControl_6\//);
+  assert.doesNotMatch(readme, /127\.0\.0\.1:4173/);
+  assert.match(readme, /127\.0\.0\.1:4273/);
+});
+
+test("release documentation preserves preview ready and start boundaries", async () => {
+  const readme = await readPublicSource("README.md");
+
+  assert.match(readme, /Set up this device/);
+  assert.match(readme, /Preview without saving/);
+  assert.match(readme, /Preview is read-only/i);
+  assert.match(readme, /does not import or save a plan, create a runner, start a timer, or change playbook or artifact progress/i);
+  assert.match(readme, /Open class runner creates a Ready runner/i);
+  assert.match(readme, /Ready clocks are stationary/i);
+  assert.match(readme, /Start Class is the only action that starts the clocks/i);
+});
+
+test("release documentation describes private local schedules and artifact authority", async () => {
+  const readme = await readPublicSource("README.md");
+
+  assert.match(readme, /Teacher-plan files are local and private/i);
+  assert.match(readme, /Kenny and Tammy each import their own one-teacher private file/i);
+  assert.match(readme, /Schedules remain outside Git and the Pages artifact/i);
+  assert.match(readme, /one designated room browser is the artifact source of truth/i);
+  assert.match(readme, /no synchronization or login/i);
+  assert.match(readme, /Ready, Repeat, and Park each require Confirm/i);
+});
+
+test("release documentation states classroom behavior and excluded data truthfully", async () => {
+  const [readme, firebaseGate] = await Promise.all([
+    readPublicSource("README.md"),
+    readPublicSource("docs/FIREBASE-ACTIVATION-GATE.md")
+  ]);
+
+  assert.match(readme, /schedule-aware class clock/i);
+  assert.match(readme, /Question Detour/);
+  assert.match(readme, /Safe Landing/);
+  assert.match(readme, /compact cues/i);
+  assert.match(readme, /early-finish guidance/i);
+  assert.match(readme, /no grades, gradebook, student accounts, rosters, or performance records/i);
+  assert.match(readme, /Firebase is inactive in CIRC HQ v1/i);
+  assert.match(firebaseGate, /Firebase is inactive in CIRC HQ v1/i);
+  assert.match(readme, /old Mission Control repository and site remain separate/i);
+});
+
 test("legacy classroom snapshot retains the locked pre-task bytes", async () => {
   const bytes = await readFile(path.join(ROOT, "classroom-legacy.html"));
   const digest = normalizedTextSha256(bytes);

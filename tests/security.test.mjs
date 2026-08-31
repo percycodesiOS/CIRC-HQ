@@ -492,6 +492,80 @@ test("candidate classifier rejects forbidden namespaces even when tracked", () =
   );
 });
 
+test("Jekyll exclusions cover every nonruntime release path and expose every public runtime path", async () => {
+  const config = await readFile(path.join(ROOT, "_config.yml"));
+  const exclusions = verifier.parseJekyllExcludes(config);
+  const requiredExclusions = [
+    "README.md",
+    "BUILDLOG.md",
+    "classroom-legacy.html",
+    "design-qa.md",
+    "docs",
+    "firebase",
+    "firebase-config.example.js",
+    "package.json",
+    "scripts",
+    "src/storage/firebase-adapter.js",
+    "src/storage/sync-engine.js",
+    "src/ui/curriculum.js",
+    "tests"
+  ];
+
+  assert.notEqual(exclusions, null);
+  for (const relativePath of requiredExclusions) {
+    assert.equal(exclusions.includes(relativePath), true, relativePath);
+  }
+  const publicManifest = devServer.getPublicStaticManifest();
+  assert.deepEqual(verifier.pagesPublicationBoundaryResult(publicManifest, exclusions), {
+    ok: true,
+    count: publicManifest.length
+  });
+});
+
+test("release candidate gate rejects private internal test-result and output paths", async (context) => {
+  const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-release-boundary-"));
+  context.after(() => rm(repository, { recursive: true, force: true }));
+  const candidatePaths = [
+    "private/generic.json",
+    "private-data/generic.json",
+    "internal/generic.md",
+    "test-results/generic.json",
+    "src/__private__/generic.js",
+    "outputs/generic-release-note.md"
+  ];
+  for (const relativePath of candidatePaths) {
+    const target = path.join(repository, ...relativePath.split("/"));
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(target, "GENERIC_RELEASE_BOUNDARY_FIXTURE\n");
+  }
+  execFileSync("git", ["init", "-q"], { cwd: repository });
+  execFileSync("git", ["add", "--", ...candidatePaths], { cwd: repository });
+
+  assert.deepEqual(verifier.inspectCandidateBoundary(repository), {
+    ok: false,
+    count: 6,
+    candidateCount: 6,
+    trackedCount: 6,
+    allowedUntrackedCount: 0,
+    unexpectedUntrackedCount: 0,
+    forbiddenCandidateCount: 5,
+    unreviewedCandidateCount: 6,
+    unsupportedCandidateCount: 0
+  });
+});
+
+test("release documentation cannot activate Firebase accounts or shared data", async () => {
+  const [readme, firebaseGate] = await Promise.all([
+    readFile(path.join(ROOT, "README.md"), "utf8"),
+    readFile(path.join(ROOT, "docs", "FIREBASE-ACTIVATION-GATE.md"), "utf8")
+  ]);
+
+  assert.match(readme, /Firebase is inactive in CIRC HQ v1/i);
+  assert.match(firebaseGate, /Firebase is inactive in CIRC HQ v1/i);
+  assert.match(firebaseGate, /no real configuration, account, provider, data upload, rules or hosting deployment, billing, or shared synchronization/i);
+  assert.match(firebaseGate, /future access model, not current production access/i);
+});
+
 test("Pages boundary fails closed for an unexcluded file and an excluded runtime file", async (context) => {
   assert.equal(typeof verifier.inspectPagesPublicationBoundary, "function");
   const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-pages-boundary-"));
@@ -881,7 +955,7 @@ test("verifier detectors fail closed for credential shapes and unsafe web links"
     "https://open-meteo.com/",
     "https://api.open-meteo.com/v1/forecast",
     "http://www.w3.org/2000/svg",
-    "http://127.0.0.1:4173/"
+    "http://127.0.0.1:4273/"
   ].join("\n")), 0);
   assert.equal(verifier.countUnsafeRuntimeLinks([
     "http://example.invalid/",
