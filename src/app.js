@@ -548,6 +548,17 @@ function runnerMoreContext(project) {
   ]);
 }
 
+function runnerDetour(detour) {
+  return element("section", { className: "runner-detour", attributes: { role: "status" } }, [
+    element("div", {}, [
+      element("p", { className: "section-kicker", text: "Question Detour" }),
+      element("h2", { text: "Discuss the question" }),
+      element("p", { text: "Class clock keeps running. Step time is held." })
+    ]),
+    runnerTimerCard("Discussion timer", detour.remainingSeconds, "detour", "runner-detour-timer")
+  ]);
+}
+
 function formatScheduleClock(minutes) {
   const normalized = ((minutes % (24 * 60)) + (24 * 60)) % (24 * 60);
   const hour24 = Math.floor(normalized / 60);
@@ -588,6 +599,7 @@ function experienceRunnerRoute(project, runner, actions) {
   const paused = timer.status === "paused";
   const ready = timer.status === "ready";
   const expired = timer.status === "step-expired";
+  const detourActive = runner.detour?.status === "active";
   const lastStep = timer.currentStepIndex === runner.steps.length - 1;
   const primaryControl = actionButton(
     ready ? "Start class" : paused ? "Resume" : "Pause",
@@ -596,13 +608,22 @@ function experienceRunnerRoute(project, runner, actions) {
   );
   const controls = actions.previewOnly
     ? []
-    : ready
+    : detourActive
+      ? [
+          actionButton("Add 2 minutes", "runner-control", () => actions.applyRunnerAction("add-detour-time")),
+          actionButton("Return to build", "runner-control runner-primary-control", () => actions.applyRunnerAction("return-to-build")),
+          actionButton("Safe Landing", "runner-control runner-safe-landing", () => actions.applyRunnerAction("safe-landing"))
+        ]
+      : ready
       ? [primaryControl]
       : [
           primaryControl,
           actionButton("+1 minute", "runner-control", () => actions.applyRunnerAction("add-minute")),
           actionButton("Previous", "runner-control", () => actions.applyRunnerAction("previous")),
           actionButton(lastStep ? "Finish Lesson" : "Next Step", "runner-control runner-next", () => actions.applyRunnerAction(lastStep ? "finish" : "next")),
+          ...(!paused
+            ? [actionButton("Question Detour", "runner-control runner-detour-control", () => actions.applyRunnerAction("start-detour"))]
+            : [])
         ];
   const teacherDirections = runnerTeacherDirections(step);
   const studentDirections = step.directions.slice(0, 3);
@@ -627,6 +648,7 @@ function experienceRunnerRoute(project, runner, actions) {
       runnerTimerCard("Class timer", timer.totalRemainingSeconds, "class"),
       runnerTimerCard("Step timer", timer.currentStepRemainingSeconds, "step", "runner-step-timer")
     ]),
+    detourActive ? runnerDetour(runner.detour) : null,
     expired ? element("p", {
       className: "runner-expired",
       text: "Step time is up. Choose Next Step when the class is ready.",
@@ -1278,7 +1300,7 @@ export function renderApp(root, services = {}) {
 
   function runnerLayoutKey(runner) {
     if (!runner) return "";
-    return `${route}:${runner.projectNumber}:${runner.timer.currentStepIndex}:${runner.timer.status}`;
+    return `${route}:${runner.projectNumber}:${runner.timer.currentStepIndex}:${runner.timer.status}:${runner.detour?.status ?? "build"}`;
   }
 
   function updateRunnerTimerText(runner) {
@@ -1287,6 +1309,10 @@ export function renderApp(root, services = {}) {
     if (!classTimer || !stepTimer) return false;
     classTimer.textContent = formatRunnerTime(runner.timer.totalRemainingSeconds);
     stepTimer.textContent = formatRunnerTime(runner.timer.currentStepRemainingSeconds);
+    const detourTimer = root.querySelector('[data-runner-timer="detour"]');
+    if (detourTimer && runner.detour?.status === "active") {
+      detourTimer.textContent = formatRunnerTime(runner.detour.remainingSeconds);
+    }
     return true;
   }
 

@@ -925,6 +925,140 @@ test("scheduled class launch saves a stationary ready runner and renders compact
   }
 });
 
+test("teacher detour controls hold the step, stay out of Student directions, and Safe Landing preserves project state", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  let currentTime = new Date("2026-08-20T09:10:00-04:00");
+  let timerCallback = null;
+  const state = stateWithActiveEvent("teach");
+  state.teacherProgress = {
+    "teacher:teacher-alpha": {
+      currentProjectNumber: 2,
+      completedProjectNumbers: [1],
+      updatedAt: "2026-08-20T12:00:00.000Z"
+    }
+  };
+  state.sharedArtifacts = {
+    "tech-terrarium": { stage: 3, contribution: "prepare-materials" }
+  };
+  state.futureSharedArtifactState = {
+    nextContribution: "build-the-base",
+    parked: false
+  };
+  const progressBefore = structuredClone(state.teacherProgress);
+  const artifactsBefore = structuredClone(state.sharedArtifacts);
+  const futureArtifactBefore = structuredClone(state.futureSharedArtifactState);
+  let saved = null;
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: (callback) => {
+      timerCallback = callback;
+      return 1;
+    },
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({ state, error: null }),
+        save: (nextState) => {
+          saved = structuredClone(nextState);
+          return structuredClone(nextState);
+        }
+      },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => currentTime }
+    });
+    await controller.ready;
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Question Detour").length, 0);
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Start class")[0].click();
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Question Detour").length, 1);
+    assert.doesNotMatch(textOf(root), /Add 2 minutes|Return to build|Safe Landing/);
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Pause")[0].click();
+    assert.match(textOf(root), /Resume/);
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Question Detour").length, 0);
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Resume")[0].click();
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Question Detour")[0].click();
+    const detoured = saved.experienceRunners["teacher:teacher-alpha"];
+    const heldStepIndex = detoured.timer.currentStepIndex;
+    const heldStepSeconds = detoured.timer.currentStepRemainingSeconds;
+    const classBefore = detoured.timer.totalRemainingSeconds;
+    const currentDirection = detoured.steps[heldStepIndex].directions[0];
+    assert.deepEqual(detoured.detour, { status: "active", remainingSeconds: 180 });
+    assert.match(textOf(root), /Discussion timer 3:00/);
+    assert.match(textOf(root), /Class clock keeps running\. Step time is held\./);
+    for (const label of ["Add 2 minutes", "Return to build", "Safe Landing"]) {
+      assert.equal(
+        findAll(root, (node) => node.tagName === "button" && textOf(node) === label).length,
+        1,
+        label
+      );
+    }
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Pause").length, 0);
+
+    currentTime = new Date("2026-08-20T09:11:00-04:00");
+    timerCallback();
+    assert.match(textOf(root), /Discussion timer 2:00/);
+    assert.match(textOf(root), /Class timer 19:00/);
+    assert.match(textOf(root), new RegExp(currentDirection.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Student directions")[0].click();
+    const studentText = textOf(root);
+    assert.match(studentText, /Class timer 19:00/);
+    assert.match(studentText, new RegExp(currentDirection.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    assert.doesNotMatch(
+      studentText,
+      /Question Detour|Discussion timer|Class clock keeps running|Add 2 minutes|Return to build|Safe Landing|Class ends at|Cleanup begins at|More context|Teacher context|Finished early/
+    );
+    for (const label of ["Question Detour", "Add 2 minutes", "Return to build", "Safe Landing"]) {
+      assert.equal(
+        findAll(root, (node) => node.tagName === "button" && textOf(node) === label).length,
+        0,
+        `student:${label}`
+      );
+    }
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Exit student view")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Add 2 minutes")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Add 2 minutes")[0].click();
+    assert.equal(saved.experienceRunners["teacher:teacher-alpha"].detour.remainingSeconds, 360);
+    assert.match(textOf(root), /Discussion timer 6:00/);
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Return to build")[0].click();
+    const returned = saved.experienceRunners["teacher:teacher-alpha"];
+    assert.equal(Object.hasOwn(returned, "detour"), false);
+    assert.equal(returned.timer.currentStepIndex, heldStepIndex);
+    assert.equal(returned.timer.currentStepRemainingSeconds, heldStepSeconds);
+    assert.equal(returned.timer.totalRemainingSeconds, classBefore - 60);
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Question Detour").length, 1);
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Pause").length, 1);
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Question Detour")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Safe Landing")[0].click();
+    const landed = saved.experienceRunners["teacher:teacher-alpha"];
+    const cleanupIndex = landed.steps.findIndex((step) => step.kind === "cleanup");
+    assert.ok(cleanupIndex >= 0);
+    assert.equal(landed.timer.currentStepIndex, cleanupIndex);
+    assert.equal(Object.hasOwn(landed, "detour"), false);
+    assert.deepEqual(saved.teacherProgress, progressBefore);
+    assert.deepEqual(saved.sharedArtifacts, artifactsBefore);
+    assert.deepEqual(saved.futureSharedArtifactState, futureArtifactBefore);
+    assert.equal(saved.teacherProgress["teacher:teacher-alpha"].currentProjectNumber, 2);
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
 test("opening a stale same-project ready runner rebases it to the current scheduled end and saves once", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
@@ -1083,7 +1217,19 @@ test("Preview without saving opens an in-memory preview runner that cannot save 
     assert.match(textOf(root), /Preview only/);
     assert.equal(saveCount, 0);
     assert.equal(state.experienceRunners["local:default"], undefined);
-    for (const label of ["Start class", "Pause", "Resume", "+1 minute", "Previous", "Next Step", "Finish Lesson"]) {
+    for (const label of [
+      "Start class",
+      "Pause",
+      "Resume",
+      "+1 minute",
+      "Previous",
+      "Next Step",
+      "Finish Lesson",
+      "Question Detour",
+      "Add 2 minutes",
+      "Return to build",
+      "Safe Landing"
+    ]) {
       assert.equal(
         findAll(root, (node) => node.tagName === "button" && textOf(node) === label).length,
         0,

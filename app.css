@@ -1812,6 +1812,25 @@ h2 { font-size: 1.15rem; }
   font-weight: 900;
 }
 
+.runner-detour {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.45fr);
+  gap: 16px;
+  margin: 16px 0;
+  padding: 18px;
+  align-items: center;
+  border: 3px solid var(--heading);
+  border-radius: 16px;
+  background: #fff3b7;
+  color: var(--heading);
+}
+
+.runner-detour h2,
+.runner-detour p { margin: 0; }
+.runner-detour h2 { margin-bottom: 6px; }
+.runner-detour .section-kicker { margin-bottom: 5px; }
+.runner-detour-timer { background: #ffffff; }
+
 .runner-step-card {
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -1902,6 +1921,8 @@ h2 { font-size: 1.15rem; }
 }
 
 .runner-primary-control { background: var(--lime); }
+.runner-detour-control { background: #fff3b7; }
+.runner-safe-landing { background: var(--blue); }
 
 .runner-student-art {
   width: 100%;
@@ -1926,6 +1947,7 @@ h2 { font-size: 1.15rem; }
   .runner-timer-value { font-size: clamp(1.7rem, 12vw, 3.4rem); }
   .runner-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .runner-now-grid { grid-template-columns: minmax(0, 1fr); }
+  .runner-detour { grid-template-columns: minmax(0, 1fr); }
   .runner-return-cue { grid-column: auto; }
   .runner-schedule { align-items: flex-start; flex-direction: column; gap: 3px; }
 }

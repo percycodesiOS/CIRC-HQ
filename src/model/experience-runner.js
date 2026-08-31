@@ -437,6 +437,24 @@ function validateAssistiveSnapshot(runner, errors) {
   }
 }
 
+function validateDetourSnapshot(runner, errors) {
+  if (!Object.hasOwn(runner, "detour")) return;
+  const detour = runner.detour;
+  if (
+    !isRecord(detour) ||
+    Object.keys(detour).length !== 2 ||
+    detour.status !== "active" ||
+    !Number.isInteger(detour.remainingSeconds) ||
+    detour.remainingSeconds < 0
+  ) {
+    pushUnique(errors, "runner-detour-invalid");
+    return;
+  }
+  if (runner.timer?.status !== "running" && runner.timer?.status !== "step-expired") {
+    pushUnique(errors, "runner-detour-state-invalid");
+  }
+}
+
 export function validateExperienceRunner(runner, { teacherKey } = {}) {
   const errors = [];
   if (!isRecord(runner)) {
@@ -546,7 +564,11 @@ export function validateExperienceRunner(runner, { teacherKey } = {}) {
     ) {
       pushUnique(errors, "runner-timer-remaining-invalid");
     }
-    if (timer.status !== "complete" && timer.totalRemainingSeconds === 0) {
+    if (
+      timer.status !== "complete" &&
+      timer.totalRemainingSeconds === 0 &&
+      !Object.hasOwn(runner, "detour")
+    ) {
       pushUnique(errors, "runner-timer-remaining-invalid");
     }
     if (timer.status === "step-expired" && timer.currentStepRemainingSeconds !== 0) {
@@ -567,6 +589,7 @@ export function validateExperienceRunner(runner, { teacherKey } = {}) {
   validateModeSnapshot(runner, errors);
   validateFallbackSnapshot(runner, errors);
   validateAssistiveSnapshot(runner, errors);
+  validateDetourSnapshot(runner, errors);
   return { ok: errors.length === 0, errors };
 }
 
@@ -676,7 +699,18 @@ export function advanceExperienceRunnerClock(runner, { teacherKey, nowIso } = {}
   const elapsedSeconds = Math.floor((nowTime - lastTime) / 1000);
   if (elapsedSeconds === 0) return next;
 
-  next.timer = tickStepTimer(next.timer, elapsedSeconds);
+  if (Object.hasOwn(next, "detour")) {
+    next.detour.remainingSeconds = Math.max(
+      0,
+      next.detour.remainingSeconds - elapsedSeconds,
+    );
+    next.timer.totalRemainingSeconds = Math.max(
+      0,
+      next.timer.totalRemainingSeconds - elapsedSeconds,
+    );
+  } else {
+    next.timer = tickStepTimer(next.timer, elapsedSeconds);
+  }
   next.lastTickAt = new Date(lastTime + elapsedSeconds * 1000).toISOString();
   next.updatedAt = timestamp;
   assertValidExperienceRunner(next, teacherKey);
@@ -693,6 +727,19 @@ const TIMER_ACTIONS = Object.freeze({
   reset: resetStepTimer,
 });
 
+const DETOUR_ACTIONS = new Set([
+  "start-detour",
+  "add-detour-time",
+  "return-to-build",
+  "safe-landing",
+]);
+
+function completeRunnerTimer(timer) {
+  timer.status = "complete";
+  timer.currentStepRemainingSeconds = 0;
+  timer.totalRemainingSeconds = 0;
+}
+
 export function applyExperienceRunnerAction(
   runner,
   action,
@@ -700,13 +747,42 @@ export function applyExperienceRunnerAction(
 ) {
   assertValidExperienceRunner(runner, teacherKey);
   const applyAction = TIMER_ACTIONS[action];
-  if (!applyAction) throw new TypeError("runner-action-invalid");
+  if (!applyAction && !DETOUR_ACTIONS.has(action)) {
+    throw new TypeError("runner-action-invalid");
+  }
   const timestamp = canonicalIso(nowIso, "nowIso");
   const next = advanceExperienceRunnerClock(runner, {
     teacherKey,
     nowIso: timestamp,
   });
-  next.timer = applyAction(next.timer);
+
+  if (action === "start-detour") {
+    if (
+      !Object.hasOwn(next, "detour") &&
+      (next.timer.status === "running" || next.timer.status === "step-expired")
+    ) {
+      next.detour = { status: "active", remainingSeconds: 180 };
+    }
+  } else if (action === "add-detour-time") {
+    if (Object.hasOwn(next, "detour")) next.detour.remainingSeconds += 120;
+  } else if (action === "return-to-build") {
+    if (Object.hasOwn(next, "detour")) {
+      delete next.detour;
+      if (next.timer.totalRemainingSeconds === 0) completeRunnerTimer(next.timer);
+    }
+  } else if (action === "safe-landing") {
+    if (Object.hasOwn(next, "detour")) {
+      const cleanupIndex = next.steps.findIndex((step) => step.kind === "cleanup");
+      if (cleanupIndex < 0) throw new TypeError("runner-cleanup-step-missing");
+      delete next.detour;
+      next.timer.currentStepIndex = cleanupIndex;
+      next.timer.currentStepRemainingSeconds = next.steps[cleanupIndex].minutes * 60;
+      next.timer.status = "running";
+      if (next.timer.totalRemainingSeconds === 0) completeRunnerTimer(next.timer);
+    }
+  } else if (!Object.hasOwn(next, "detour")) {
+    next.timer = applyAction(next.timer);
+  }
   next.lastTickAt = timestamp;
   next.updatedAt = timestamp;
   assertValidExperienceRunner(next, teacherKey);

@@ -25,6 +25,25 @@ function getRunnerModel() {
   return runnerModel;
 }
 
+function runningWorkStep(nowIso = NOW) {
+  const { applyExperienceRunnerAction, createExperienceRunner } = getRunnerModel();
+  let runner = createExperienceRunner(EXPERIENCE_TIMING_PLANS[0], {
+    teacherKey: TEACHER_KEY,
+    nowIso,
+  });
+  runner = applyExperienceRunnerAction(runner, "start", {
+    teacherKey: TEACHER_KEY,
+    nowIso,
+  });
+  while (runner.steps[runner.timer.currentStepIndex].kind !== "work") {
+    runner = applyExperienceRunnerAction(runner, "next", {
+      teacherKey: TEACHER_KEY,
+      nowIso,
+    });
+  }
+  return runner;
+}
+
 test("adapts every timing plan without losing student step content", () => {
   const { createExperienceRunner } = getRunnerModel();
 
@@ -252,6 +271,238 @@ test("ready and paused runners do not consume elapsed time", () => {
   assert.deepEqual(pausedLater, paused);
   assert.equal(paused.timer.currentStepRemainingSeconds, 170);
   assert.equal(paused.timer.totalRemainingSeconds, 2090);
+});
+
+test("Question Detour runs a serializable three-minute clock while holding the work step", () => {
+  const {
+    advanceExperienceRunnerClock,
+    applyExperienceRunnerAction,
+    validateExperienceRunner,
+  } = getRunnerModel();
+  const running = runningWorkStep();
+  const beforeStepIndex = running.timer.currentStepIndex;
+  const beforeStep = running.timer.currentStepRemainingSeconds;
+  const beforeTotal = running.timer.totalRemainingSeconds;
+  const detoured = applyExperienceRunnerAction(running, "start-detour", {
+    teacherKey: TEACHER_KEY,
+    nowIso: NOW,
+  });
+  const handedOff = JSON.parse(JSON.stringify(detoured));
+  const extended = applyExperienceRunnerAction(handedOff, "add-detour-time", {
+    teacherKey: TEACHER_KEY,
+    nowIso: NOW,
+  });
+  const afterOneMinute = advanceExperienceRunnerClock(detoured, {
+    teacherKey: TEACHER_KEY,
+    nowIso: "2026-08-30T12:01:00.000Z",
+  });
+  const returned = applyExperienceRunnerAction(afterOneMinute, "return-to-build", {
+    teacherKey: TEACHER_KEY,
+    nowIso: "2026-08-30T12:01:00.000Z",
+  });
+  const resumed = advanceExperienceRunnerClock(returned, {
+    teacherKey: TEACHER_KEY,
+    nowIso: "2026-08-30T12:01:30.000Z",
+  });
+
+  assert.deepEqual(detoured.detour, { status: "active", remainingSeconds: 180 });
+  assert.deepEqual(handedOff, detoured);
+  assert.deepEqual(validateExperienceRunner(handedOff, { teacherKey: TEACHER_KEY }), {
+    ok: true,
+    errors: [],
+  });
+  assert.equal(extended.detour.remainingSeconds, 300);
+  assert.equal(afterOneMinute.detour.remainingSeconds, 120);
+  assert.equal(afterOneMinute.timer.totalRemainingSeconds, beforeTotal - 60);
+  assert.equal(afterOneMinute.timer.currentStepRemainingSeconds, beforeStep);
+  assert.equal(afterOneMinute.timer.currentStepIndex, beforeStepIndex);
+  assert.equal(Object.hasOwn(returned, "detour"), false);
+  assert.equal(returned.timer.currentStepIndex, beforeStepIndex);
+  assert.equal(returned.timer.currentStepRemainingSeconds, beforeStep);
+  assert.equal(resumed.timer.totalRemainingSeconds, beforeTotal - 90);
+  assert.equal(resumed.timer.currentStepRemainingSeconds, beforeStep - 30);
+});
+
+test("an expired detour stays active at zero while later class time continues and repeated extensions accumulate", () => {
+  const {
+    advanceExperienceRunnerClock,
+    applyExperienceRunnerAction,
+  } = getRunnerModel();
+  const running = runningWorkStep();
+  const beforeStep = running.timer.currentStepRemainingSeconds;
+  const beforeTotal = running.timer.totalRemainingSeconds;
+  const detoured = applyExperienceRunnerAction(running, "start-detour", {
+    teacherKey: TEACHER_KEY,
+    nowIso: NOW,
+  });
+  const expired = advanceExperienceRunnerClock(detoured, {
+    teacherKey: TEACHER_KEY,
+    nowIso: "2026-08-30T12:03:00.000Z",
+  });
+  const later = advanceExperienceRunnerClock(expired, {
+    teacherKey: TEACHER_KEY,
+    nowIso: "2026-08-30T12:04:00.000Z",
+  });
+  const addedOnce = applyExperienceRunnerAction(later, "add-detour-time", {
+    teacherKey: TEACHER_KEY,
+    nowIso: "2026-08-30T12:04:00.000Z",
+  });
+  const addedTwice = applyExperienceRunnerAction(addedOnce, "add-detour-time", {
+    teacherKey: TEACHER_KEY,
+    nowIso: "2026-08-30T12:04:00.000Z",
+  });
+
+  assert.deepEqual(expired.detour, { status: "active", remainingSeconds: 0 });
+  assert.deepEqual(later.detour, { status: "active", remainingSeconds: 0 });
+  assert.equal(later.timer.totalRemainingSeconds, beforeTotal - 240);
+  assert.equal(later.timer.currentStepRemainingSeconds, beforeStep);
+  assert.equal(addedOnce.detour.remainingSeconds, 120);
+  assert.equal(addedTwice.detour.remainingSeconds, 240);
+});
+
+test("detour actions stay inert while ready or paused and ordinary pause cannot suspend an active detour", () => {
+  const { applyExperienceRunnerAction, createExperienceRunner } = getRunnerModel();
+  const ready = createExperienceRunner(EXPERIENCE_TIMING_PLANS[0], {
+    teacherKey: TEACHER_KEY,
+    nowIso: NOW,
+  });
+  const running = applyExperienceRunnerAction(ready, "start", {
+    teacherKey: TEACHER_KEY,
+    nowIso: NOW,
+  });
+  const paused = applyExperienceRunnerAction(running, "pause", {
+    teacherKey: TEACHER_KEY,
+    nowIso: NOW,
+  });
+
+  for (const runner of [ready, paused]) {
+    for (const action of ["start-detour", "add-detour-time", "return-to-build", "safe-landing"]) {
+      assert.deepEqual(
+        applyExperienceRunnerAction(structuredClone(runner), action, {
+          teacherKey: TEACHER_KEY,
+          nowIso: NOW,
+        }),
+        runner,
+        `${runner.timer.status}:${action}`,
+      );
+    }
+  }
+
+  const detoured = applyExperienceRunnerAction(running, "start-detour", {
+    teacherKey: TEACHER_KEY,
+    nowIso: NOW,
+  });
+  assert.deepEqual(
+    applyExperienceRunnerAction(detoured, "pause", {
+      teacherKey: TEACHER_KEY,
+      nowIso: NOW,
+    }),
+    detoured,
+  );
+});
+
+test("runner validation rejects malformed detour snapshots while admitting active zero", () => {
+  const {
+    applyExperienceRunnerAction,
+    validateExperienceRunner,
+  } = getRunnerModel();
+  const running = runningWorkStep();
+  const detoured = applyExperienceRunnerAction(running, "start-detour", {
+    teacherKey: TEACHER_KEY,
+    nowIso: NOW,
+  });
+  const activeZero = structuredClone(detoured);
+  activeZero.detour.remainingSeconds = 0;
+  assert.deepEqual(validateExperienceRunner(activeZero, { teacherKey: TEACHER_KEY }), {
+    ok: true,
+    errors: [],
+  });
+
+  const malformed = [
+    null,
+    {},
+    { status: "inactive", remainingSeconds: 180 },
+    { status: "active", remainingSeconds: -1 },
+    { status: "active", remainingSeconds: 1.5 },
+    { status: "active", remainingSeconds: "180" },
+    { status: "active", remainingSeconds: 180, teacherNote: "private" },
+  ];
+  for (const detour of malformed) {
+    const candidate = structuredClone(running);
+    candidate.detour = detour;
+    const validation = validateExperienceRunner(candidate, { teacherKey: TEACHER_KEY });
+    assert.equal(validation.ok, false, JSON.stringify(detour));
+    assert.ok(validation.errors.includes("runner-detour-invalid"), JSON.stringify(detour));
+  }
+
+  for (const invalidStatus of ["ready", "paused", "complete"]) {
+    const candidate = structuredClone(detoured);
+    candidate.timer.status = invalidStatus;
+    if (invalidStatus === "complete") {
+      candidate.timer.currentStepRemainingSeconds = 0;
+      candidate.timer.totalRemainingSeconds = 0;
+    }
+    const validation = validateExperienceRunner(candidate, { teacherKey: TEACHER_KEY });
+    assert.equal(validation.ok, false, invalidStatus);
+    assert.ok(validation.errors.includes("runner-detour-state-invalid"), invalidStatus);
+  }
+});
+
+test("Safe Landing clears the detour and selects the first cleanup step without changing content", () => {
+  const { applyExperienceRunnerAction } = getRunnerModel();
+  const running = runningWorkStep();
+  const beforeSteps = structuredClone(running.steps);
+  const beforePlan = structuredClone(running.timer.plan);
+  const beforeTotal = running.timer.totalRemainingSeconds;
+  const cleanupIndex = running.steps.findIndex((step) => step.kind === "cleanup");
+  const detoured = applyExperienceRunnerAction(running, "start-detour", {
+    teacherKey: TEACHER_KEY,
+    nowIso: NOW,
+  });
+  const landed = applyExperienceRunnerAction(detoured, "safe-landing", {
+    teacherKey: TEACHER_KEY,
+    nowIso: NOW,
+  });
+
+  assert.ok(cleanupIndex >= 0);
+  assert.equal(Object.hasOwn(landed, "detour"), false);
+  assert.equal(landed.timer.currentStepIndex, cleanupIndex);
+  assert.equal(
+    landed.timer.currentStepRemainingSeconds,
+    running.steps[cleanupIndex].minutes * 60,
+  );
+  assert.equal(landed.timer.totalRemainingSeconds, beforeTotal);
+  assert.equal(landed.timer.status, "running");
+  assert.deepEqual(landed.steps, beforeSteps);
+  assert.deepEqual(landed.timer.plan, beforePlan);
+});
+
+test("Safe Landing fails closed when an admitted runner has no cleanup step", () => {
+  const {
+    applyExperienceRunnerAction,
+    validateExperienceRunner,
+  } = getRunnerModel();
+  const running = runningWorkStep();
+  const detoured = applyExperienceRunnerAction(running, "start-detour", {
+    teacherKey: TEACHER_KEY,
+    nowIso: NOW,
+  });
+  const noCleanup = structuredClone(detoured);
+  for (const step of noCleanup.steps) {
+    if (step.kind === "cleanup") step.kind = "work";
+  }
+  assert.deepEqual(validateExperienceRunner(noCleanup, { teacherKey: TEACHER_KEY }), {
+    ok: true,
+    errors: [],
+  });
+  assert.throws(
+    () => applyExperienceRunnerAction(noCleanup, "safe-landing", {
+      teacherKey: TEACHER_KEY,
+      nowIso: NOW,
+    }),
+    /runner-cleanup-step-missing/,
+  );
+  assert.equal(noCleanup.detour.remainingSeconds, 180);
 });
 
 test("a schedule-sized runner stays ready with a full first step and a stationary class clock", () => {
