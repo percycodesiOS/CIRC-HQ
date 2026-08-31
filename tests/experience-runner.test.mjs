@@ -292,6 +292,36 @@ test("runner creation rejects invalid scheduled class durations", () => {
   }
 });
 
+test("every non-Start runner action keeps a validator-accepted later-step ready runner out of running", () => {
+  const {
+    applyExperienceRunnerAction,
+    createExperienceRunner,
+    validateExperienceRunner,
+  } = getRunnerModel();
+  const ready = createExperienceRunner(EXPERIENCE_TIMING_PLANS[0], {
+    teacherKey: TEACHER_KEY,
+    nowIso: NOW,
+  });
+  ready.timer.currentStepIndex = 1;
+  ready.timer.currentStepRemainingSeconds = ready.steps[1].minutes * 60;
+  assert.deepEqual(validateExperienceRunner(ready, { teacherKey: TEACHER_KEY }), {
+    ok: true,
+    errors: [],
+  });
+
+  for (const action of ["pause", "resume", "add-minute", "next", "previous", "reset"]) {
+    const result = applyExperienceRunnerAction(structuredClone(ready), action, {
+      teacherKey: TEACHER_KEY,
+      nowIso: NOW,
+    });
+    assert.equal(result.timer.status, "ready", action);
+    if (action === "next" || action === "previous") {
+      assert.equal(result.timer.currentStepIndex, 1, action);
+      assert.equal(result.timer.currentStepRemainingSeconds, ready.timer.currentStepRemainingSeconds, action);
+    }
+  }
+});
+
 test("manual next releases an expired step while preserving the remaining class clock", () => {
   const {
     advanceExperienceRunnerClock,

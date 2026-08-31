@@ -666,6 +666,9 @@ function studentRunnerRoute(project, runner, actions) {
     element("div", { className: "board-heading" }, [
       element("p", { className: "eyebrow", text: "Student directions" }),
       element("h1", { text: project.title }),
+      actions.previewOnly
+        ? element("p", { className: "runner-preview-label", text: "Preview only" })
+        : null,
       element("p", { className: "board-lesson", text: `Step ${timer.currentStepIndex + 1} of ${runner.steps.length}: ${step.label}` }),
       actionButton("Exit student view", "primary-action", () => actions.navigate("today"))
     ]),
@@ -1321,7 +1324,12 @@ export function renderApp(root, services = {}) {
     const project = getProjectByNumber(projectNumber);
     if (!project) return;
     const current = selectedRunner();
-    if (!current || current.projectNumber !== projectNumber || current.timer.status === "complete") {
+    if (
+      !current ||
+      current.projectNumber !== projectNumber ||
+      current.timer.status === "complete" ||
+      (!previewOnly && current.timer.status === "ready")
+    ) {
       const plan = EXPERIENCE_TIMING_PLANS[projectNumber - 1];
       const currentTime = now();
       const activeEvent = todayModel(currentTime).current;

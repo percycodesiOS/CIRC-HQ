@@ -892,9 +892,12 @@ test("scheduled class launch saves a stationary ready runner and renders compact
     assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Pause").length, 0);
     assert.match(rendered, /Class ends at 10:55/);
     assert.match(rendered, /Cleanup begins at 10:49/);
-    for (const label of ["Say", "Do", "Students", "Done when", "If stuck", "Finished early", "Return to the build"]) {
-      assert.match(rendered, new RegExp(label));
-    }
+    const cueGrid = findAll(root, (node) => /\brunner-now-grid\b/.test(node.className));
+    assert.equal(cueGrid.length, 1);
+    assert.deepEqual(
+      findAll(cueGrid[0], (node) => node.tagName === "h3").map(textOf),
+      ["Say", "Do", "Students", "Done when", "If stuck", "Finished early", "Return to the build"]
+    );
     assert.match(rendered, /Pause\. Model one example\. Restart with one team\./);
     assert.match(rendered, /Good question\. Let us test it while we keep building\./);
     assert.match(rendered, /Designer's Challenge/);
@@ -904,7 +907,10 @@ test("scheduled class launch saves a stationary ready runner and renders compact
     const context = findAll(root, (node) => node.tagName === "details" && /More context/.test(textOf(node)));
     assert.equal(context.length, 1);
     assert.equal(context[0].hasAttribute("open"), false);
-    assert.match(textOf(context[0]), /Objective|Materials|Safety|Teacher context/);
+    assert.deepEqual(
+      findAll(context[0], (node) => node.tagName === "h3").map(textOf),
+      ["Objective", "Materials", "Safety", "Teacher context"]
+    );
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Start class")[0].click();
     assert.equal(saveCount, 2);
@@ -913,6 +919,122 @@ test("scheduled class launch saves a stationary ready runner and renders compact
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Pause")[0].click();
     assert.equal(saved.experienceRunners["teacher:teacher-alpha"].timer.status, "paused");
     assert.match(textOf(root), /Resume/);
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("opening a stale same-project ready runner rebases it to the current scheduled end and saves once", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithActiveEvent("teach");
+  state.plan.teachers[0].days[1][0].start = "10:00";
+  state.plan.teachers[0].days[1][0].end = "10:55";
+  state.experienceRunners = {
+    "teacher:teacher-alpha": createExperienceRunner(EXPERIENCE_TIMING_PLANS[1], {
+      teacherKey: "teacher:teacher-alpha",
+      nowIso: "2026-08-20T13:00:00.000Z",
+      modeId: "build-new"
+    })
+  };
+  let saved = null;
+  let saveCount = 0;
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({ state, error: null }),
+        save: (nextState) => {
+          saveCount += 1;
+          saved = structuredClone(nextState);
+          return structuredClone(nextState);
+        }
+      },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-20T10:24:00-04:00") }
+    });
+    await controller.ready;
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    assert.equal(saveCount, 1);
+    const corrected = saved.experienceRunners["teacher:teacher-alpha"];
+    assert.equal(corrected.timer.status, "ready");
+    assert.equal(corrected.timer.totalRemainingSeconds, 1860);
+    assert.equal(corrected.timer.currentStepIndex, 0);
+    assert.equal(corrected.timer.currentStepRemainingSeconds, 180);
+    assert.match(textOf(root), /31:00/);
+    assert.match(textOf(root), /Class ends at 10:55/);
+    assert.match(textOf(root), /Cleanup begins at 10:49/);
+    assert.match(textOf(root), /Start class/);
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("opening same-project running and paused runners preserves their active lifecycle without saving", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  try {
+    for (const expected of ["Pause", "Resume"]) {
+      const root = new FakeNode("main");
+      const state = stateWithActiveEvent("teach");
+      let runner = createExperienceRunner(EXPERIENCE_TIMING_PLANS[1], {
+        teacherKey: "teacher:teacher-alpha",
+        nowIso: "2026-08-20T14:24:00.000Z",
+        modeId: "build-new"
+      });
+      runner = applyExperienceRunnerAction(runner, "start", {
+        teacherKey: "teacher:teacher-alpha",
+        nowIso: "2026-08-20T14:24:00.000Z"
+      });
+      if (expected === "Resume") {
+        runner = applyExperienceRunnerAction(runner, "pause", {
+          teacherKey: "teacher:teacher-alpha",
+          nowIso: "2026-08-20T14:24:00.000Z"
+        });
+      }
+      state.experienceRunners = { "teacher:teacher-alpha": runner };
+      let saveCount = 0;
+      globalThis.document = fakeDocument();
+      globalThis.window = {
+        location: { hostname: "example.test" },
+        setInterval: () => 1,
+        clearInterval: () => {},
+        fetch: async () => ({ ok: false })
+      };
+      const controller = renderApp(root, {
+        store: {
+          load: () => ({ state, error: null }),
+          save: (nextState) => {
+            saveCount += 1;
+            return structuredClone(nextState);
+          }
+        },
+        loadPrivateSeed: false,
+        weatherService: {},
+        clock: { now: () => new Date("2026-08-20T10:24:00-04:00") }
+      });
+      await controller.ready;
+
+      findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+      assert.equal(saveCount, 0, expected);
+      assert.equal(
+        findAll(root, (node) => node.tagName === "button" && textOf(node) === expected).length,
+        1,
+        expected
+      );
+      controller.destroy();
+    }
   } finally {
     globalThis.document = previousDocument;
     globalThis.window = previousWindow;
@@ -956,6 +1078,19 @@ test("Preview without saving opens an in-memory preview runner that cannot save 
     assert.equal(saveCount, 0);
     assert.equal(state.experienceRunners["local:default"], undefined);
     assert.doesNotMatch(textOf(root), /Complete experience and move to next|Mark final experience complete|Finish Lesson/);
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Student directions")[0].click();
+    assert.match(textOf(root), /Preview only/);
+    assert.equal(saveCount, 0);
+    assert.equal(state.experienceRunners["local:default"], undefined);
+    for (const label of ["Start class", "Pause", "Resume", "+1 minute", "Previous", "Next Step", "Finish Lesson"]) {
+      assert.equal(
+        findAll(root, (node) => node.tagName === "button" && textOf(node) === label).length,
+        0,
+        label
+      );
+    }
+    assert.doesNotMatch(textOf(root), /Complete experience and move to next|Mark final experience complete|Lesson complete/);
   } finally {
     globalThis.document = previousDocument;
     globalThis.window = previousWindow;

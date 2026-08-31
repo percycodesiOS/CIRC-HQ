@@ -117,8 +117,12 @@ test("starts, pauses, and resumes without mutating earlier states", () => {
 
 test("only Start can move a ready timer into the running lifecycle", () => {
   const ready = timer.createStepTimer(timer.OUTDOOR_MICROCLIMATE_MAP_PLAN);
+  const readyAtSecondStep = structuredClone(ready);
+  readyAtSecondStep.currentStepIndex = 1;
+  readyAtSecondStep.currentStepRemainingSeconds = 180;
 
   assert.deepEqual(timer.nextStepTimer(ready), ready);
+  assert.deepEqual(timer.previousStepTimer(readyAtSecondStep), readyAtSecondStep);
   assert.equal(timer.startStepTimer(ready).status, "running");
 });
 

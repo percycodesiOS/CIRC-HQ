@@ -152,7 +152,11 @@ export function nextStepTimer(state) {
 
 export function previousStepTimer(state) {
   const next = copyState(state);
-  if (next.status === "complete" || next.currentStepIndex === 0) return next;
+  if (
+    next.status === "ready" ||
+    next.status === "complete" ||
+    next.currentStepIndex === 0
+  ) return next;
 
   next.currentStepIndex -= 1;
   next.currentStepRemainingSeconds =
