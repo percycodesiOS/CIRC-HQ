@@ -1,5 +1,18 @@
 # CIRC HQ - BUILDLOG
 
+## 2026-08-31 final recovery and event-identity hardening
+
+- Closed the final release blockers with strict TDD. The focused RED run reported 173 tests: 156 passed, 16 failed, and 1 intentional private-package skip. The same focused matrix is GREEN at 173 tests: 172 passed, 0 failed, and 1 skip.
+- Invalid primary state with no valid local backup now enters an explicit unrecoverable lock. Load remains read-only, preserves both raw values, and every ordinary save, import, backup, and export path fails closed without a write. The app cannot present this state as fresh setup.
+- Recovery now has one visible, accessible two-step path: choose a full-state backup, Preview restore, then explicitly Restore backup. Preview performs complete closed state admission without mutation. Only a confirmed valid restore writes a valid backup and primary copy.
+- Teacher-plan events, state special events, artifact visit references, backup restore, and dormant sync admission now require exactly `event-h` plus 32 lowercase hexadecimal characters. New IDs use 128 bits from Web Crypto, and v1 preview and Apply retain one generated candidate rather than deriving an ID from schedule text.
+- The outside-Git private builder now uses `randomBytes(16)`. It reuses an existing strict ID only for an unchanged structural event and generates a new random ID for a changed or new event. Two consecutive builds were byte-stable, while a non-persisted changed-event probe rotated only that event ID.
+- Both private plans retain one teacher, five cycle days, and exactly 60 or 51 events. Direct validation and Settings preview passed with zero mutation. All 111 prior IDs changed to strict unique opaque IDs. The complete schedule, calendar, and display projection remained identical after excluding IDs and the one expected stripped legacy field.
+- The public `local-path-scan` now rejects generic absolute drive paths, project-drive paths, UNC and extended-length paths, file URIs, and HOMEDRIVE or HOMEPATH forms in addition to the earlier home-directory patterns. The current tree and temporary-repository adversarial matrix pass.
+- Dormant sync and Firebase state admission now use the same complete closed local-state canonicalizer while Firebase remains inactive. Disabled actions now have visibly muted styling, opaque contrast, and a non-pointer cursor.
+- Full `npm test` ran 350 tests: 349 passed, 0 failed, and 1 intentional private-package skip.
+- Final `npm run verify` passed all 16 public gates, including the distinct local-path scan, unchanged candidate and Pages boundaries, Firebase placeholders, runtime policy, JavaScript syntax, and all 27 reviewed Node test files.
+
 ## 2026-08-31 release review fix wave
 
 - Closed all six release-review findings in one coordinated change: backup recovery, configured lesson preview, one artifact handoff per scheduled visit, closed plan and local-state admission with shared event IDs, public local-path disclosure prevention, and an accessible Teacher Setup file chooser.

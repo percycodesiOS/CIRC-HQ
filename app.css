@@ -323,6 +323,15 @@ h2 { font-size: 1.15rem; }
   padding: 8px 18px;
 }
 
+button:disabled {
+  border-color: #9aa5b1;
+  background: #d5dbe1;
+  box-shadow: none;
+  color: #29313a;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
 .teacher-picker {
   display: inline-flex;
   margin-bottom: 14px;

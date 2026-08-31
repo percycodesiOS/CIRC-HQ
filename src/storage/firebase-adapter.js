@@ -1,4 +1,4 @@
-import { admitResourceState } from "../model/access.js";
+import { admitLocalState } from "../model/access.js";
 import { mergeStates } from "./sync-engine.js";
 
 const FIREBASE_MODULE_ROOT = "https://www.gstatic.com/firebasejs/10.12.2";
@@ -8,6 +8,8 @@ const PRIVATE_STATE_FIELDS = [
   "updatedAt",
   "plan",
   "teacherProgress",
+  "experienceRunners",
+  "sharedArtifacts",
   "checklist",
   "classes",
   "lessonGuides",
@@ -37,7 +39,7 @@ function unavailableResult(status) {
 }
 
 export function buildTeacherDocumentPatch(state) {
-  const admitted = admitResourceState(state, { source: "local" });
+  const admitted = admitLocalState(state);
   const privateState = {};
   for (const field of PRIVATE_STATE_FIELDS) {
     if (Object.hasOwn(admitted, field)) privateState[field] = structuredClone(admitted[field]);
@@ -56,7 +58,7 @@ export function createFirebaseAdapter({ config = null, firebase = null, merge = 
       return {
         status: "loaded",
         state: remoteState
-          ? admitResourceState(remoteState, { source: "authorized-cloud" })
+          ? admitLocalState(remoteState)
           : null,
         error: null
       };

@@ -1,8 +1,11 @@
 import { stableId, STATE_FORMAT } from "../model/state.js";
+import { admitLocalState } from "../model/access.js";
+import { generateEventId } from "../model/schema-admission.js";
 import { migrateTeacherPlanV1 } from "../model/teacher-plan-v1.js";
 import { diffTeacherPlans, validateTeacherPlan } from "../model/teacher-plan.js";
 
 let activePreview = null;
+let activeRestorePreview = null;
 
 function clone(value) {
   return structuredClone(value);
@@ -88,7 +91,9 @@ export function previewPlanImport(current, text, options = {}) {
     return invalidPreview(["json-invalid"]);
   }
   if (source?.format === "playbook.teacherPlan.v1") {
-    const migration = migrateTeacherPlanV1(source, options.migrationOptions);
+    const migration = migrateTeacherPlanV1(source, options.migrationOptions, {
+      eventIdFactory: options.eventIdFactory
+    });
     if (!migration.ok) return invalidPreview(migration.errors);
     return issuePreview(current, migration.value, source.format);
   }
@@ -139,13 +144,59 @@ export function parseSettingsBackup(text) {
   } catch {
     return { ok: false, errors: ["json-invalid"], value: null };
   }
-  if (!isRecord(value) || value.format !== STATE_FORMAT) {
+  try {
+    return { ok: true, errors: [], value: admitLocalState(value) };
+  } catch {
     return { ok: false, errors: ["state-invalid"], value: null };
   }
-  if (value.plan !== null && !validateTeacherPlan(value.plan).ok) {
-    return { ok: false, errors: ["plan-invalid"], value: null };
+}
+
+export function previewSettingsRestore(text) {
+  activeRestorePreview = null;
+  const parsed = parseSettingsBackup(text);
+  if (!parsed.ok) {
+    return {
+      ok: false,
+      errors: parsed.errors,
+      summary: null,
+      candidate: null,
+      previewToken: null
+    };
   }
-  return { ok: true, errors: [], value: clone(value) };
+  const token = Object.freeze({
+    id: stableId("restore-preview", JSON.stringify(parsed.value))
+  });
+  activeRestorePreview = {
+    token,
+    candidate: clone(parsed.value)
+  };
+  return {
+    ok: true,
+    errors: [],
+    summary: {
+      hasPlan: parsed.value.plan !== null,
+      teacherCount: parsed.value.plan?.teachers?.length ?? 0,
+      updatedAt: parsed.value.updatedAt
+    },
+    candidate: clone(parsed.value),
+    previewToken: token
+  };
+}
+
+export function applySettingsRestore(store, previewToken) {
+  if (!activeRestorePreview || previewToken !== activeRestorePreview.token) {
+    return { ok: false, error: "restore-preview-token-required", state: null };
+  }
+  const preview = activeRestorePreview;
+  activeRestorePreview = null;
+  try {
+    const admitted = admitLocalState(preview.candidate);
+    const restored = store?.restoreState?.(admitted);
+    if (!restored) throw new Error("restore unavailable");
+    return { ok: true, error: null, state: admitLocalState(restored) };
+  } catch {
+    return { ok: false, error: "restore-failed", state: null };
+  }
 }
 
 function previewOverride(current, date, override) {
@@ -191,14 +242,20 @@ export function previewCycleDayOverride(current, date, day) {
   });
 }
 
-export function previewSpecialEvent(current, input = {}) {
+export function previewSpecialEvent(current, input = {}, eventIdFactory = generateEventId) {
   const plan = clone(planFromCurrent(current));
   if (!Array.isArray(plan?.specialEvents) || typeof input.date !== "string" ||
       typeof input.label !== "string" || input.label.trim() === "") {
     return invalidPreview(["special-event-invalid"]);
   }
+  let eventId;
+  try {
+    eventId = eventIdFactory();
+  } catch {
+    return invalidPreview(["event-id-generation-failed"]);
+  }
   const event = {
-    id: stableId("event", `${input.date}|${input.start ?? ""}|${input.end ?? ""}|${input.label}`),
+    id: eventId,
     type: "special",
     label: input.label,
     date: input.date

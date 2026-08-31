@@ -38,7 +38,7 @@ test("a class-specific guide wins over a rotation guide", () => {
   };
 
   const result = buildLessonGuide({
-    id: "event-one",
+    id: "event-hcbf7f07b5859c901a6d66590bc32250d",
     type: "teach",
     classId: "class-alpha",
     rotationId: "rotation-one"
@@ -52,7 +52,7 @@ test("a class-specific guide wins over a rotation guide", () => {
 
 test("the Tech Terrarium default covers safe tools reclaimed materials shared ownership cleanup and transition", () => {
   const result = buildLessonGuide({
-    id: "event-two",
+    id: "event-he52c1fa7a33a3f5b4e4b08b10a6d2108",
     type: "teach",
     unitId: "tech-terrarium",
     classId: "class-beta",
@@ -70,7 +70,7 @@ test("the Tech Terrarium default covers safe tools reclaimed materials shared ow
 
 test("a rotation guide remains useful while naming missing class-specific detail", () => {
   const result = buildLessonGuide({
-    id: "event-three",
+    id: "event-h4a4efd5e55362ed79f63e76aaed4fea2",
     type: "teach",
     classId: "class-missing",
     rotationId: "rotation-one"
@@ -83,7 +83,7 @@ test("a rotation guide remains useful while naming missing class-specific detail
 
 test("an unresolved administrative block says Confirmation needed", () => {
   const result = buildLessonGuide({
-    id: "event-four",
+    id: "event-hdb81c222b9f682715bfecda66008b200",
     type: "support",
     confirmation: { status: "needed", reason: "assignment-unconfirmed" }
   }, { lessonGuides: [] });
@@ -95,7 +95,7 @@ test("an unresolved administrative block says Confirmation needed", () => {
 test("private teacher note stays in the teacher guide and is excluded from Board projection", () => {
   const lesson = guide({ id: "class-guide", classId: "class-alpha" });
   const teacherGuide = buildLessonGuide({
-    id: "event-five",
+    id: "event-h90e3eea270f11277e5fbd39423f8fe39",
     type: "teach",
     classId: "class-alpha",
     rotationId: "rotation-one"
@@ -110,13 +110,13 @@ test("private teacher note stays in the teacher guide and is excluded from Board
       privateNote: teacherGuide.privateNote
     }],
     specialEvents: [{
-      id: "event-five",
+      id: "event-h90e3eea270f11277e5fbd39423f8fe39",
       classId: "class-alpha",
       lessonGuideId: "class-guide",
       countdown: "08:00",
       currentProcessStep: "Build"
     }]
-  }, "event-five");
+  }, "event-h90e3eea270f11277e5fbd39423f8fe39");
 
   assert.equal(teacherGuide.privateNote, "Teacher-only pacing note");
   assert.equal(JSON.stringify(board).includes("Teacher-only pacing note"), false);
@@ -126,7 +126,7 @@ test("private teacher note stays in the teacher guide and is excluded from Board
 
 test("all guide copy remains plain string data", () => {
   const result = buildLessonGuide({
-    id: "event-six",
+    id: "event-h028339fbb87b2a481da53a7872bb4886",
     type: "teach",
     classId: "class-alpha",
     rotationId: "rotation-one"
@@ -161,7 +161,7 @@ test("all guide copy remains plain string data", () => {
 test("Curriculum exposes the say-and-do cards and one route to all 57 preserved experiences", () => {
   const state = { lessonGuides: [guide({ classId: "class-alpha" })] };
   const view = buildCurriculumView({
-    id: "event-seven",
+    id: "event-h0a122940743341198300cf5d8ba2842a",
     type: "teach",
     classId: "class-alpha",
     rotationId: "rotation-one"

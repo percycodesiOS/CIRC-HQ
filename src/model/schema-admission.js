@@ -1,4 +1,4 @@
-const EVENT_ID_PATTERN = /^event-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const EVENT_ID_PATTERN = /^event-h[0-9a-f]{32}$/;
 const LOCAL_ID_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const LOCAL_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 const FORBIDDEN_KEY_PARTS = Object.freeze([
@@ -60,10 +60,17 @@ export function isLocalDate(value) {
 }
 
 export function isEventId(value) {
-  return typeof value === "string" &&
-    value.length >= 8 &&
-    value.length <= 64 &&
-    EVENT_ID_PATTERN.test(value);
+  return typeof value === "string" && EVENT_ID_PATTERN.test(value);
+}
+
+export function generateEventId(cryptoSource = globalThis.crypto) {
+  if (!cryptoSource || typeof cryptoSource.getRandomValues !== "function") {
+    throw new Error("cryptographic random source unavailable");
+  }
+  const bytes = new Uint8Array(16);
+  cryptoSource.getRandomValues(bytes);
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `event-h${hex}`;
 }
 
 export function isLocalId(value) {

@@ -158,6 +158,7 @@ const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "tests/lesson-guide.test.mjs",
   "tests/local-store.test.mjs",
   "tests/public-shell.test.mjs",
+  "tests/release-final-fixes.test.mjs",
   "tests/project-catalog.test.mjs",
   "tests/project-home.test.mjs",
   "tests/schedule.test.mjs",
@@ -555,10 +556,6 @@ export function countCredentialViolations(text) {
 export function countLocalPathViolations(text) {
   const slash = "[\\\\/]";
   const dotCodex = ["\\.", "codex"].join("");
-  const userRoot = ["Users", "Documents", "and", "Settings"].join("|").replace(
-    "Documents|and|Settings",
-    "Documents and Settings"
-  );
   const unixUsers = ["/", "Users", "/"].join("");
   const unixHome = ["/", "home", "/"].join("");
   const tildeHome = ["~", "/"].join("");
@@ -566,16 +563,29 @@ export function countLocalPathViolations(text) {
   const userProfile = [
     "(?:%", "USERPROFILE", "%|\\$", "(?:env:)?", "USERPROFILE", "|\\$\\{", "USERPROFILE", "\\})"
   ].join("");
+  const homeDrive = ["HOME", "DRIVE"].join("");
+  const homePath = ["HOME", "PATH"].join("");
+  const homeDrivePath = [
+    "(?:%", homeDrive, "%%", homePath, "%|",
+    "\\$(?:env:)?", homeDrive, "\\$(?:env:)?", homePath, "|",
+    "\\$\\{", homeDrive, "\\}\\$\\{", homePath, "\\})"
+  ].join("");
   const patterns = [
-    new RegExp(`\\b[A-Za-z]:${slash}(?:${userRoot})${slash}[^\\s<>\"']+`, "gi"),
-    new RegExp(`(?:^|${slash})${dotCodex}(?:${slash}|$)`, "gim"),
-    new RegExp(`${unixUsers}[^/\\s]+(?:/[^\\s<>\"']*)?`, "g"),
-    new RegExp(`${unixHome}[^/\\s]+(?:/[^\\s<>\"']*)?`, "g"),
-    new RegExp(`(?:^|[\\s(\"'])${tildeHome}[^\\s<>\"']*`, "gm"),
-    new RegExp(`${dollarHome}(?:${slash}|\\b)`, "g"),
-    new RegExp(`${userProfile}(?:${slash}|\\b)`, "gi")
+    new RegExp(`(?:^|[\\s(\"'\\x60=])[A-Za-z]:${slash}[^\\s<>\"']+`, "i"),
+    /(?:^|[\s("'`=])\\\\(?:\?\\(?:UNC\\)?|\.\\)?[a-z0-9._:-]+[\\/][^\s<>"']+/i,
+    /file:(?:\/\/\/[A-Za-z]:[\\/]|\/\/[^/\s]+\/)[^\s<>"']+/i,
+    new RegExp(`(?:^|${slash})${dotCodex}(?:${slash}|$)`, "im"),
+    new RegExp(`${unixUsers}[^/\\s]+(?:/[^\\s<>\"']*)?`),
+    new RegExp(`${unixHome}[^/\\s]+(?:/[^\\s<>\"']*)?`),
+    new RegExp(`(?:^|[\\s(\"'\\x60])${tildeHome}[^\\s<>\"']*`),
+    new RegExp(`${dollarHome}(?:${slash}|\\b)`),
+    new RegExp(`${userProfile}(?:${slash}|\\b)`, "i"),
+    new RegExp(`${homeDrivePath}(?:${slash}|\\b)`, "i")
   ];
-  return patterns.reduce((count, pattern) => count + (text.match(pattern)?.length ?? 0), 0);
+  return String(text).split(/\r?\n/).reduce(
+    (count, line) => count + Number(patterns.some((pattern) => pattern.test(line))),
+    0
+  );
 }
 
 export async function inspectLocalPaths(root = ROOT) {

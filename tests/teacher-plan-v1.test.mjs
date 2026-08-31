@@ -191,17 +191,33 @@ test("rejects malformed unsupported and reversed ranges as a complete conversion
   }
 });
 
-test("stable event ids depend on teacher id day start and occurrence but not labels or display name", () => {
+test("event IDs come only from the supplied random factory and never from schedule text", () => {
   const first = genericSource();
   first.plan.days[0].events.push({ time: "8:10-8:25", type: "support", label: "Same-start second" });
   const changed = structuredClone(first);
   changed.plan.days[0].events[0].label = "Completely different label";
   changed.plan.days[0].events[1].label = "Another different label";
 
-  const one = migrateTeacherPlanV1(first, genericOptions()).value;
+  const eventCount = first.plan.days.reduce((total, day) => total + day.events.length, 0);
+  const firstIds = Array.from({ length: eventCount }, (_, index) =>
+    `event-h${(index + 101).toString(16).padStart(32, "0")}`
+  );
+  const differentIds = Array.from({ length: eventCount }, (_, index) =>
+    `event-h${(index + 201).toString(16).padStart(32, "0")}`
+  );
+  const factory = (ids) => {
+    const remaining = [...ids];
+    return () => remaining.shift();
+  };
+
+  const one = migrateTeacherPlanV1(
+    first,
+    genericOptions(),
+    { eventIdFactory: factory(firstIds) }
+  ).value;
   const two = migrateTeacherPlanV1(changed, genericOptions({
     teacher: { id: "teacher-alpha", name: "Renamed Teacher" }
-  })).value;
+  }), { eventIdFactory: factory(firstIds) }).value;
 
   assert.deepEqual(
     one.teachers[0].days["1"].map((event) => event.id),
@@ -210,11 +226,36 @@ test("stable event ids depend on teacher id day start and occurrence but not lab
   assert.notEqual(one.teachers[0].days["1"][0].id, one.teachers[0].days["1"][2].id);
   const otherTeacher = migrateTeacherPlanV1(first, genericOptions({
     teacher: { id: "teacher-beta", name: "Teacher Alpha" }
-  })).value;
-  assert.notEqual(
-    one.teachers[0].days["1"][0].id,
-    otherTeacher.teachers[0].days["1"][0].id
+  }), { eventIdFactory: factory(differentIds) }).value;
+  assert.deepEqual(
+    Object.values(one.teachers[0].days).flat().map((event) => event.id),
+    firstIds
   );
+  assert.deepEqual(
+    Object.values(otherTeacher.teachers[0].days).flat().map((event) => event.id),
+    differentIds
+  );
+});
+
+test("v1 conversion obtains each opaque event ID from the injected cryptographic factory", () => {
+  const ids = Array.from({ length: 6 }, (_, index) =>
+    `event-h${(index + 1).toString(16).padStart(32, "0")}`
+  );
+  const remaining = [...ids];
+
+  const result = migrateTeacherPlanV1(
+    genericSource(),
+    genericOptions(),
+    { eventIdFactory: () => remaining.shift() }
+  );
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(
+    Object.values(result.value.teachers[0].days).flat().map((event) => event.id),
+    ids
+  );
+  assert.deepEqual(remaining, []);
+  assert.ok(ids.every((id) => /^event-h[0-9a-f]{32}$/.test(id)));
 });
 
 test("copies duty details only from exact rules and rejects missing or unused rules", () => {

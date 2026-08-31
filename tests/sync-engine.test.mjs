@@ -8,6 +8,9 @@ function state(overrides = {}) {
     schemaVersion: 1,
     updatedAt: "2026-08-28T12:00:00.000Z",
     plan: null,
+    teacherProgress: {},
+    experienceRunners: {},
+    sharedArtifacts: {},
     checklist: [],
     classes: [],
     lessonGuides: [],
@@ -17,6 +20,36 @@ function state(overrides = {}) {
     preferences: {},
     tombstones: [],
     ...overrides
+  };
+}
+
+function validPlan(label = "Local workshop") {
+  return {
+    format: "playbook.teacherPlan.v2",
+    version: 1,
+    calendar: {
+      anchorDate: "2026-08-20",
+      anchorDay: 1,
+      lastDate: "2027-06-04",
+      noSchool: [],
+      conditionalMakeup: [],
+      overrides: {}
+    },
+    teachers: [{
+      id: "teacher-alpha",
+      name: "Teacher Alpha",
+      days: {
+        1: [{
+          id: "event-h00000000000000000000000000000201",
+          type: "teach",
+          label,
+          start: "09:00",
+          end: "09:30"
+        }]
+      }
+    }],
+    specialEvents: [],
+    resources: []
   };
 }
 
@@ -49,28 +82,25 @@ test("records a conflict for divergent equal-timestamp entities", () => {
   assert.deepEqual(result.conflicts.map((conflict) => [conflict.collection, conflict.id]), [["resources", "guide"]]);
 });
 
-test("records a conflict for divergent equal-timestamp preferences", () => {
+test("keeps only the closed teacher preference and selects the remote value", () => {
   const result = mergeStates(
-    state({ preferences: { theme: { value: "dark", updatedAt: "2026-08-20T10:00:00.000Z" } } }),
-    state({ preferences: { theme: { value: "light", updatedAt: "2026-08-20T10:00:00.000Z" } } })
+    state({ preferences: { teacherId: "teacher-alpha", unsupportedTheme: "dark" } }),
+    state({ preferences: { teacherId: "teacher-beta", unsupportedTheme: "light" } })
   );
 
-  assert.equal(result.state.preferences.theme.value, "dark");
-  assert.deepEqual(
-    result.conflicts.map((conflict) => [conflict.collection, conflict.id]),
-    [["preferences", "theme"]]
-  );
+  assert.deepEqual(result.state.preferences, { teacherId: "teacher-beta" });
+  assert.deepEqual(result.conflicts, []);
 });
 
 test("merges each teacher's progress by that teacher's timestamp", () => {
   const local = state({
     teacherProgress: {
-      kenny: {
+      "teacher:kenny": {
         currentProjectNumber: 4,
         completedProjectNumbers: [1, 2, 3],
         updatedAt: "2026-08-28T10:00:00.000Z"
       },
-      tammy: {
+      "teacher:tammy": {
         currentProjectNumber: 7,
         completedProjectNumbers: [1, 2, 3, 4, 5, 6],
         updatedAt: "2026-08-28T12:00:00.000Z"
@@ -79,17 +109,17 @@ test("merges each teacher's progress by that teacher's timestamp", () => {
   });
   const remote = state({
     teacherProgress: {
-      kenny: {
+      "teacher:kenny": {
         currentProjectNumber: 5,
         completedProjectNumbers: [1, 2, 3, 4],
         updatedAt: "2026-08-28T13:00:00.000Z"
       },
-      tammy: {
+      "teacher:tammy": {
         currentProjectNumber: 6,
         completedProjectNumbers: [1, 2, 3, 4, 5],
         updatedAt: "2026-08-28T11:00:00.000Z"
       },
-      guest: {
+      "teacher:guest": {
         currentProjectNumber: 2,
         completedProjectNumbers: [1],
         updatedAt: "2026-08-28T12:30:00.000Z"
@@ -100,25 +130,28 @@ test("merges each teacher's progress by that teacher's timestamp", () => {
   const result = mergeStates(local, remote);
 
   assert.deepEqual(result.state.teacherProgress, {
-    kenny: {
+    "teacher:kenny": {
       currentProjectNumber: 5,
       completedProjectNumbers: [1, 2, 3, 4],
-      updatedAt: "2026-08-28T13:00:00.000Z"
+      updatedAt: "2026-08-28T13:00:00.000Z",
+      complete: false
     },
-    tammy: {
+    "teacher:tammy": {
       currentProjectNumber: 7,
       completedProjectNumbers: [1, 2, 3, 4, 5, 6],
-      updatedAt: "2026-08-28T12:00:00.000Z"
+      updatedAt: "2026-08-28T12:00:00.000Z",
+      complete: false
     },
-    guest: {
+    "teacher:guest": {
       currentProjectNumber: 2,
       completedProjectNumbers: [1],
-      updatedAt: "2026-08-28T12:30:00.000Z"
+      updatedAt: "2026-08-28T12:30:00.000Z",
+      complete: false
     }
   });
   assert.deepEqual(result.conflicts, []);
-  assert.equal(local.teacherProgress.kenny.currentProjectNumber, 4);
-  assert.equal(remote.teacherProgress.tammy.currentProjectNumber, 6);
+  assert.equal(local.teacherProgress["teacher:kenny"].currentProjectNumber, 4);
+  assert.equal(remote.teacherProgress["teacher:tammy"].currentProjectNumber, 6);
 });
 
 test("keeps local teacher progress and records a conflict on equal-timestamp divergence", () => {
@@ -134,17 +167,17 @@ test("keeps local teacher progress and records a conflict on equal-timestamp div
   };
 
   const result = mergeStates(
-    state({ teacherProgress: { kenny: localProgress } }),
-    state({ teacherProgress: { kenny: remoteProgress } })
+    state({ teacherProgress: { "teacher:kenny": localProgress } }),
+    state({ teacherProgress: { "teacher:kenny": remoteProgress } })
   );
 
-  assert.deepEqual(result.state.teacherProgress.kenny, localProgress);
+  assert.deepEqual(result.state.teacherProgress["teacher:kenny"], { ...localProgress, complete: false });
   assert.deepEqual(result.conflicts, [{
     collection: "teacherProgress",
-    id: "kenny",
+    id: "teacher:kenny",
     reason: "equal-timestamp-divergence",
-    local: localProgress,
-    remote: remoteProgress
+    local: { ...localProgress, complete: false },
+    remote: { ...remoteProgress, complete: false }
   }]);
 });
 
@@ -177,13 +210,13 @@ test("omits a tombstoned note while preserving its tombstone", () => {
   assert.deepEqual(result.state.tombstones.map((item) => [item.collection, item.id]), [["notes", "private-note"]]);
 });
 
-test("uses plan version before its timestamp and conflicts on divergent equal versions", () => {
+test("records a conflict for divergent admitted teacher plans", () => {
   const result = mergeStates(
-    state({ plan: { version: 2, title: "Local", updatedAt: "2026-08-20T10:00:00.000Z" } }),
-    state({ plan: { version: 2, title: "Remote", updatedAt: "2026-08-21T10:00:00.000Z" } })
+    state({ plan: validPlan("Local workshop") }),
+    state({ plan: validPlan("Remote workshop") })
   );
 
-  assert.equal(result.state.plan.title, "Remote");
+  assert.equal(result.state.plan.teachers[0].days["1"][0].label, "Local workshop");
   assert.equal(result.conflicts.length, 1);
   assert.equal(result.conflicts[0].collection, "plan");
 });
@@ -197,4 +230,25 @@ test("leaves local state unchanged when remote data is unavailable", () => {
   assert.deepEqual(result.state, snapshot);
   assert.notEqual(result.state, local);
   assert.equal(result.conflicts[0].reason, "remote-unavailable");
+});
+
+test("dormant sync canonicalizes the complete local-state schema and rejects forbidden families", () => {
+  const local = state({
+    unsupportedTopLevel: { privatePassthrough: true },
+    preferences: { teacherId: "teacher-alpha", unsupportedNested: "drop" },
+    notes: [{
+      id: "note-safe",
+      text: "Safe note",
+      visibility: "teacher-private",
+      updatedAt: "2026-08-28T12:00:00.000Z",
+      unsupportedNested: "drop"
+    }]
+  });
+
+  const result = mergeStates(local, null);
+
+  assert.equal(Object.hasOwn(result.state, "unsupportedTopLevel"), false);
+  assert.deepEqual(result.state.preferences, { teacherId: "teacher-alpha" });
+  assert.equal(Object.hasOwn(result.state.notes[0], "unsupportedNested"), false);
+  assert.throws(() => mergeStates(state({ studentRoster: ["individual record"] }), null), /invalid|forbidden|state/i);
 });

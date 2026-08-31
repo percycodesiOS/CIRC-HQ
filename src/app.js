@@ -24,11 +24,13 @@ import { buildRoomView } from "./ui/room.js";
 import { advanceProjectProgress, buildProjectHomeView } from "./ui/project-home.js";
 import {
   applyPlanImport,
+  applySettingsRestore,
   exportSettingsBackup,
   previewClosure,
   previewCycleDayOverride,
   previewMakeupDayStatus,
   previewPlanImport,
+  previewSettingsRestore,
   previewSpecialEvent
 } from "./ui/settings.js";
 import { buildTodayPresentation, buildWelcomePresentation } from "./ui/today-ui.js";
@@ -1114,6 +1116,99 @@ function scheduleRoute(state, navigate) {
   ]);
 }
 
+function recoveryRoute(context) {
+  let previewToken = null;
+  const status = element("p", {
+    className: "import-message",
+    text: "CIRC HQ is read-only. Choose an external full-state backup, preview it, then explicitly restore it.",
+    attributes: { role: "status", "aria-live": "polite" }
+  });
+  const picker = element("input", {
+    attributes: {
+      id: "full-state-backup-file",
+      type: "file",
+      accept: "application/json,.json"
+    }
+  });
+  const pickerLabel = element("label", {
+    className: "file-picker-label",
+    text: "Choose full-state backup file",
+    attributes: { for: "full-state-backup-file" }
+  });
+  const previewButton = element("button", {
+    text: "Preview restore",
+    attributes: { type: "button" }
+  });
+  const restoreButton = element("button", {
+    className: "primary-action",
+    text: "Restore backup",
+    attributes: { type: "button", disabled: "" }
+  });
+
+  const resetPreview = () => {
+    previewToken = null;
+    restoreButton.setAttribute("disabled", "");
+  };
+  picker.addEventListener("change", resetPreview);
+  previewButton.addEventListener("click", async () => {
+    resetPreview();
+    const file = picker.files?.[0];
+    if (!file) {
+      status.textContent = "No backup file selected. Damaged local data was not changed.";
+      return;
+    }
+    try {
+      const preview = previewSettingsRestore(await file.text());
+      if (!preview.ok) throw new Error("invalid backup");
+      previewToken = preview.previewToken;
+      restoreButton.removeAttribute("disabled");
+      const planSummary = preview.summary.hasPlan
+        ? `${preview.summary.teacherCount} teacher plan(s)`
+        : "no teacher plan";
+      status.textContent = `Valid backup preview is ready. It contains ${planSummary}. Select Restore backup to replace the damaged local copies.`;
+    } catch {
+      status.textContent = "This full-state backup is invalid and cannot be restored. Damaged local data was not changed.";
+    }
+  });
+  restoreButton.addEventListener("click", () => {
+    if (!previewToken) return;
+    const result = applySettingsRestore(context.store, previewToken);
+    resetPreview();
+    if (!result.ok) {
+      status.textContent = "Restore failed. Damaged local data was not changed. Preview the backup again.";
+      return;
+    }
+    context.completeRestore(result.state);
+  });
+
+  return element("section", { attributes: { "data-view": "recovery" } }, [
+    element("div", { className: "page-heading" }, [
+      element("div", {}, [
+        element("p", { className: "eyebrow", text: "Local recovery" }),
+        element("h1", { text: "Saved state cannot be read" }),
+        element("p", {
+          className: "date-line",
+          text: "The primary and local backup copies are not usable. This is not a clean first setup."
+        })
+      ])
+    ]),
+    element("section", { className: "setup-card" }, [
+      element("p", {
+        className: "recovery-notice",
+        text: "Unrecoverable local state is locked. CIRC HQ is read-only and will not save, import, export, run, or change settings until a valid full-state backup is explicitly restored.",
+        attributes: { role: "alert" }
+      }),
+      element("p", {
+        text: "If no external full-state backup exists, do not clear site data unless you accept permanent data loss. The damaged raw copies remain untouched."
+      }),
+      status,
+      pickerLabel,
+      picker,
+      element("div", { className: "settings-row" }, [previewButton, restoreButton])
+    ])
+  ]);
+}
+
 function settingsRoute(context) {
   const readOnly = context.importAllowed !== true;
   const importMessage = element("p", {
@@ -1294,7 +1389,8 @@ export function renderApp(root, services = {}) {
   const weatherService = services.weatherService ?? createWeatherService();
   const loaded = store.load();
   let state = loaded.state;
-  let route = state.plan ? "today" : "welcome";
+  let recoveryStatus = loaded.status;
+  let route = recoveryStatus === "unrecoverable" ? "recovery" : state.plan ? "today" : "welcome";
   let selectedTeacherId =
     services.teacherId ??
     state.preferences?.teacherId ??
@@ -1307,7 +1403,7 @@ export function renderApp(root, services = {}) {
   let lastCompletion = null;
   let weather = { status: "unavailable", label: "Weather unavailable" };
   let previewToken = null;
-  let previewOnly = !state.plan;
+  let previewOnly = recoveryStatus === "unrecoverable" || !state.plan;
   let configuredPreview = false;
   let previewRunner = null;
   let setupImportAllowed = false;
@@ -1687,6 +1783,12 @@ export function renderApp(root, services = {}) {
   }
 
   function navigate(nextRoute) {
+    if (recoveryStatus === "unrecoverable") {
+      route = "recovery";
+      render();
+      root.focus({ preventScroll: true });
+      return;
+    }
     reconcileRunner();
     pendingArtifactHandoff = null;
     if (
@@ -1752,6 +1854,7 @@ export function renderApp(root, services = {}) {
   }
 
   function selectTeacher(teacherId) {
+    if (recoveryStatus === "unrecoverable") return;
     lastCompletion = null;
     pendingArtifactHandoff = null;
     selectedTeacherId = teacherId;
@@ -1778,6 +1881,13 @@ export function renderApp(root, services = {}) {
     ).currentProject.number;
     timelineExpanded = false;
     render();
+  }
+
+  function completeRecoveryRestore(nextState) {
+    recoveryStatus = "primary";
+    route = nextState.plan ? "today" : "welcome";
+    navButtons.forEach((button, index) => restoreAttributes(button, navSnapshots[index]));
+    replaceState(nextState);
   }
 
   function toggleTimeline() {
@@ -1808,6 +1918,21 @@ export function renderApp(root, services = {}) {
   }
 
   function render() {
+    if (recoveryStatus === "unrecoverable") {
+      root.replaceChildren(recoveryRoute({
+        store,
+        completeRestore: completeRecoveryRestore
+      }));
+      setBoardShell(false);
+      for (const button of navButtons) {
+        button.setAttribute("disabled", "");
+        button.setAttribute("aria-disabled", "true");
+        button.removeAttribute("aria-current");
+      }
+      lastRenderedMinute = "";
+      lastRunnerLayoutKey = "";
+      return;
+    }
     const model = todayModel();
     reconcilePendingArtifactHandoff(model);
     const projectView = buildProjectHomeView(state, {
@@ -1908,7 +2033,7 @@ export function renderApp(root, services = {}) {
       };
       view = settingsRoute(context);
     }
-    const recoveryNotice = loaded.status === "recovered-backup"
+    const recoveryNotice = recoveryStatus === "recovered-backup"
       ? element("p", {
           className: "recovery-notice",
           text: "Recovered saved playbook state from the local backup because the saved primary copy could not be read. Export a backup before continuing.",
@@ -1959,6 +2084,7 @@ export function renderApp(root, services = {}) {
       });
 
   const timer = window.setInterval(() => {
+    if (recoveryStatus === "unrecoverable") return;
     const currentTime = now();
     const { runner } = reconcileRunner();
     const clockNode = root.querySelector("[data-live-clock]");
@@ -1976,6 +2102,7 @@ export function renderApp(root, services = {}) {
   }, 1000);
 
   const handleVisibilityChange = () => {
+    if (recoveryStatus === "unrecoverable") return;
     if (document.visibilityState !== "hidden") {
       const { runner } = reconcileRunner();
       if (route === "experience-runner" || route === "project-student") refreshRunnerView(runner);

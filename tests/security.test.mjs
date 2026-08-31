@@ -56,7 +56,7 @@ test("broad classroom projection returns only reviewed Board-safe fields", () =>
         email: "private.teacher@example.invalid",
         days: {
           1: [{
-            id: "event-safe",
+            id: "event-hee0dfaca3f560f370b8ed6a2cefbd243",
             type: "teach",
             label: "PRIVATE_EVENT_LABEL",
             start: "09:00",
@@ -112,8 +112,8 @@ test("broad classroom projection returns only reviewed Board-safe fields", () =>
   };
 
   assert.deepEqual(
-    createClassroomProjection(state, "event-safe", {
-      liveCountdown: { eventId: "event-safe", minutes: 7, target: "end" }
+    createClassroomProjection(state, "event-hee0dfaca3f560f370b8ed6a2cefbd243", {
+      liveCountdown: { eventId: "event-hee0dfaca3f560f370b8ed6a2cefbd243", minutes: 7, target: "end" }
     }),
     {
       classTitle: "Reviewed class title",
@@ -500,7 +500,7 @@ test("validation and import reject forbidden plan records without retaining adve
   const plan = resourcePlan([]);
   plan.teachers[0].days = {
     1: [{
-      id: "event-safe",
+      id: "event-hee0dfaca3f560f370b8ed6a2cefbd243",
       type: "teach",
       label: "Safe class label",
       start: "09:00",
@@ -547,7 +547,17 @@ test("local path gate scans tracked text including excluded docs, ignores binari
     ["~", "/", "private.txt"].join(""),
     ["$", "HOME", "/", "private.txt"].join(""),
     ["$", "{", "HOME", "}", "/", "private.txt"].join(""),
-    ["%", "USERPROFILE", "%", "\\", "private.txt"].join("")
+    ["%", "USERPROFILE", "%", "\\", "private.txt"].join(""),
+    ["D:", "\\", "generic", "\\", "private.txt"].join(""),
+    ["K:", "\\", "Projects", "\\", "generic", "\\", "private.txt"].join(""),
+    ["\\", "\\", "generic-server", "\\", "share", "\\", "private.txt"].join(""),
+    ["\\", "\\", "?", "\\", "C:", "\\", "generic", "\\", "private.txt"].join(""),
+    ["\\", "\\", "?", "\\", "UNC", "\\", "generic-server", "\\", "share", "\\", "private.txt"].join(""),
+    ["file", ":", "/", "/", "/", "C:", "/", "generic", "/", "private.txt"].join(""),
+    ["file", ":", "/", "/", "generic-server", "/", "share", "/", "private.txt"].join(""),
+    ["%", "HOMEDRIVE", "%", "%", "HOMEPATH", "%", "\\", "private.txt"].join(""),
+    ["$", "env", ":", "HOMEDRIVE", "$", "env", ":", "HOMEPATH", "\\", "private.txt"].join(""),
+    ["$", "{", "HOMEDRIVE", "}", "$", "{", "HOMEPATH", "}", "/", "private.txt"].join("")
   ];
   await Promise.all([
     writeFile(path.join(repository, "design-qa.md"), probes.slice(0, 4).join("\n")),

@@ -6,6 +6,14 @@ import { buildBoardView } from "../src/ui/board.js";
 import { openLegacyActivityLibrary } from "../src/ui/curriculum.js";
 import { buildRoomView } from "../src/ui/room.js";
 
+const PRIVATE_EVENT_IDS = Object.freeze({
+  duty: "event-h00000000000000000000000000000021",
+  support: "event-h00000000000000000000000000000022",
+  prep: "event-h00000000000000000000000000000023",
+  lunch: "event-h00000000000000000000000000000024",
+  special: "event-h00000000000000000000000000000025"
+});
+
 function privateTeacherState() {
   return {
     plan: {
@@ -34,7 +42,7 @@ function privateTeacherState() {
       privateNote: "Teacher-only note"
     }],
     specialEvents: [{
-      id: "event-alpha",
+      id: "event-h809a7a949031ea78680685cc76e68808",
       type: "teach",
       label: "Classroom-safe workshop",
       classId: "class-alpha",
@@ -53,8 +61,8 @@ function privateTeacherState() {
 
 test("Board is account-free and exposes only sanitized current-lesson controls", () => {
   const state = privateTeacherState();
-  const projection = buildBoardProjection(state, "event-alpha", {
-    liveCountdown: { eventId: "event-alpha", minutes: 6, target: "end" }
+  const projection = buildBoardProjection(state, "event-h809a7a949031ea78680685cc76e68808", {
+    liveCountdown: { eventId: "event-h809a7a949031ea78680685cc76e68808", minutes: 6, target: "end" }
   });
   const board = buildBoardView(projection);
 
@@ -104,7 +112,7 @@ test("Board projection rejects every teacher-only event even when private fields
     const state = privateTeacherState();
     state.plan.teachers[0].days = {
       1: [{
-        id: `event-${type}`,
+        id: PRIVATE_EVENT_IDS[type],
         type,
         label: `PRIVATE_${type.toUpperCase()}_LABEL`,
         start: "09:00",
@@ -116,7 +124,7 @@ test("Board projection rejects every teacher-only event even when private fields
       }]
     };
 
-    const board = buildBoardView(buildBoardProjection(state, `event-${type}`));
+    const board = buildBoardView(buildBoardProjection(state, PRIVATE_EVENT_IDS[type]));
 
     assert.deepEqual(board, {
       mode: "account-free",
@@ -251,7 +259,7 @@ test("Board ignores event-supplied and malformed live display fields", () => {
 test("Board cannot request teacher routes state resources notes duty or Firebase data", () => {
   const state = privateTeacherState();
   const before = structuredClone(state);
-  const board = buildBoardView(buildBoardProjection(state, "event-alpha"));
+  const board = buildBoardView(buildBoardProjection(state, "event-h809a7a949031ea78680685cc76e68808"));
   const serialized = JSON.stringify(board);
 
   assert.doesNotMatch(serialized, /Settings|timeline|duty|staff|resource|private|firebase/i);
@@ -277,7 +285,7 @@ test("entering and leaving Board changes only the route view and never teacher s
   let route = "today";
 
   route = "board";
-  buildBoardView(buildBoardProjection(state, "event-alpha"));
+  buildBoardView(buildBoardProjection(state, "event-h809a7a949031ea78680685cc76e68808"));
   route = "today";
 
   assert.equal(route, "today");

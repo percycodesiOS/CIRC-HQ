@@ -5,6 +5,10 @@ import {
   validateTeacherPlan
 } from "../src/model/teacher-plan.js";
 
+const EVENT_ONE = "event-h00000000000000000000000000000001";
+const EVENT_TWO = "event-h00000000000000000000000000000002";
+const EVENT_SPECIAL = "event-h00000000000000000000000000000003";
+
 function makeValidPlan() {
   return {
     format: "playbook.teacherPlan.v2",
@@ -24,14 +28,14 @@ function makeValidPlan() {
         days: {
           1: [
             {
-              id: "event-one",
+              id: EVENT_ONE,
               type: "teach",
               label: "Class A",
               start: "09:05",
               end: "09:40"
             },
             {
-              id: "event-two",
+              id: EVENT_TWO,
               type: "prep",
               label: "Prep",
               start: "09:45",
@@ -43,7 +47,7 @@ function makeValidPlan() {
     ],
     specialEvents: [
       {
-        id: "event-special-a",
+        id: EVENT_SPECIAL,
         type: "special",
         label: "Parent Night",
         date: "2026-09-10",
@@ -98,7 +102,7 @@ test("rejects duplicate event IDs", () => {
   const candidate = makeValidPlan();
   candidate.teachers[0].days[2] = [
     {
-      id: "event-one",
+      id: EVENT_ONE,
       type: "support",
       label: "Support",
       start: "10:25",
@@ -110,7 +114,7 @@ test("rejects duplicate event IDs", () => {
 
   assert.equal(result.ok, false);
   assert.equal(
-    result.errors.some((error) => /duplicate event id "event-one"/i.test(error)),
+    result.errors.some((error) => error.includes(`duplicate event id "${EVENT_ONE}"`)),
     true
   );
 });
@@ -172,10 +176,10 @@ test("diff identifies one added, one removed, and one changed event", () => {
   const next = makeValidPlan();
   next.teachers[0].days[1][0].label = "Updated Class A";
   next.teachers[0].days[1] = next.teachers[0].days[1].filter(
-    (event) => event.id !== "event-two"
+    (event) => event.id !== EVENT_TWO
   );
   next.teachers[0].days[1].push({
-    id: "event-three",
+    id: "event-h4a4efd5e55362ed79f63e76aaed4fea2",
     type: "lunch",
     label: "Lunch",
     start: "11:30",
@@ -184,9 +188,9 @@ test("diff identifies one added, one removed, and one changed event", () => {
 
   const result = diffTeacherPlans(previous, next);
 
-  assert.deepEqual(result.added.map((event) => event.id), ["event-three"]);
-  assert.deepEqual(result.removed.map((event) => event.id), ["event-two"]);
-  assert.deepEqual(result.changed.map((entry) => entry.id), ["event-one"]);
+  assert.deepEqual(result.added.map((event) => event.id), ["event-h4a4efd5e55362ed79f63e76aaed4fea2"]);
+  assert.deepEqual(result.removed.map((event) => event.id), [EVENT_TWO]);
+  assert.deepEqual(result.changed.map((entry) => entry.id), [EVENT_ONE]);
   assert.equal(result.changed[0].before.label, "Class A");
   assert.equal(result.changed[0].after.label, "Updated Class A");
 });
@@ -207,6 +211,22 @@ test("keeps admitted labels as plain data but rejects unsupported event fields",
   assert.equal(labelOnly.ok, true);
   assert.equal(labelOnly.value.teachers[0].days[1][0].label, userText);
   assert.equal(typeof labelOnly.value.teachers[0].days[1][0].label, "string");
+});
+
+test("rejects every semantic event ID even when the rest of the plan is valid", () => {
+  for (const id of [
+    "event-person-class",
+    "event-math-class",
+    "event-teacher-example-com",
+    "event-path-private",
+    "event-label-workshop"
+  ]) {
+    const candidate = makeValidPlan();
+    candidate.teachers[0].days[1][0].id = id;
+    const result = validateTeacherPlan(candidate);
+    assert.equal(result.ok, false, id);
+    assert.equal(result.value, null, id);
+  }
 });
 
 test("uses one conservative event ID grammar for scheduled and special events", () => {
@@ -231,8 +251,8 @@ test("uses one conservative event ID grammar for scheduled and special events", 
   }
 
   const valid = makeValidPlan();
-  valid.teachers[0].days[1][0].id = "event-grade5-class2";
-  valid.specialEvents[0].id = "event-parent-night";
+  valid.teachers[0].days[1][0].id = "event-h81f60e899c57e3559198434e6838b5c1";
+  valid.specialEvents[0].id = "event-h41a74b70ec1b577eb582573644e40f98";
   assert.equal(validateTeacherPlan(valid).ok, true);
 });
 
@@ -294,7 +314,7 @@ test("reconstructs a closed plan, strips exact legacy compatibility metadata, an
 test("admits exact duty and confirmation sub-schemas only where supported", () => {
   const duty = makeValidPlan();
   duty.teachers[0].days[1][0] = {
-    id: "event-duty-one",
+    id: "event-hd9e05c40e94fa85dfcad00db3bb0ad4e",
     type: "duty",
     label: "Duty",
     start: "09:05",

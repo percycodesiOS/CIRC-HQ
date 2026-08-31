@@ -1,4 +1,4 @@
-import { admitResourceState } from "../model/access.js";
+import { admitLocalState } from "../model/access.js";
 
 const ENTITY_COLLECTIONS = [
   "resources",
@@ -169,13 +169,13 @@ export function mergeStates(local, remote) {
   if (!isRecord(local)) throw new TypeError("local state must be an object");
   if (!isRecord(remote)) {
     return {
-      state: admitResourceState(local, { source: "local" }),
+      state: admitLocalState(local),
       conflicts: [{ reason: "remote-unavailable" }]
     };
   }
 
-  const admittedLocal = admitResourceState(local, { source: "local" });
-  const admittedRemote = admitResourceState(remote, { source: "authorized-cloud" });
+  const admittedLocal = admitLocalState(local);
+  const admittedRemote = admitLocalState(remote);
 
   const conflicts = [];
   const state = clone(admittedLocal);
@@ -220,5 +220,5 @@ export function mergeStates(local, remote) {
     state.classroomFacing = true;
     state.notes = state.notes.filter((note) => note?.visibility === "classroom");
   }
-  return { state, conflicts };
+  return { state: admitLocalState(state), conflicts };
 }

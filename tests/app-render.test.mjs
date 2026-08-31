@@ -114,6 +114,15 @@ function memoryStore(state) {
   };
 }
 
+const ACTIVE_EVENT_IDS = Object.freeze({
+  teach: "event-hf0ba7c9dbc3990338af92b9dcfdb32e9",
+  prep: "event-ha00b16a95f809d2adb4173f964e956e2",
+  duty: "event-h00000000000000000000000000000011",
+  support: "event-h00000000000000000000000000000012",
+  lunch: "event-h00000000000000000000000000000013",
+  special: "event-h00000000000000000000000000000014"
+});
+
 function stateWithActiveEvent(type) {
   return {
     format: "playbook.state.v1",
@@ -135,7 +144,7 @@ function stateWithActiveEvent(type) {
         name: "Teacher Alpha",
         days: {
           1: [{
-            id: `event-active-${type}`,
+            id: ACTIVE_EVENT_IDS[type],
             type,
             label: `PRIVATE_${type.toUpperCase()}_LABEL`,
             start: "09:00",
@@ -249,7 +258,7 @@ function stateWithBackToBackEvents(secondType = "teach", secondStart = "09:15") 
   const event = state.plan.teachers[0].days[1][0];
   const secondEvent = {
     ...event,
-    id: "event-second",
+    id: "event-hb216263b8f031416093bc8463e4c839e",
     type: secondType,
     label: "PRIVATE_SECOND_CLASS",
     start: secondStart,
@@ -262,7 +271,7 @@ function stateWithBackToBackEvents(secondType = "teach", secondStart = "09:15") 
   state.plan.teachers[0].days[1] = [
     {
       ...event,
-      id: "event-first",
+      id: "event-h6b5a7460fe1292f2d2cc9dfd4a798b8b",
       label: "PRIVATE_FIRST_CLASS",
       start: "09:00",
       end: "09:15"
@@ -346,7 +355,7 @@ async function exerciseTeachingEventBoundary({ pauseRunner }) {
     assert.equal(saves.length, savesBeforeBoundary + 1);
     const artifact = saves.at(-1).sharedArtifacts[TECH_TERRARIUM_ARTIFACT_ID];
     assert.equal(artifact.visits.length, 1);
-    assert.equal(artifact.visits[0].eventId, "event-second");
+    assert.equal(artifact.visits[0].eventId, "event-hb216263b8f031416093bc8463e4c839e");
     assert.equal(artifact.visits[0].handoff, "repeat");
     assert.doesNotMatch(JSON.stringify(artifact), /PRIVATE_FIRST_CLASS|PRIVATE_SECOND_CLASS/);
     controller.destroy();
@@ -364,7 +373,7 @@ function activeArtifact({ handoff = null } = {}) {
   return handoff
     ? recordArtifactHandoff(artifact, {
         handoff,
-        eventId: "event-artifact-private",
+        eventId: "event-h8f1609b8f944cedc4349a970a8240522",
         visitDate: "2026-08-20",
         nowIso: "2026-08-20T12:05:00.000Z"
       })
@@ -922,7 +931,7 @@ test("Today and the project 2 teacher runner derive a private-safe artifact disp
     assert.equal(artifact.stageId, "define");
     assert.equal(artifact.contributionIndex, 1);
     assert.equal(artifact.visits.length, 1);
-    assert.equal(artifact.visits[0].eventId, "event-active-teach");
+    assert.equal(artifact.visits[0].eventId, "event-hf0ba7c9dbc3990338af92b9dcfdb32e9");
     assert.equal(JSON.stringify(artifact).includes("PRIVATE_TEACH_LABEL"), false);
     assert.match(textOf(root), /Mark living and nonliving zones/);
 
@@ -1071,7 +1080,7 @@ test("overlapping current teaching events retain deterministic first-match hando
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   try {
-    for (const ids of [["event-overlap-a", "event-overlap-b"], ["event-overlap-b", "event-overlap-a"]]) {
+    for (const ids of [["event-hc6a89201a93603303b8e263b95fbf658", "event-h5493c11d3af0eefee682664d58d85249"], ["event-h5493c11d3af0eefee682664d58d85249", "event-hc6a89201a93603303b8e263b95fbf658"]]) {
       const root = new FakeNode("main");
       const state = stateWithActiveEvent("teach");
       const event = state.plan.teachers[0].days[1][0];
@@ -2376,7 +2385,7 @@ test("an actionable private-seed failure keeps Today usable and shows one Settin
     const state = stateWithActiveEvent("teach");
     state.plan.teachers[0].days[1][0].label = "VISIBLE_NOW_EVENT";
     state.plan.teachers[0].days[1].push({
-      id: "event-visible-next",
+      id: "event-h4519663a08ae0f14564497c01b32d076",
       type: "teach",
       label: "VISIBLE_NEXT_EVENT",
       start: "10:00",
@@ -2525,21 +2534,21 @@ test("Board keeps the live region isolated across timer boundaries and restores 
   const state = stateWithActiveEvent("prep");
   state.plan.teachers[0].days[1] = [
     {
-      id: "event-one",
+      id: "event-hcbf7f07b5859c901a6d66590bc32250d",
       type: "prep",
       label: "GENERIC_INTERNAL_A",
       start: "09:00",
       end: "09:30"
     },
     {
-      id: "event-two",
+      id: "event-he52c1fa7a33a3f5b4e4b08b10a6d2108",
       type: "prep",
       label: "GENERIC_INTERNAL_B",
       start: "09:30",
       end: "10:00"
     },
     {
-      id: "event-three",
+      id: "event-h4a4efd5e55362ed79f63e76aaed4fea2",
       type: "prep",
       label: "GENERIC_INTERNAL_C",
       start: "10:00",
@@ -2631,6 +2640,133 @@ test("a recovered backup renders a visible truthful recovery notice", async () =
     assert.match(textOf(notices[0]), /primary.*could not be read|saved primary/i);
     assert.doesNotMatch(textOf(notices[0]), /first use|new setup|clean start/i);
     assert.equal(saveCount, 0);
+    controller.destroy();
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("unrecoverable state stays visibly locked until a valid full-state backup is previewed and explicitly restored", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const restoredState = {
+    format: "playbook.state.v1",
+    schemaVersion: 1,
+    updatedAt: "2026-08-31T12:00:00.000Z",
+    plan: null,
+    teacherProgress: {},
+    experienceRunners: {},
+    sharedArtifacts: {},
+    checklist: [],
+    classes: [],
+    lessonGuides: [],
+    specialEvents: [],
+    resources: [],
+    notes: [],
+    preferences: {},
+    tombstones: []
+  };
+  let locked = true;
+  let current = structuredClone(restoredState);
+  const calls = { restore: [], ordinary: [] };
+  const store = {
+    load: () => locked
+      ? {
+          state: structuredClone(restoredState),
+          status: "unrecoverable",
+          error: "Saved state could not be read and no valid local backup was available"
+        }
+      : { state: structuredClone(current), status: "primary", error: null },
+    restoreState(candidate) {
+      calls.restore.push(structuredClone(candidate));
+      current = structuredClone(candidate);
+      locked = false;
+      return structuredClone(candidate);
+    },
+    save() {
+      calls.ordinary.push("save");
+      throw new Error("ordinary save must stay locked");
+    },
+    importPlan() {
+      calls.ordinary.push("importPlan");
+      throw new Error("ordinary import must stay locked");
+    },
+    exportState() {
+      calls.ordinary.push("exportState");
+      throw new Error("ordinary export must stay locked");
+    },
+    backup() {
+      calls.ordinary.push("backup");
+      throw new Error("ordinary backup must stay locked");
+    }
+  };
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store,
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-31T09:10:00-04:00") }
+    });
+    await controller.ready;
+
+    assert.match(textOf(root), /saved state.*could not be read|unrecoverable/i);
+    assert.match(textOf(root), /read-only/i);
+    assert.match(textOf(root), /do not clear.*site data.*accept.*loss/i);
+    assert.doesNotMatch(textOf(root), /Preview without saving|Set up this device/);
+    controller.navigate("today");
+    controller.navigate("settings");
+    assert.match(textOf(root), /read-only/i);
+    assert.deepEqual(calls.ordinary, []);
+
+    const picker = findAll(root, (node) =>
+      node.tagName === "input" && node.getAttribute("id") === "full-state-backup-file"
+    )[0];
+    const label = findAll(root, (node) =>
+      node.tagName === "label" &&
+      textOf(node) === "Choose full-state backup file" &&
+      node.getAttribute("for") === "full-state-backup-file"
+    );
+    const previewButton = findAll(root, (node) =>
+      node.tagName === "button" && textOf(node) === "Preview restore"
+    )[0];
+    const restoreButton = findAll(root, (node) =>
+      node.tagName === "button" && textOf(node) === "Restore backup"
+    )[0];
+    assert.ok(picker);
+    assert.equal(label.length, 1);
+    assert.ok(previewButton);
+    assert.ok(restoreButton);
+    assert.equal(restoreButton.hasAttribute("disabled"), true);
+
+    picker.files = [{
+      text: async () => JSON.stringify({ ...restoredState, studentRoster: ["individual record"] })
+    }];
+    await previewButton.listeners.get("click")?.({ currentTarget: previewButton });
+    assert.equal(calls.restore.length, 0);
+    assert.equal(restoreButton.hasAttribute("disabled"), true);
+    assert.match(textOf(root), /invalid|cannot be restored/i);
+
+    picker.files = [{ text: async () => JSON.stringify(restoredState) }];
+    await previewButton.listeners.get("click")?.({ currentTarget: previewButton });
+    assert.equal(calls.restore.length, 0);
+    assert.equal(restoreButton.hasAttribute("disabled"), false);
+    assert.match(textOf(root), /ready.*restore|preview.*valid/i);
+
+    restoreButton.click();
+    assert.equal(calls.restore.length, 1);
+    assert.deepEqual(calls.restore[0], restoredState);
+    assert.deepEqual(calls.ordinary, []);
+    assert.match(textOf(root), /Set up this device/);
+    assert.doesNotMatch(textOf(root), /unrecoverable|do not clear.*site data/i);
     controller.destroy();
   } finally {
     globalThis.document = previousDocument;

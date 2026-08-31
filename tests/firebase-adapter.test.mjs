@@ -39,7 +39,7 @@ function firebaseDouble({ uid = "kenny-uid", remoteState = null, loadError = nul
 }
 
 test("buildTeacherDocumentPatch protects the private state boundary", () => {
-  const privateState = state({ role: "admin", tenantId: "tenant-a", claims: { teacher: true }, credential: "secret", unrecognizedSensitiveField: "exclude me" });
+  const privateState = state({ role: "admin", tenantId: "tenant-a", claims: { teacher: true }, unrecognizedSensitiveField: "exclude me" });
 
   const patch = buildTeacherDocumentPatch(privateState);
 
@@ -49,8 +49,41 @@ test("buildTeacherDocumentPatch protects the private state boundary", () => {
   assert.equal("role" in patch.playbookPrivateV1, false);
   assert.equal("tenantId" in patch.playbookPrivateV1, false);
   assert.equal("claims" in patch.playbookPrivateV1, false);
-  assert.equal("credential" in patch.playbookPrivateV1, false);
   assert.equal("unrecognizedSensitiveField" in patch.playbookPrivateV1, false);
+  assert.throws(
+    () => buildTeacherDocumentPatch(state({ credential: "forbidden" })),
+    /invalid|forbidden|state/i
+  );
+});
+
+test("dormant Firebase load and write admission use the complete closed local-state schema", async () => {
+  const source = state({
+    unsupportedTopLevel: "drop",
+    preferences: { teacherId: "teacher-alpha", unsupportedNested: "drop" },
+    notes: [{
+      id: "note-safe",
+      text: "Safe note",
+      visibility: "teacher-private",
+      updatedAt: "2026-08-28T12:00:00.000Z",
+      unsupportedNested: "drop"
+    }]
+  });
+  const patch = buildTeacherDocumentPatch(source).playbookPrivateV1;
+  assert.equal(Object.hasOwn(patch, "unsupportedTopLevel"), false);
+  assert.deepEqual(patch.preferences, { teacherId: "teacher-alpha" });
+  assert.equal(Object.hasOwn(patch.notes[0], "unsupportedNested"), false);
+  assert.throws(
+    () => buildTeacherDocumentPatch(state({ studentRoster: ["individual record"] })),
+    /invalid|forbidden|state/i
+  );
+
+  const adapter = createFirebaseAdapter({
+    config: { apiKey: "injected-test-value" },
+    firebase: firebaseDouble({ remoteState: source })
+  });
+  const loaded = await adapter.loadPrivateState();
+  assert.equal(Object.hasOwn(loaded.state, "unsupportedTopLevel"), false);
+  assert.deepEqual(loaded.state.preferences, { teacherId: "teacher-alpha" });
 });
 
 test("uses the signed-in teacher's exact private document path and merges newer remote state before saving", async () => {

@@ -21,6 +21,7 @@ import { createPrivateSeedRoute } from "../scripts/dev-server.mjs";
 import { loadPrivateSeedOnLocalhost } from "../src/app.js";
 
 const NOW = "2026-08-28T12:00:00.000Z";
+const EVENT_ALPHA = "event-h00000000000000000000000000000001";
 
 function memoryStorage(entries = {}) {
   const values = new Map(Object.entries(entries));
@@ -54,7 +55,7 @@ function plan(label = "Workshop") {
       name: "Teacher Alpha",
       days: {
         1: [{
-          id: "event-alpha",
+          id: EVENT_ALPHA,
           type: "teach",
           label,
           start: "09:00",
@@ -187,7 +188,7 @@ test("export round-trip preserves the validated state envelope", () => {
   assert.equal(validateTeacherPlan(parsed.value.plan).ok, true);
 });
 
-test("closure makeup cycle override and special event previews create stable validated entities", () => {
+test("closure makeup cycle override and special event previews create validated opaque entities", () => {
   const current = plan();
   const closureOne = previewClosure(current, "2026-09-08");
   const closureTwo = previewClosure(current, "2026-09-08");
@@ -207,16 +208,22 @@ test("closure makeup cycle override and special event previews create stable val
   assert.equal(cycle.candidate.calendar.overrides["2026-09-09"].kind, "cycle");
   assert.equal(cycle.candidate.calendar.overrides["2026-09-09"].day, 4);
 
+  const generated = [
+    "event-h00000000000000000000000000000002",
+    "event-h00000000000000000000000000000003"
+  ];
   const specialOne = previewSpecialEvent(current, {
     date: "2026-09-10",
     label: "Community event"
-  });
+  }, () => generated.shift());
   const specialTwo = previewSpecialEvent(current, {
     date: "2026-09-10",
     label: "Community event"
-  });
+  }, () => generated.shift());
   assert.equal(specialOne.ok, true);
-  assert.equal(specialOne.candidate.specialEvents[0].id, specialTwo.candidate.specialEvents[0].id);
+  assert.equal(specialOne.candidate.specialEvents[0].id, "event-h00000000000000000000000000000002");
+  assert.equal(specialTwo.candidate.specialEvents[0].id, "event-h00000000000000000000000000000003");
+  assert.notEqual(specialOne.candidate.specialEvents[0].id, specialTwo.candidate.specialEvents[0].id);
   assert.equal(specialOne.candidate.specialEvents[0].type, "special");
   assert.equal(validateTeacherPlan(specialOne.candidate).ok, true);
 });

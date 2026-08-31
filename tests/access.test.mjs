@@ -17,7 +17,7 @@ test("buildBoardProjection exposes only the active classroom content", () => {
   const state = {
     classes: [{ id: "class-5", title: "Period 2 Grade 5", visibility: "classroom", reviewedForBoard: true, roster: ["Student"] }],
     lessonGuides: [{ id: "lesson-1", title: "Binary Basics", visibility: "classroom", reviewedForBoard: true, materials: ["Cards"], directions: ["Pair up"], currentProcessStep: "Test the pattern", teacherNotes: "Keep it moving" }],
-    specialEvents: [{ id: "event-1", type: "teach", classId: "class-5", lessonGuideId: "lesson-1", countdown: "PRIVATE_EVENT_COUNTDOWN", currentProcessStep: "PRIVATE_EVENT_PROCESS", dutyDetails: "Hall duty", staffSchedule: "Private" }],
+    specialEvents: [{ id: "event-hce36863f51b6baf9d16397ffb3e9af50", type: "teach", classId: "class-5", lessonGuideId: "lesson-1", countdown: "PRIVATE_EVENT_COUNTDOWN", currentProcessStep: "PRIVATE_EVENT_PROCESS", dutyDetails: "Hall duty", staffSchedule: "Private" }],
     notes: [{ text: "Call family", visibility: "teacher-private" }],
     firebaseUid: "kenny",
     sharedArtifacts: {
@@ -29,8 +29,8 @@ test("buildBoardProjection exposes only the active classroom content", () => {
     }
   };
 
-  const projection = buildBoardProjection(state, "event-1", {
-    liveCountdown: { eventId: "event-1", minutes: 4, target: "end" }
+  const projection = buildBoardProjection(state, "event-hce36863f51b6baf9d16397ffb3e9af50", {
+    liveCountdown: { eventId: "event-hce36863f51b6baf9d16397ffb3e9af50", minutes: 4, target: "end" }
   });
   assert.deepEqual(projection, {
     classTitle: "Period 2 Grade 5",
@@ -54,10 +54,10 @@ test("buildBoardProjection excludes nested private data from materials and direc
       materials: ["Cards", { text: "Private device", teacherNotes: "Do not show", firebaseUid: "kenny" }],
       directions: ["Pair up", { step: "Secret", dutyDetails: "Hall", privateLink: "https://private.example" }]
     }],
-    specialEvents: [{ id: "event-1", type: "teach", classId: "class-5", lessonGuideId: "lesson-1", countdown: "PRIVATE_EVENT_COUNTDOWN", currentProcessStep: "PRIVATE_EVENT_PROCESS" }]
+    specialEvents: [{ id: "event-hce36863f51b6baf9d16397ffb3e9af50", type: "teach", classId: "class-5", lessonGuideId: "lesson-1", countdown: "PRIVATE_EVENT_COUNTDOWN", currentProcessStep: "PRIVATE_EVENT_PROCESS" }]
   };
 
-  const projection = buildBoardProjection(state, "event-1");
+  const projection = buildBoardProjection(state, "event-hce36863f51b6baf9d16397ffb3e9af50");
 
   assert.deepEqual(projection.materials, ["Cards"]);
   assert.deepEqual(projection.directions, ["Pair up"]);

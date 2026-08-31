@@ -47,7 +47,7 @@ function validArtifact() {
     nowIso: "2026-08-28T11:00:00.000Z"
   }), {
     handoff: "repeat",
-    eventId: "event-storage-safe",
+    eventId: "event-h215f038ee95c283cb97e2cc32f036331",
     visitDate: "2026-08-28",
     nowIso: NOW
   });
@@ -399,7 +399,7 @@ test("round-trips one valid shared artifact as a detached clone without unrelate
   assert.notEqual(saved.sharedArtifacts, source.sharedArtifacts);
   assert.notEqual(loaded.sharedArtifacts, saved.sharedArtifacts);
   loaded.sharedArtifacts[TECH_TERRARIUM_ARTIFACT_ID].visits[0].eventId = "changed";
-  assert.equal(saved.sharedArtifacts[TECH_TERRARIUM_ARTIFACT_ID].visits[0].eventId, "event-storage-safe");
+  assert.equal(saved.sharedArtifacts[TECH_TERRARIUM_ARTIFACT_ID].visits[0].eventId, "event-h215f038ee95c283cb97e2cc32f036331");
 });
 
 test("drops invalid shared-artifact siblings without resetting valid state or writing during load", () => {

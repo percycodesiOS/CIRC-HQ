@@ -57,7 +57,16 @@ export class LocalStore {
     }
   }
 
+  requireWritableState() {
+    const loaded = this.load();
+    if (loaded.status === "unrecoverable") {
+      throw new Error("state-unrecoverable-restore-required");
+    }
+    return loaded;
+  }
+
   save(state) {
+    this.requireWritableState();
     const admitted = admittedState(state);
     const previous = this.storage.getItem(STATE_KEY);
     if (previous !== null) {
@@ -73,6 +82,9 @@ export class LocalStore {
 
   backup() {
     const loaded = this.load();
+    if (loaded.status === "unrecoverable") {
+      throw new Error("state-unrecoverable-restore-required");
+    }
     if (loaded.status === "primary") {
       const state = loaded.state;
       this.storage.setItem(BACKUP_KEY, JSON.stringify(state));
@@ -82,9 +94,13 @@ export class LocalStore {
   }
 
   importPlan(plan) {
+    const loaded = this.load();
+    if (loaded.status === "unrecoverable") {
+      return { ok: false, error: "state-unrecoverable", errors: [] };
+    }
     const validated = validateTeacherPlan(plan);
     if (!validated.ok) return { ok: false, error: "Invalid teacher plan", errors: validated.errors };
-    const { state } = this.load();
+    const { state } = loaded;
     state.plan = validated.value;
     state.updatedAt = this.clock.now();
     this.save(state);
@@ -92,6 +108,14 @@ export class LocalStore {
   }
 
   exportState() {
-    return clone(this.load().state);
+    return clone(this.requireWritableState().state);
+  }
+
+  restoreState(state) {
+    const admitted = admittedState(state);
+    const serialized = JSON.stringify(admitted);
+    this.storage.setItem(BACKUP_KEY, serialized);
+    this.storage.setItem(STATE_KEY, serialized);
+    return admittedState(admitted);
   }
 }

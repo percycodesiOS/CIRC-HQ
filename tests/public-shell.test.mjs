@@ -201,3 +201,12 @@ test("simplified shell keeps readable colors and 44px controls", async () => {
   assert.ok(contrast("526576", "f5f9fc") >= 4.5);
   assert.ok(contrast("101820", "edf6fc") >= 4.5);
 });
+
+test("disabled actions are visibly muted, retain opaque contrast, and never show a pointer cursor", async () => {
+  const css = await readPublicSource("app.css");
+  const rule = /button:disabled\s*\{([^}]*)\}/i.exec(css)?.[1] ?? "";
+  assert.match(rule, /cursor:\s*not-allowed/i);
+  assert.match(rule, /opacity:\s*1(?:\.0+)?\s*;/i);
+  assert.match(rule, /background(?:-color)?:\s*#[0-9a-f]{6}\s*;/i);
+  assert.match(rule, /color:\s*#[0-9a-f]{6}\s*;/i);
+});

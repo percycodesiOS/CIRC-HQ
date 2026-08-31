@@ -1,4 +1,4 @@
-import { stableId } from "./state.js";
+import { generateEventId, isEventId } from "./schema-admission.js";
 import { validateTeacherPlan } from "./teacher-plan.js";
 
 const SOURCE_FORMAT = "playbook.teacherPlan.v1";
@@ -203,7 +203,11 @@ function buildAudit(source, sourceSnapshot, candidate, options, ruleUses, slotUs
   };
 }
 
-export function migrateTeacherPlanV1(source, options = {}) {
+export function migrateTeacherPlanV1(
+  source,
+  options = {},
+  { eventIdFactory = generateEventId } = {}
+) {
   let sourceSnapshot;
   let safeOptions;
   try {
@@ -227,6 +231,7 @@ export function migrateTeacherPlanV1(source, options = {}) {
   ) {
     return failed(["confirmation-slots-invalid"]);
   }
+  if (typeof eventIdFactory !== "function") return failed(["event-id-generation-failed"]);
 
   const candidate = {
     format: TARGET_FORMAT,
@@ -258,7 +263,6 @@ export function migrateTeacherPlanV1(source, options = {}) {
   const ruleUses = safeOptions.dutyRules.map(() => 0);
   const convertedSlots = [];
   for (const day of source.plan.days) {
-    const occurrences = new Map();
     const convertedEvents = [];
     for (const event of day.events) {
       const convertedTime = convertTimeRange(event.time);
@@ -266,13 +270,19 @@ export function migrateTeacherPlanV1(source, options = {}) {
         conversionErrors.push(convertedTime.error);
         continue;
       }
-      const occurrence = occurrences.get(convertedTime.start) ?? 0;
-      occurrences.set(convertedTime.start, occurrence + 1);
+      let eventId;
+      try {
+        eventId = eventIdFactory();
+      } catch {
+        conversionErrors.push("event-id-generation-failed");
+        continue;
+      }
+      if (!isEventId(eventId)) {
+        conversionErrors.push("event-id-generation-failed");
+        continue;
+      }
       const convertedEvent = {
-        id: stableId(
-          "event",
-          `${safeOptions.teacher.id}|cycle:${day.day}|start:${convertedTime.start}|occurrence:${occurrence}`
-        ),
+        id: eventId,
         type: event.type,
         label: event.label,
         start: convertedTime.start,

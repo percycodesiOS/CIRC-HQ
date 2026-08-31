@@ -122,7 +122,7 @@ test("Ready records the worked position and advances exactly one contribution", 
 
   const result = recordArtifactHandoff(source, {
     handoff: "ready",
-    eventId: "event-day3-class1",
+    eventId: "event-hb90c825ba3dd6b4eaf91fdd1dd87f114",
     visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
@@ -133,7 +133,7 @@ test("Ready records the worked position and advances exactly one contribution", 
   assert.equal(result.status, "active");
   assert.equal(result.updatedAt, NEXT_AT);
   assert.deepEqual(result.visits, [{
-    eventId: "event-day3-class1",
+    eventId: "event-hb90c825ba3dd6b4eaf91fdd1dd87f114",
     visitDate: "2026-08-31",
     handoff: "ready",
     stageId: "define",
@@ -145,7 +145,7 @@ test("Ready records the worked position and advances exactly one contribution", 
 test("Ready wraps from a stage's final contribution to the next stage", () => {
   const result = recordArtifactHandoff(artifactAt("define", 2), {
     handoff: "ready",
-    eventId: "event-next-class",
+    eventId: "event-h62dfe5339683bc3d274a0d2336681fee",
     visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
@@ -159,7 +159,7 @@ test("Ready wraps from a stage's final contribution to the next stage", () => {
     title: "Sort one approved material batch"
   });
   assert.deepEqual(result.visits[0], {
-    eventId: "event-next-class",
+    eventId: "event-h62dfe5339683bc3d274a0d2336681fee",
     visitDate: "2026-08-31",
     handoff: "ready",
     stageId: "define",
@@ -172,7 +172,7 @@ test("the final Ready records once, retains the final position, and completes te
   const source = artifactAt("test", 2);
   const completed = recordArtifactHandoff(source, {
     handoff: "ready",
-    eventId: "event-final-class",
+    eventId: "event-h3c6372cae4fb7f0708b1a7fac266729e",
     visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
@@ -185,7 +185,7 @@ test("the final Ready records once, retains the final position, and completes te
   for (const handoff of ["ready", "repeat", "park"]) {
     assert.throws(() => recordArtifactHandoff(completed, {
       handoff,
-      eventId: "event-too-late",
+      eventId: "event-hafc096fe7a7dfadb2b87c877a495fea9",
       visitDate: "2026-08-31",
       nowIso: "2026-08-31T14:00:00.000Z"
     }), /complete/i);
@@ -197,13 +197,13 @@ test("Repeat and Park retain the worked contribution and record only the private
   const source = artifactAt("base", 1);
   const repeated = recordArtifactHandoff(source, {
     handoff: "repeat",
-    eventId: "event-repeat-class",
+    eventId: "event-h33b2e2ce612e37c29eed546199c687ea",
     visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
   const parked = recordArtifactHandoff(source, {
     handoff: "park",
-    eventId: "event-park-class",
+    eventId: "event-hdb4359375f839ba149687ccd56a3cced",
     visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
@@ -229,19 +229,19 @@ test("Ready and Repeat resume a parked artifact while Park stays parked and reco
   const parked = artifactAt("prepare", 1, "parked");
   const ready = recordArtifactHandoff(parked, {
     handoff: "ready",
-    eventId: "event-ready-resume",
+    eventId: "event-hd7c55f766edde7aac7c9ccf5449b4f9e",
     visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
   const repeated = recordArtifactHandoff(parked, {
     handoff: "repeat",
-    eventId: "event-repeat-resume",
+    eventId: "event-h377fb3efe8be79c8cc55226f3be9246f",
     visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
   const parkedAgain = recordArtifactHandoff(parked, {
     handoff: "park",
-    eventId: "event-park-again",
+    eventId: "event-hf164bfc68f02eb04d80a6625f0d0486c",
     visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
@@ -255,7 +255,7 @@ test("Ready and Repeat resume a parked artifact while Park stays parked and reco
 test("validation returns a detached strict-schema clone", () => {
   const source = recordArtifactHandoff(initialArtifact(), {
     handoff: "repeat",
-    eventId: "event-safe-clone",
+    eventId: "event-hf8fefae94d90db3145907d1b341ac884",
     visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
@@ -265,7 +265,7 @@ test("validation returns a detached strict-schema clone", () => {
   assert.notEqual(admitted, source);
   assert.notEqual(admitted.visits, source.visits);
   admitted.visits[0].eventId = "changed-after-validation";
-  assert.equal(source.visits[0].eventId, "event-safe-clone");
+  assert.equal(source.visits[0].eventId, "event-hf8fefae94d90db3145907d1b341ac884");
 
   const contribution = getCurrentContribution(source);
   contribution.title = "changed-after-read";
@@ -300,7 +300,7 @@ test("validation fails closed for artifact schema, type, range, timestamp, and e
 test("validation fails closed for malformed visit fields, chronology, and extra data", () => {
   const valid = recordArtifactHandoff(initialArtifact(), {
     handoff: "repeat",
-    eventId: "event-valid",
+    eventId: "event-hf083ed573c6ce9d50953bceb5657ea95",
     visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
@@ -330,13 +330,13 @@ test("validation rejects complete state away from the final contribution and rev
 
   const first = recordArtifactHandoff(initialArtifact(), {
     handoff: "repeat",
-    eventId: "event-first",
+    eventId: "event-h6b5a7460fe1292f2d2cc9dfd4a798b8b",
     visitDate: "2026-08-31",
     nowIso: "2026-08-31T13:10:00.000Z"
   });
   const second = recordArtifactHandoff(first, {
     handoff: "repeat",
-    eventId: "event-second",
+    eventId: "event-hb216263b8f031416093bc8463e4c839e",
     visitDate: "2026-08-31",
     nowIso: "2026-08-31T13:20:00.000Z"
   });
@@ -349,13 +349,13 @@ test("creation and handoffs reject noncanonical inputs and never mutate their so
   const before = structuredClone(source);
 
   for (const options of [
-    { handoff: "ready", eventId: "event-valid", nowIso: NEXT_AT },
-    { handoff: "next", eventId: "event-valid", visitDate: "2026-08-31", nowIso: NEXT_AT },
+    { handoff: "ready", eventId: "event-hf083ed573c6ce9d50953bceb5657ea95", nowIso: NEXT_AT },
+    { handoff: "next", eventId: "event-hf083ed573c6ce9d50953bceb5657ea95", visitDate: "2026-08-31", nowIso: NEXT_AT },
     { handoff: "ready", eventId: "", visitDate: "2026-08-31", nowIso: NEXT_AT },
     { handoff: "ready", eventId: " event-valid ", visitDate: "2026-08-31", nowIso: NEXT_AT },
-    { handoff: "ready", eventId: "event-valid", visitDate: "2026-08-31", nowIso: "2026-08-31T13:35:00Z" },
-    { handoff: "ready", eventId: "event-valid", visitDate: "2026-08-31", nowIso: "2026-08-31T12:59:59.000Z" },
-    { handoff: "ready", eventId: "event-valid", visitDate: "2026-08-31", nowIso: NEXT_AT, classLabel: "Private class" }
+    { handoff: "ready", eventId: "event-hf083ed573c6ce9d50953bceb5657ea95", visitDate: "2026-08-31", nowIso: "2026-08-31T13:35:00Z" },
+    { handoff: "ready", eventId: "event-hf083ed573c6ce9d50953bceb5657ea95", visitDate: "2026-08-31", nowIso: "2026-08-31T12:59:59.000Z" },
+    { handoff: "ready", eventId: "event-hf083ed573c6ce9d50953bceb5657ea95", visitDate: "2026-08-31", nowIso: NEXT_AT, classLabel: "Private class" }
   ]) {
     assert.throws(() => recordArtifactHandoff(source, options));
     assert.deepEqual(source, before);
@@ -380,12 +380,12 @@ test("a scheduled event records exactly one handoff per visit date and permits t
   const source = initialArtifact();
   const first = recordArtifactHandoff(source, {
     handoff: "repeat",
-    eventId: "event-recurring-class",
+    eventId: "event-hf5c94f6f76d25a4bcc7c4a1b3304e5de",
     visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
   assert.deepEqual(first.visits[0], {
-    eventId: "event-recurring-class",
+    eventId: "event-hf5c94f6f76d25a4bcc7c4a1b3304e5de",
     visitDate: "2026-08-31",
     handoff: "repeat",
     stageId: "define",
@@ -396,7 +396,7 @@ test("a scheduled event records exactly one handoff per visit date and permits t
   const beforeDuplicate = structuredClone(first);
   assert.throws(() => recordArtifactHandoff(first, {
     handoff: "ready",
-    eventId: "event-recurring-class",
+    eventId: "event-hf5c94f6f76d25a4bcc7c4a1b3304e5de",
     visitDate: "2026-08-31",
     nowIso: "2026-08-31T13:36:00.000Z"
   }), /visit|handoff|duplicate/i);
@@ -404,14 +404,14 @@ test("a scheduled event records exactly one handoff per visit date and permits t
 
   const nextDate = recordArtifactHandoff(first, {
     handoff: "ready",
-    eventId: "event-recurring-class",
+    eventId: "event-hf5c94f6f76d25a4bcc7c4a1b3304e5de",
     visitDate: "2026-09-01",
     nowIso: "2026-09-01T13:35:00.000Z"
   });
   assert.equal(nextDate.visits.length, 2);
   assert.deepEqual(nextDate.visits.map(({ eventId, visitDate }) => ({ eventId, visitDate })), [
-    { eventId: "event-recurring-class", visitDate: "2026-08-31" },
-    { eventId: "event-recurring-class", visitDate: "2026-09-01" }
+    { eventId: "event-hf5c94f6f76d25a4bcc7c4a1b3304e5de", visitDate: "2026-08-31" },
+    { eventId: "event-hf5c94f6f76d25a4bcc7c4a1b3304e5de", visitDate: "2026-09-01" }
   ]);
 });
 
@@ -435,9 +435,27 @@ test("shared artifact visits use the common event ID grammar and a canonical loc
   for (const visitDate of ["2026-8-31", "2026-02-30", "2026/08/31", " 2026-08-31 "]) {
     assert.throws(() => recordArtifactHandoff(source, {
       handoff: "repeat",
-      eventId: "event-valid",
+      eventId: "event-hf083ed573c6ce9d50953bceb5657ea95",
       visitDate,
       nowIso: NEXT_AT
     }), /invalid/i, visitDate);
+  }
+});
+
+test("shared artifact visits reject semantic slug IDs even when otherwise canonical", () => {
+  const source = initialArtifact();
+  for (const eventId of [
+    "event-person-class",
+    "event-math-class",
+    "event-teacher-example-com",
+    "event-private-path",
+    "event-label-workshop"
+  ]) {
+    assert.throws(() => recordArtifactHandoff(source, {
+      handoff: "repeat",
+      eventId,
+      visitDate: "2026-08-31",
+      nowIso: NEXT_AT
+    }), /invalid/i, eventId);
   }
 });

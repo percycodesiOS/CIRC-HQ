@@ -15,8 +15,28 @@ const calendar = {
   overrides: {}
 };
 
+const EVENT_IDS = Object.freeze({
+  "d1-arrival": "event-h00000000000000000000000000000101",
+  "d1-studio": "event-h00000000000000000000000000000102",
+  "d2-arrival": "event-h00000000000000000000000000000103",
+  "d2-a": "event-h00000000000000000000000000000104",
+  "d2-prep": "event-h00000000000000000000000000000105",
+  "d2-b": "event-h00000000000000000000000000000106",
+  "d2-c": "event-h00000000000000000000000000000107",
+  "d2-d": "event-h00000000000000000000000000000108",
+  "d2-lunch": "event-h00000000000000000000000000000109",
+  "d2-e": "event-h0000000000000000000000000000010a",
+  "d2-f": "event-h0000000000000000000000000000010b",
+  "d2-g": "event-h0000000000000000000000000000010c",
+  "d2-check": "event-h0000000000000000000000000000010d",
+  "d2-dismissal": "event-h0000000000000000000000000000010e",
+  "b-d1": "event-h0000000000000000000000000000010f",
+  "b-d2": "event-h00000000000000000000000000000110"
+});
+
 function event(id, title, start, end, type = "teach", extra = {}) {
-  const eventId = id.startsWith("event-") ? id : `event-${id}`;
+  const eventId = /^event-h[0-9a-f]{32}$/.test(id) ? id : EVENT_IDS[id];
+  if (!eventId) throw new Error("unknown event fixture");
   return { id: eventId, label: title, start, end, type, ...extra };
 }
 
@@ -87,7 +107,7 @@ function makePlan() {
     ],
     specialEvents: [
       {
-        id: "event-special-one",
+        id: "event-h474906e5558bf4f81af402fef9532cee",
         type: "special",
         label: "Evening event",
         date: "2026-08-28"
