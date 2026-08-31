@@ -19,12 +19,20 @@ test("buildBoardProjection exposes only the active classroom content", () => {
     lessonGuides: [{ id: "lesson-1", title: "Binary Basics", visibility: "classroom", reviewedForBoard: true, materials: ["Cards"], directions: ["Pair up"], currentProcessStep: "Test the pattern", teacherNotes: "Keep it moving" }],
     specialEvents: [{ id: "event-1", type: "teach", classId: "class-5", lessonGuideId: "lesson-1", countdown: "PRIVATE_EVENT_COUNTDOWN", currentProcessStep: "PRIVATE_EVENT_PROCESS", dutyDetails: "Hall duty", staffSchedule: "Private" }],
     notes: [{ text: "Call family", visibility: "teacher-private" }],
-    firebaseUid: "kenny"
+    firebaseUid: "kenny",
+    sharedArtifacts: {
+      "tech-terrarium-2026-27": {
+        artifactId: "tech-terrarium-2026-27",
+        visits: [{ eventId: "PRIVATE_ARTIFACT_EVENT" }],
+        classLabel: "PRIVATE_ARTIFACT_CLASS"
+      }
+    }
   };
 
-  assert.deepEqual(buildBoardProjection(state, "event-1", {
+  const projection = buildBoardProjection(state, "event-1", {
     liveCountdown: { eventId: "event-1", minutes: 4, target: "end" }
-  }), {
+  });
+  assert.deepEqual(projection, {
     classTitle: "Period 2 Grade 5",
     countdown: "4m to end",
     lessonTitle: "Binary Basics",
@@ -32,6 +40,7 @@ test("buildBoardProjection exposes only the active classroom content", () => {
     directions: ["Pair up"],
     currentProcessStep: "Test the pattern"
   });
+  assert.doesNotMatch(JSON.stringify(projection), /sharedArtifacts|visits|PRIVATE_ARTIFACT/);
 });
 
 test("buildBoardProjection excludes nested private data from materials and directions", () => {

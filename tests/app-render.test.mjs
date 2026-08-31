@@ -8,6 +8,11 @@ import {
   applyExperienceRunnerAction,
   createExperienceRunner
 } from "../src/model/experience-runner.js";
+import {
+  TECH_TERRARIUM_ARTIFACT_ID,
+  createTechTerrariumArtifact,
+  recordArtifactHandoff
+} from "../src/model/shared-artifact.js";
 
 class FakeNode {
   constructor(tagName) {
@@ -239,6 +244,20 @@ async function renderRoute(state, route) {
 
 async function renderRoom(state) {
   return renderRoute(state, "room");
+}
+
+function activeArtifact({ handoff = null } = {}) {
+  const artifact = createTechTerrariumArtifact({
+    artifactId: TECH_TERRARIUM_ARTIFACT_ID,
+    nowIso: "2026-08-20T12:00:00.000Z"
+  });
+  return handoff
+    ? recordArtifactHandoff(artifact, {
+        handoff,
+        eventId: "artifact-private-event-id",
+        nowIso: "2026-08-20T12:05:00.000Z"
+      })
+    : artifact;
 }
 
 function stateWithoutPlan() {
@@ -729,6 +748,289 @@ test("Option 2 Today keeps the live day and the complete project launcher togeth
   assert.equal(findAll(root, (node) => /\bproject-trail-step\b/.test(node.className)).length, 36);
 });
 
+test("Today and the project 2 teacher runner derive a private-safe artifact display and persist only a confirmed handoff", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithActiveEvent("teach");
+  state.sharedArtifacts = {};
+  const saves = [];
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const store = {
+      load: () => ({ state: saves.at(-1) ?? state, error: null }),
+      save: (nextState) => {
+        const saved = structuredClone(nextState);
+        saves.push(saved);
+        return structuredClone(saved);
+      }
+    };
+    let controller = renderApp(root, {
+      store,
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+    });
+    await controller.ready;
+
+    assert.match(textOf(root), /Define the system/);
+    assert.match(textOf(root), /Inspect and map the system/);
+    const todayChip = findAll(root, (node) => /\bartifact-class-chip\b/.test(node.className));
+    assert.equal(todayChip.length, 1);
+    assert.equal(textOf(todayChip[0]), "PRIVATE_TEACH_LABEL");
+    assert.equal(saves.length, 0);
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    assert.equal(saves.length, 1);
+    assert.deepEqual(saves[0].sharedArtifacts, {});
+    assert.match(textOf(root), /Define the system/);
+    assert.match(textOf(root), /Inspect and map the system/);
+    for (const label of ["Ready", "Repeat", "Park"]) {
+      assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === label).length, 1, label);
+    }
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Ready")[0].click();
+    assert.equal(saves.length, 1);
+    assert.match(textOf(root), /Confirm handoff/);
+    assert.match(textOf(root), /Cancel/);
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Cancel")[0].click();
+    assert.equal(saves.length, 1);
+    assert.deepEqual(saves[0].sharedArtifacts, {});
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Confirm handoff").length, 0);
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Ready")[0].click();
+    assert.equal(saves.length, 1);
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Confirm handoff")[0].click();
+    assert.equal(saves.length, 2);
+    const artifact = saves[1].sharedArtifacts[TECH_TERRARIUM_ARTIFACT_ID];
+    assert.equal(artifact.stageId, "define");
+    assert.equal(artifact.contributionIndex, 1);
+    assert.equal(artifact.visits.length, 1);
+    assert.equal(artifact.visits[0].eventId, "active-teach");
+    assert.equal(JSON.stringify(artifact).includes("PRIVATE_TEACH_LABEL"), false);
+    assert.match(textOf(root), /Mark living and nonliving zones/);
+
+    controller.destroy();
+    controller = renderApp(root, {
+      store,
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+    });
+    await controller.ready;
+    assert.match(textOf(root), /Mark living and nonliving zones/);
+    assert.equal(saves.length, 2);
+    controller.destroy();
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("Preview, no plan, no current event, and a current non-teaching event cannot write artifact handoffs", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  try {
+    for (const scenario of ["preview", "no-current", "non-teach"]) {
+      const root = new FakeNode("main");
+      const state = scenario === "preview" ? stateWithoutPlan() : stateWithActiveEvent(scenario === "non-teach" ? "prep" : "teach");
+      state.sharedArtifacts = {};
+      if (scenario === "no-current") {
+        state.plan.teachers[0].days[1][0].start = "10:00";
+        state.plan.teachers[0].days[1][0].end = "10:30";
+      }
+      let saveCount = 0;
+      let saved = null;
+      globalThis.document = fakeDocument();
+      globalThis.window = {
+        location: { hostname: "example.test" },
+        setInterval: () => 1,
+        clearInterval: () => {},
+        fetch: async () => ({ ok: false })
+      };
+      const controller = renderApp(root, {
+        store: {
+          load: () => ({ state, error: null }),
+          save: (nextState) => {
+            saveCount += 1;
+            saved = structuredClone(nextState);
+            return structuredClone(nextState);
+          }
+        },
+        loadPrivateSeed: false,
+        weatherService: {},
+        clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+      });
+      await controller.ready;
+      if (scenario === "preview") {
+        findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview without saving")[0].click();
+        findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview experience")[0].click();
+      } else {
+        findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+      }
+
+      for (const label of ["Ready", "Repeat", "Park", "Confirm handoff"]) {
+        assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === label).length, 0, `${scenario}:${label}`);
+      }
+      assert.deepEqual(saved?.sharedArtifacts ?? {}, {});
+      assert.equal(saveCount, scenario === "preview" ? 0 : 1);
+      controller.destroy();
+    }
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("overlapping current teaching events retain deterministic first-match handoff ownership", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  try {
+    for (const ids of [["overlap-a", "overlap-b"], ["overlap-b", "overlap-a"]]) {
+      const root = new FakeNode("main");
+      const state = stateWithActiveEvent("teach");
+      const event = state.plan.teachers[0].days[1][0];
+      state.plan.teachers[0].days[1] = ids.map((id) => ({
+        ...event,
+        id,
+        label: `PRIVATE_${id}`
+      }));
+      state.sharedArtifacts = {};
+      let saved = null;
+      globalThis.document = fakeDocument();
+      globalThis.window = {
+        location: { hostname: "example.test" },
+        setInterval: () => 1,
+        clearInterval: () => {},
+        fetch: async () => ({ ok: false })
+      };
+      const controller = renderApp(root, {
+        store: {
+          load: () => ({ state, error: null }),
+          save: (nextState) => {
+            saved = structuredClone(nextState);
+            return structuredClone(nextState);
+          }
+        },
+        loadPrivateSeed: false,
+        weatherService: {},
+        clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+      });
+      await controller.ready;
+      findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+      findAll(root, (node) => node.tagName === "button" && textOf(node) === "Repeat")[0].click();
+      findAll(root, (node) => node.tagName === "button" && textOf(node) === "Confirm handoff")[0].click();
+
+      const serialized = JSON.stringify(saved.sharedArtifacts[TECH_TERRARIUM_ARTIFACT_ID]);
+      assert.equal(saved.sharedArtifacts[TECH_TERRARIUM_ARTIFACT_ID].visits[0].eventId, ids[0]);
+      assert.doesNotMatch(serialized, /PRIVATE_overlap/);
+      controller.destroy();
+    }
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("a clock rollback cannot crash or write a confirmed artifact handoff", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithActiveEvent("teach");
+  state.sharedArtifacts = {
+    [TECH_TERRARIUM_ARTIFACT_ID]: {
+      ...activeArtifact(),
+      updatedAt: "2026-08-20T14:00:00.000Z"
+    }
+  };
+  const artifactBefore = structuredClone(state.sharedArtifacts);
+  let saveCount = 0;
+  let saved = null;
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({ state, error: null }),
+        save: (nextState) => {
+          saveCount += 1;
+          saved = structuredClone(nextState);
+          return structuredClone(nextState);
+        }
+      },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+    });
+    await controller.ready;
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Ready")[0].click();
+    const confirm = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Confirm handoff")[0];
+    assert.doesNotThrow(() => confirm.click());
+    assert.equal(saveCount, 1);
+    assert.deepEqual(saved.sharedArtifacts, artifactBefore);
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Confirm handoff").length, 0);
+    controller.destroy();
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("a complete artifact remains final and exposes no handoff controls", async () => {
+  const state = stateWithActiveEvent("teach");
+  state.sharedArtifacts = {
+    [TECH_TERRARIUM_ARTIFACT_ID]: {
+      ...activeArtifact(),
+      stageId: "test",
+      contributionIndex: 2,
+      status: "complete"
+    }
+  };
+  state.experienceRunners = {
+    "teacher:teacher-alpha": createExperienceRunner(EXPERIENCE_TIMING_PLANS[1], {
+      teacherKey: "teacher:teacher-alpha",
+      nowIso: "2026-08-20T13:00:00.000Z",
+      modeId: "build-new"
+    })
+  };
+  const root = await renderRoute(state, "experience-runner");
+  const rendered = textOf(root);
+
+  assert.match(rendered, /Test and communicate/);
+  assert.match(rendered, /Prepare one next-class handoff summary/);
+  assert.match(rendered, /Artifact complete/);
+  for (const label of ["Ready", "Repeat", "Park", "Confirm handoff"]) {
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === label).length, 0, label);
+  }
+});
+
+test("Board and Student views receive no artifact history, current class chip, or handoff controls", async () => {
+  const state = stateWithActiveEvent("teach");
+  state.sharedArtifacts = {
+    [TECH_TERRARIUM_ARTIFACT_ID]: activeArtifact({ handoff: "repeat" })
+  };
+  const boardText = await renderBoard(state);
+  const studentText = textOf(await renderRoute(state, "project-student"));
+
+  for (const rendered of [boardText, studentText]) {
+    assert.doesNotMatch(rendered, /artifact-private-event-id|Inspect and map the system|Define the system|PRIVATE_TEACH_LABEL/);
+    assert.doesNotMatch(rendered, /Ready|Repeat|Park|Confirm handoff/);
+  }
+});
+
 test("Year Map route exposes all 36 choices without private schedule content", async () => {
   const state = stateWithActiveEvent("teach");
   const root = await renderRoute(state, "projects");
@@ -940,7 +1242,7 @@ test("teacher detour controls hold the step, stay out of Student directions, and
     }
   };
   state.sharedArtifacts = {
-    "tech-terrarium": { stage: 3, contribution: "prepare-materials" }
+    [TECH_TERRARIUM_ARTIFACT_ID]: activeArtifact({ handoff: "repeat" })
   };
   state.futureSharedArtifactState = {
     nextContribution: "build-the-base",
@@ -1567,9 +1869,14 @@ test("ordinary runner ticks update timer text without replacing the root or chec
   const previousWindow = globalThis.window;
   const root = new FakeNode("main");
   const state = stateWithActiveEvent("teach");
+  state.sharedArtifacts = {
+    [TECH_TERRARIUM_ARTIFACT_ID]: activeArtifact({ handoff: "repeat" })
+  };
+  const artifactBefore = structuredClone(state.sharedArtifacts);
   let currentTime = new Date("2026-08-20T09:10:00-04:00");
   let timerCallback = null;
   let saveCount = 0;
+  let saved = null;
   globalThis.document = fakeDocument();
   globalThis.window = {
     location: { hostname: "example.test" },
@@ -1586,6 +1893,7 @@ test("ordinary runner ticks update timer text without replacing the root or chec
         load: () => ({ state, error: null }),
         save: (nextState) => {
           saveCount += 1;
+          saved = structuredClone(nextState);
           return structuredClone(nextState);
         }
       },
@@ -1616,6 +1924,8 @@ test("ordinary runner ticks update timer text without replacing the root or chec
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Next Step")[0].click();
     assert.equal(saveCount, savedAfterStart + 1);
+    assert.deepEqual(state.sharedArtifacts, artifactBefore);
+    assert.deepEqual(saved.sharedArtifacts, artifactBefore);
   } finally {
     globalThis.document = previousDocument;
     globalThis.window = previousWindow;
@@ -1627,9 +1937,14 @@ test("last-step completion needs confirmation and then replaces runner controls 
   const previousWindow = globalThis.window;
   const root = new FakeNode("main");
   const state = stateWithActiveEvent("teach");
+  state.sharedArtifacts = {
+    [TECH_TERRARIUM_ARTIFACT_ID]: activeArtifact({ handoff: "repeat" })
+  };
+  const artifactBefore = structuredClone(state.sharedArtifacts);
   const runner = runningLastStepRunner();
   state.experienceRunners = { "teacher:teacher-alpha": runner };
   let saveCount = 0;
+  let saved = null;
   let accepted = false;
   const messages = [];
   globalThis.document = fakeDocument();
@@ -1645,6 +1960,7 @@ test("last-step completion needs confirmation and then replaces runner controls 
         load: () => ({ state, error: null }),
         save: (nextState) => {
           saveCount += 1;
+          saved = structuredClone(nextState);
           return structuredClone(nextState);
         }
       },
@@ -1678,6 +1994,8 @@ test("last-step completion needs confirmation and then replaces runner controls 
     assert.match(textOf(root), /0:00/);
     assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Back to Today").length, 1);
     assert.doesNotMatch(textOf(root), /Pause|\+1 minute|Previous|Finish Lesson/);
+    assert.deepEqual(state.sharedArtifacts, artifactBefore);
+    assert.deepEqual(saved.sharedArtifacts, artifactBefore);
   } finally {
     globalThis.document = previousDocument;
     globalThis.window = previousWindow;
@@ -1735,6 +2053,10 @@ test("completing the current project persists the next project while previews ca
       completedProjectNumbers: [1]
     }
   };
+  state.sharedArtifacts = {
+    [TECH_TERRARIUM_ARTIFACT_ID]: activeArtifact({ handoff: "repeat" })
+  };
+  const artifactBefore = structuredClone(state.sharedArtifacts);
   let saved = null;
   const store = {
     load: () => ({ state, error: null }),
@@ -1765,12 +2087,14 @@ test("completing the current project persists the next project while previews ca
     complete[0].click();
 
     assert.equal(saved.teacherProgress["teacher:teacher-alpha"].currentProjectNumber, 3);
+    assert.deepEqual(saved.sharedArtifacts, artifactBefore);
     assert.match(textOf(root), /Experience 3 of 36/);
     const undo = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Undo");
     assert.equal(undo.length, 1);
     assert.match(textOf(root), /Tech Terrarium marked complete/);
     undo[0].click();
     assert.equal(saved.teacherProgress["teacher-alpha"].currentProjectNumber, 2);
+    assert.deepEqual(saved.sharedArtifacts, artifactBefore);
     assert.match(textOf(root), /Experience 2 of 36/);
     assert.doesNotMatch(textOf(root), /Tech Terrarium marked complete/);
 

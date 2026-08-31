@@ -1934,6 +1934,116 @@ h2 { font-size: 1.15rem; }
 
 .runner-student-timers { top: 8px; }
 
+.shared-artifact-card {
+  display: grid;
+  gap: 0.7rem;
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid rgba(89, 119, 103, 0.24);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(239, 248, 241, 0.96), rgba(247, 244, 226, 0.94));
+  box-shadow: 0 12px 28px rgba(46, 73, 58, 0.08);
+}
+
+.artifact-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.artifact-heading h2,
+.artifact-contribution { margin: 0; }
+
+.artifact-status,
+.artifact-class-chip {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 2rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.artifact-status {
+  color: #285844;
+  background: rgba(111, 181, 137, 0.2);
+}
+
+.artifact-status-parked {
+  color: #704f1b;
+  background: rgba(220, 174, 78, 0.22);
+}
+
+.artifact-status-complete {
+  color: #344d79;
+  background: rgba(100, 142, 205, 0.2);
+}
+
+.artifact-contribution-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.artifact-contribution {
+  font-size: 1.08rem;
+  font-weight: 750;
+}
+
+.artifact-class-chip {
+  color: #ffffff;
+  background: #395f53;
+}
+
+.artifact-handoff-controls,
+.artifact-confirmation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.artifact-handoff {
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  border: 1px solid rgba(57, 95, 83, 0.28);
+  border-radius: 12px;
+  color: #24463b;
+  background: rgba(255, 255, 255, 0.88);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.artifact-ready {
+  color: #ffffff;
+  background: #2f6f57;
+}
+
+.artifact-park {
+  color: #704f1b;
+  background: #fff4d8;
+}
+
+.artifact-confirmation {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(47, 111, 87, 0.28);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.artifact-confirmation p {
+  margin: 0;
+  font-weight: 750;
+}
+
 @media (max-width: 620px) {
   .runner-heading,
   .runner-step-card { padding: 18px; }

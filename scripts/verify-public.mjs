@@ -38,6 +38,7 @@ const ALLOWED_UNTRACKED = new Set([
   "src/model/experience-runner.js",
   "src/model/experience-timing-plans.js",
   "src/model/project-catalog.js",
+  "src/model/shared-artifact.js",
   "src/model/step-timer.js",
   "src/ui/project-home.js",
   "scripts/verify-public.mjs",
@@ -46,6 +47,7 @@ const ALLOWED_UNTRACKED = new Set([
   "tests/experience-timing-plans.test.mjs",
   "tests/project-catalog.test.mjs",
   "tests/project-home.test.mjs",
+  "tests/shared-artifact.test.mjs",
   "tests/step-timer.test.mjs",
   "tests/security.test.mjs"
 ]);
@@ -107,6 +109,7 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "src/model/lesson-guide.js",
   "src/model/project-catalog.js",
   "src/model/schedule.js",
+  "src/model/shared-artifact.js",
   "src/model/state.js",
   "src/model/step-timer.js",
   "src/model/teacher-plan-v1.js",
@@ -156,6 +159,7 @@ const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "tests/project-home.test.mjs",
   "tests/schedule.test.mjs",
   "tests/security.test.mjs",
+  "tests/shared-artifact.test.mjs",
   "tests/settings.test.mjs",
   "tests/state.test.mjs",
   "tests/sync-engine.test.mjs",

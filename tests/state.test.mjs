@@ -33,6 +33,7 @@ test("creates a versioned empty state with the supplied timestamp", () => {
   assert.equal(state.updatedAt, NOW);
   assert.deepEqual(state.checklist, []);
   assert.deepEqual(state.teacherProgress, {});
+  assert.deepEqual(state.sharedArtifacts, {});
   assert.deepEqual(state.classes, []);
   assert.deepEqual(state.resources, []);
   assert.deepEqual(state.notes, []);

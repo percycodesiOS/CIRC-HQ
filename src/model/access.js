@@ -1,5 +1,16 @@
+import {
+  TECH_TERRARIUM_ARTIFACT_ID,
+  validateSharedArtifact
+} from "./shared-artifact.js";
+
 function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isPlainRecord(value) {
+  if (!isRecord(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
 }
 
 const RESOURCE_APP_ORIGIN = "https://circ-hq.invalid";
@@ -140,6 +151,24 @@ export function admitResourceState(state, { source = "local" } = {}) {
   if (isRecord(value.plan) && Object.hasOwn(value.plan, "resources")) {
     value.plan.resources = admit(value.plan.resources);
   }
+  return value;
+}
+
+function admitSharedArtifacts(value) {
+  const admitted = {};
+  if (!isPlainRecord(value)) return admitted;
+  for (const [key, artifact] of Object.entries(value)) {
+    if (key !== TECH_TERRARIUM_ARTIFACT_ID || artifact?.artifactId !== key) continue;
+    const validated = validateSharedArtifact(artifact);
+    if (validated) admitted[key] = validated;
+  }
+  return admitted;
+}
+
+export function admitLocalState(state) {
+  const sourceArtifacts = isPlainRecord(state) ? state.sharedArtifacts : null;
+  const value = admitResourceState(state, { source: "local" });
+  value.sharedArtifacts = admitSharedArtifacts(sourceArtifacts);
   return value;
 }
 

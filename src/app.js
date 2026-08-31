@@ -9,6 +9,13 @@ import {
   validateExperienceRunner
 } from "./model/experience-runner.js";
 import { PROJECTS, getProjectByNumber } from "./model/project-catalog.js";
+import {
+  TECH_TERRARIUM_ARTIFACT_ID,
+  createTechTerrariumArtifact,
+  getCurrentContribution,
+  recordArtifactHandoff,
+  validateSharedArtifact
+} from "./model/shared-artifact.js";
 import { ownerKeyForTeacher } from "./model/state.js";
 import { createWeatherService } from "./services/weather.js";
 import { LocalStore } from "./storage/local-store.js";
@@ -576,7 +583,54 @@ function runnerSchedule(current) {
   };
 }
 
-function experienceRunnerRoute(project, runner, actions) {
+function sharedArtifactCard(context, actions) {
+  if (!context) return null;
+  const statusLabel = context.status === "complete"
+    ? "Artifact complete"
+    : context.status === "parked"
+      ? "Artifact parked"
+      : "Artifact active";
+  const children = [
+    element("div", { className: "artifact-heading" }, [
+      element("div", {}, [
+        element("p", { className: "section-kicker", text: "Shared Tech Terrarium" }),
+        element("h2", { text: context.stageTitle })
+      ]),
+      element("span", { className: `artifact-status artifact-status-${context.status}`, text: statusLabel })
+    ]),
+    element("p", { className: "artifact-contribution-label", text: "Current contribution" }),
+    element("p", { className: "artifact-contribution", text: context.contributionTitle }),
+    context.classLabel
+      ? element("span", { className: "artifact-class-chip", text: context.classLabel })
+      : null
+  ];
+
+  if (context.controlsEnabled && context.pendingHandoff) {
+    children.push(element("section", {
+      className: "artifact-confirmation",
+      attributes: { role: "status", "aria-live": "polite" }
+    }, [
+      element("p", { text: `Confirm ${context.pendingHandoff} for this class visit?` }),
+      element("div", { className: "artifact-confirmation-actions" }, [
+        actionButton("Confirm handoff", "primary-action", actions.confirmArtifactHandoff),
+        actionButton("Cancel", "secondary-action", actions.cancelArtifactHandoff)
+      ])
+    ]));
+  } else if (context.controlsEnabled) {
+    children.push(element("div", {
+      className: "artifact-handoff-controls",
+      attributes: { "aria-label": "Shared artifact handoff" }
+    }, [
+      actionButton("Ready", "artifact-handoff artifact-ready", () => actions.chooseArtifactHandoff("ready")),
+      actionButton("Repeat", "artifact-handoff artifact-repeat", () => actions.chooseArtifactHandoff("repeat")),
+      actionButton("Park", "artifact-handoff artifact-park", () => actions.chooseArtifactHandoff("park"))
+    ]));
+  }
+
+  return element("section", { className: "shared-artifact-card" }, children.filter(Boolean));
+}
+
+function experienceRunnerRoute(project, runner, actions, artifactContext = null) {
   const timer = runner.timer;
   if (timer.status === "complete") {
     return element("section", {
@@ -592,7 +646,8 @@ function experienceRunnerRoute(project, runner, actions) {
       element("div", { className: "runner-timer-bar" }, [
         runnerTimerCard("Class timer", 0, "class"),
         runnerTimerCard("Step timer", 0, "step", "runner-step-timer")
-      ])
+      ]),
+      sharedArtifactCard(artifactContext, actions)
     ]);
   }
   const step = getActiveRunnerStep(runner, { teacherKey: actions.teacherKey });
@@ -644,6 +699,7 @@ function experienceRunnerRoute(project, runner, actions) {
       element("strong", { text: `Class ends at ${actions.schedule.endLabel}` }),
       element("span", { text: `Cleanup begins at ${actions.schedule.cleanupLabel}` })
     ]) : null,
+    sharedArtifactCard(artifactContext, actions),
     element("div", { className: "runner-timer-bar" }, [
       runnerTimerCard("Class timer", timer.totalRemainingSeconds, "class"),
       runnerTimerCard("Step timer", timer.currentStepRemainingSeconds, "step", "runner-step-timer")
@@ -750,6 +806,9 @@ function buildToday(model, actions, options) {
   }
 
   children.push(buildProjectHero(projectView, actions));
+  if (options.artifactContext) {
+    children.push(sharedArtifactCard(options.artifactContext, actions));
+  }
   children.push(buildIndependencePath(projectView));
   children.push(buildProjectTrail(projectView, actions));
   children.push(buildFastFinish(projectView));
@@ -1242,6 +1301,7 @@ export function renderApp(root, services = {}) {
   let setupImportAllowed = false;
   let privateSeedMessage = "";
   let timelineExpanded = false;
+  let pendingArtifactHandoff = null;
   let lastBoundaryKey = "";
   let lastRenderedMinute = "";
   let lastRunnerLayoutKey = "";
@@ -1414,6 +1474,107 @@ export function renderApp(root, services = {}) {
     });
   }
 
+  function currentTeachingEvent(model = todayModel()) {
+    const current = model.current;
+    return current?.type === "teach" &&
+      typeof current.id === "string" &&
+      current.id !== "" &&
+      current.id === current.id.trim()
+      ? current
+      : null;
+  }
+
+  function artifactForTeacherDisplay(nowIso) {
+    const stored = validateSharedArtifact(
+      state.sharedArtifacts?.[TECH_TERRARIUM_ARTIFACT_ID]
+    );
+    return stored ?? createTechTerrariumArtifact({
+      artifactId: TECH_TERRARIUM_ARTIFACT_ID,
+      nowIso
+    });
+  }
+
+  function teacherArtifactContext(model, projectNumber, allowControls = false) {
+    if (projectNumber !== 2) return null;
+    const artifact = artifactForTeacherDisplay(now().toISOString());
+    const contribution = getCurrentContribution(artifact);
+    if (!contribution) return null;
+    const event = currentTeachingEvent(model);
+    const runner = selectedRunner();
+    const controlsEnabled = allowControls &&
+      route === "experience-runner" &&
+      !previewOnly &&
+      runner?.projectNumber === 2 &&
+      Boolean(event) &&
+      artifact.status !== "complete";
+    return {
+      stageTitle: contribution.stageTitle,
+      contributionTitle: contribution.title,
+      status: artifact.status,
+      classLabel: typeof event?.title === "string" && event.title.trim() !== ""
+        ? event.title
+        : "",
+      controlsEnabled,
+      pendingHandoff: controlsEnabled ? pendingArtifactHandoff : null
+    };
+  }
+
+  function chooseArtifactHandoff(handoff) {
+    if (!["ready", "repeat", "park"].includes(handoff)) return;
+    const model = todayModel();
+    if (!teacherArtifactContext(model, selectedProjectNumber, true)?.controlsEnabled) return;
+    pendingArtifactHandoff = handoff;
+    render();
+  }
+
+  function cancelArtifactHandoff() {
+    if (!pendingArtifactHandoff) return;
+    pendingArtifactHandoff = null;
+    render();
+  }
+
+  function confirmArtifactHandoff() {
+    if (!pendingArtifactHandoff || typeof store.save !== "function") return;
+    const currentTime = now();
+    const model = todayModel(currentTime);
+    const event = currentTeachingEvent(model);
+    const runner = selectedRunner();
+    if (
+      previewOnly ||
+      route !== "experience-runner" ||
+      selectedProjectNumber !== 2 ||
+      runner?.projectNumber !== 2 ||
+      !event
+    ) {
+      pendingArtifactHandoff = null;
+      render();
+      return;
+    }
+    const nowIso = currentTime.toISOString();
+    const artifact = artifactForTeacherDisplay(nowIso);
+    if (
+      artifact.status === "complete" ||
+      Date.parse(artifact.updatedAt) > currentTime.getTime()
+    ) {
+      pendingArtifactHandoff = null;
+      render();
+      return;
+    }
+    const transitioned = recordArtifactHandoff(artifact, {
+      handoff: pendingArtifactHandoff,
+      eventId: event.id,
+      nowIso
+    });
+    const nextState = structuredClone(state);
+    nextState.sharedArtifacts = {
+      [TECH_TERRARIUM_ARTIFACT_ID]: transitioned
+    };
+    nextState.updatedAt = nowIso;
+    state = store.save(nextState);
+    pendingArtifactHandoff = null;
+    render();
+  }
+
   function setNavigation() {
     const activeRoute = ["project-teacher", "project-student"].includes(route)
       ? "projects"
@@ -1450,6 +1611,7 @@ export function renderApp(root, services = {}) {
 
   function navigate(nextRoute) {
     reconcileRunner();
+    pendingArtifactHandoff = null;
     if (nextRoute === "today" && !state.plan) previewOnly = true;
     route = nextRoute;
     if (nextRoute !== "today") timelineExpanded = false;
@@ -1505,6 +1667,7 @@ export function renderApp(root, services = {}) {
 
   function selectTeacher(teacherId) {
     lastCompletion = null;
+    pendingArtifactHandoff = null;
     selectedTeacherId = teacherId;
     selectedProjectNumber = buildProjectHomeView(
       state,
@@ -1515,6 +1678,7 @@ export function renderApp(root, services = {}) {
 
   function replaceState(nextState) {
     lastCompletion = null;
+    pendingArtifactHandoff = null;
     state = nextState;
     previewOnly = !state.plan;
     if (state.plan) setupImportAllowed = false;
@@ -1559,6 +1723,9 @@ export function renderApp(root, services = {}) {
       openPreview,
       openSetup,
       applyRunnerAction,
+      chooseArtifactHandoff,
+      confirmArtifactHandoff,
+      cancelArtifactHandoff,
       completeProject,
       undoCompletion,
       selectTeacher,
@@ -1572,7 +1739,10 @@ export function renderApp(root, services = {}) {
     };
     let view;
     if (route === "welcome") view = welcomeRoute(actions);
-    else if (route === "today") view = buildToday(model, actions, { timelineExpanded });
+    else if (route === "today") view = buildToday(model, actions, {
+      timelineExpanded,
+      artifactContext: teacherArtifactContext(model, projectView.currentProject.number)
+    });
     else if (route === "board") {
       const liveCountdown = model.current?.id && model.countdown
         ? {
@@ -1594,13 +1764,22 @@ export function renderApp(root, services = {}) {
     else if (route === "experience-runner") {
       const project = getProjectByNumber(selectedProjectNumber) ?? projectView.currentProject;
       view = runner?.projectNumber === project.number
-        ? experienceRunnerRoute(project, runner, actions)
+        ? experienceRunnerRoute(
+            project,
+            runner,
+            actions,
+            teacherArtifactContext(model, project.number, true)
+          )
         : teacherProjectRoute(project, actions);
     }
     else if (route === "project-student") {
       view = studentProjectRoute(
         getProjectByNumber(selectedProjectNumber) ?? projectView.currentProject,
-        actions,
+        {
+          navigate: actions.navigate,
+          teacherKey: actions.teacherKey,
+          previewOnly: actions.previewOnly
+        },
         runner
       );
     }

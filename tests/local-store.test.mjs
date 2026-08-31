@@ -1,5 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {
+  TECH_TERRARIUM_ARTIFACT_ID,
+  createTechTerrariumArtifact,
+  recordArtifactHandoff
+} from "../src/model/shared-artifact.js";
 import { LocalStore, BACKUP_KEY, STATE_KEY } from "../src/storage/local-store.js";
 
 const NOW = "2026-08-28T12:00:00.000Z";
@@ -26,6 +31,17 @@ function memoryStorage(entries = {}) {
 
 function makeStore(storage) {
   return new LocalStore(storage, { now: () => NOW });
+}
+
+function validArtifact() {
+  return recordArtifactHandoff(createTechTerrariumArtifact({
+    artifactId: TECH_TERRARIUM_ARTIFACT_ID,
+    nowIso: "2026-08-28T11:00:00.000Z"
+  }), {
+    handoff: "repeat",
+    eventId: "event-storage-safe",
+    nowIso: NOW
+  });
 }
 
 test("uses the isolated CIRC HQ storage namespace", () => {
@@ -72,13 +88,19 @@ test("saving retains exactly one prior version as backup", () => {
     [STATE_KEY]: JSON.stringify({ format: "playbook.state.v1", updatedAt: "old" })
   });
   const store = makeStore(storage);
-  const next = { format: "playbook.state.v1", schemaVersion: 1, updatedAt: NOW };
+  const next = {
+    format: "playbook.state.v1",
+    schemaVersion: 1,
+    updatedAt: NOW,
+    sharedArtifacts: {}
+  };
 
   store.save(next);
 
   assert.deepEqual(JSON.parse(storage.getItem(BACKUP_KEY)), {
     format: "playbook.state.v1",
-    updatedAt: "old"
+    updatedAt: "old",
+    sharedArtifacts: {}
   });
   assert.deepEqual(JSON.parse(storage.getItem(STATE_KEY)), next);
 });
@@ -94,7 +116,12 @@ test("save preserves the last known-good backup when prior state is malformed", 
     [STATE_KEY]: malformed,
     [BACKUP_KEY]: lastKnownGood
   });
-  const next = { format: "playbook.state.v1", schemaVersion: 1, updatedAt: NOW };
+  const next = {
+    format: "playbook.state.v1",
+    schemaVersion: 1,
+    updatedAt: NOW,
+    sharedArtifacts: {}
+  };
   const store = makeStore(storage);
 
   const saved = store.save(next);
@@ -177,6 +204,7 @@ test("exports the complete portable state envelope", () => {
     "preferences",
     "resources",
     "schemaVersion",
+    "sharedArtifacts",
     "teacherProgress",
     "updatedAt"
   ]);
@@ -190,4 +218,79 @@ test("imports only a valid teacher plan", () => {
 
   assert.equal(invalid.ok, false);
   assert.match(invalid.error, /invalid/i);
+});
+
+test("round-trips one valid shared artifact as a detached clone with unrelated state intact", () => {
+  const storage = memoryStorage();
+  const store = makeStore(storage);
+  const artifact = validArtifact();
+  const source = {
+    format: "playbook.state.v1",
+    schemaVersion: 1,
+    updatedAt: NOW,
+    sharedArtifacts: { [TECH_TERRARIUM_ARTIFACT_ID]: artifact },
+    unrelatedState: { preserved: true }
+  };
+
+  const saved = store.save(source);
+  const loaded = store.load().state;
+
+  assert.deepEqual(saved.sharedArtifacts, source.sharedArtifacts);
+  assert.deepEqual(loaded.sharedArtifacts, source.sharedArtifacts);
+  assert.deepEqual(loaded.unrelatedState, { preserved: true });
+  assert.notEqual(saved.sharedArtifacts, source.sharedArtifacts);
+  assert.notEqual(loaded.sharedArtifacts, saved.sharedArtifacts);
+  loaded.sharedArtifacts[TECH_TERRARIUM_ARTIFACT_ID].visits[0].eventId = "changed";
+  assert.equal(saved.sharedArtifacts[TECH_TERRARIUM_ARTIFACT_ID].visits[0].eventId, "event-storage-safe");
+});
+
+test("drops invalid shared-artifact siblings without resetting valid state or writing during load", () => {
+  const artifact = validArtifact();
+  const storage = memoryStorage({
+    [STATE_KEY]: JSON.stringify({
+      format: "playbook.state.v1",
+      schemaVersion: 1,
+      updatedAt: NOW,
+      sharedArtifacts: {
+        [TECH_TERRARIUM_ARTIFACT_ID]: artifact,
+        "unknown-artifact": { ...artifact, artifactId: "unknown-artifact" }
+      },
+      unrelatedState: { preserved: true }
+    })
+  });
+  const store = makeStore(storage);
+
+  const result = store.load();
+
+  assert.equal(result.error, null);
+  assert.deepEqual(Object.keys(result.state.sharedArtifacts), [TECH_TERRARIUM_ARTIFACT_ID]);
+  assert.deepEqual(result.state.unrelatedState, { preserved: true });
+  assert.equal(storage.accesses.filter(([action]) => action === "set").length, 0);
+});
+
+test("backup and save never retain an invalid shared artifact from the prior primary state", () => {
+  const artifact = validArtifact();
+  const storage = memoryStorage({
+    [STATE_KEY]: JSON.stringify({
+      format: "playbook.state.v1",
+      schemaVersion: 1,
+      updatedAt: "prior",
+      sharedArtifacts: {
+        [TECH_TERRARIUM_ARTIFACT_ID]: artifact,
+        injected: { ...artifact, teacherId: "private-teacher" }
+      }
+    })
+  });
+  const store = makeStore(storage);
+
+  store.save({
+    format: "playbook.state.v1",
+    schemaVersion: 1,
+    updatedAt: NOW,
+    sharedArtifacts: { [TECH_TERRARIUM_ARTIFACT_ID]: artifact }
+  });
+
+  const backup = JSON.parse(storage.getItem(BACKUP_KEY));
+  assert.deepEqual(Object.keys(backup.sharedArtifacts), [TECH_TERRARIUM_ARTIFACT_ID]);
+  assert.equal(JSON.stringify(backup).includes("private-teacher"), false);
 });

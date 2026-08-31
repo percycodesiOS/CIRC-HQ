@@ -65,6 +65,7 @@ export function createInitialState(nowIso) {
     updatedAt: nowIso,
     plan: null,
     teacherProgress: {},
+    sharedArtifacts: {},
     checklist: [],
     classes: [],
     lessonGuides: [],

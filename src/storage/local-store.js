@@ -1,4 +1,4 @@
-import { admitResourceState } from "../model/access.js";
+import { admitLocalState } from "../model/access.js";
 import { createInitialState, STATE_FORMAT } from "../model/state.js";
 import { validateTeacherPlan } from "../model/teacher-plan.js";
 
@@ -11,7 +11,7 @@ function clone(value) {
 }
 
 function admittedState(value) {
-  return admitResourceState(value, { source: "local" });
+  return admitLocalState(value);
 }
 
 function parseAdmittedState(raw) {

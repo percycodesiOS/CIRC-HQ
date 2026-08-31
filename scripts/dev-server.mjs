@@ -47,6 +47,7 @@ const PUBLIC_STATIC_FILES = new Set([
   "src/model/lesson-guide.js",
   "src/model/project-catalog.js",
   "src/model/schedule.js",
+  "src/model/shared-artifact.js",
   "src/model/state.js",
   "src/model/step-timer.js",
   "src/model/teacher-plan-v1.js",

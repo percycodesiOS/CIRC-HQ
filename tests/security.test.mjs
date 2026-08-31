@@ -371,6 +371,7 @@ test("public server manifest is an exact reviewed allowlist", () => {
     "src/model/lesson-guide.js",
     "src/model/project-catalog.js",
     "src/model/schedule.js",
+    "src/model/shared-artifact.js",
     "src/model/state.js",
     "src/model/step-timer.js",
     "src/model/teacher-plan-v1.js",
@@ -415,13 +416,19 @@ test("public verifier has a recursive-safe sanitized gate contract", () => {
   );
   assert.deepEqual(
     verifier.classifyCandidatePaths(
-      ["index.html", "tests/security.test.mjs", "unexpected.txt"],
+      [
+        "index.html",
+        "tests/security.test.mjs",
+        "src/model/shared-artifact.js",
+        "tests/shared-artifact.test.mjs",
+        "unexpected.txt"
+      ],
       ["index.html"]
     ),
     {
-      candidateCount: 3,
+      candidateCount: 5,
       trackedCount: 1,
-      allowedUntrackedCount: 1,
+      allowedUntrackedCount: 3,
       unexpectedUntrackedCount: 1,
       forbiddenCandidateCount: 0,
       unreviewedCandidateCount: 1,
