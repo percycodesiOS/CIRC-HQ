@@ -62,6 +62,92 @@ test("records a conflict for divergent equal-timestamp preferences", () => {
   );
 });
 
+test("merges each teacher's progress by that teacher's timestamp", () => {
+  const local = state({
+    teacherProgress: {
+      kenny: {
+        currentProjectNumber: 4,
+        completedProjectNumbers: [1, 2, 3],
+        updatedAt: "2026-08-28T10:00:00.000Z"
+      },
+      tammy: {
+        currentProjectNumber: 7,
+        completedProjectNumbers: [1, 2, 3, 4, 5, 6],
+        updatedAt: "2026-08-28T12:00:00.000Z"
+      }
+    }
+  });
+  const remote = state({
+    teacherProgress: {
+      kenny: {
+        currentProjectNumber: 5,
+        completedProjectNumbers: [1, 2, 3, 4],
+        updatedAt: "2026-08-28T13:00:00.000Z"
+      },
+      tammy: {
+        currentProjectNumber: 6,
+        completedProjectNumbers: [1, 2, 3, 4, 5],
+        updatedAt: "2026-08-28T11:00:00.000Z"
+      },
+      guest: {
+        currentProjectNumber: 2,
+        completedProjectNumbers: [1],
+        updatedAt: "2026-08-28T12:30:00.000Z"
+      }
+    }
+  });
+
+  const result = mergeStates(local, remote);
+
+  assert.deepEqual(result.state.teacherProgress, {
+    kenny: {
+      currentProjectNumber: 5,
+      completedProjectNumbers: [1, 2, 3, 4],
+      updatedAt: "2026-08-28T13:00:00.000Z"
+    },
+    tammy: {
+      currentProjectNumber: 7,
+      completedProjectNumbers: [1, 2, 3, 4, 5, 6],
+      updatedAt: "2026-08-28T12:00:00.000Z"
+    },
+    guest: {
+      currentProjectNumber: 2,
+      completedProjectNumbers: [1],
+      updatedAt: "2026-08-28T12:30:00.000Z"
+    }
+  });
+  assert.deepEqual(result.conflicts, []);
+  assert.equal(local.teacherProgress.kenny.currentProjectNumber, 4);
+  assert.equal(remote.teacherProgress.tammy.currentProjectNumber, 6);
+});
+
+test("keeps local teacher progress and records a conflict on equal-timestamp divergence", () => {
+  const localProgress = {
+    currentProjectNumber: 8,
+    completedProjectNumbers: [1, 2, 3, 4, 5, 6, 7],
+    updatedAt: "2026-08-28T14:00:00.000Z"
+  };
+  const remoteProgress = {
+    currentProjectNumber: 9,
+    completedProjectNumbers: [1, 2, 3, 4, 5, 6, 7, 8],
+    updatedAt: "2026-08-28T14:00:00.000Z"
+  };
+
+  const result = mergeStates(
+    state({ teacherProgress: { kenny: localProgress } }),
+    state({ teacherProgress: { kenny: remoteProgress } })
+  );
+
+  assert.deepEqual(result.state.teacherProgress.kenny, localProgress);
+  assert.deepEqual(result.conflicts, [{
+    collection: "teacherProgress",
+    id: "kenny",
+    reason: "equal-timestamp-divergence",
+    local: localProgress,
+    remote: remoteProgress
+  }]);
+});
+
 test("does not merge private notes into a classroom-facing state", () => {
   const result = mergeStates(
     state({ classroomFacing: true, notes: [{ id: "welcome", text: "Welcome", visibility: "classroom", updatedAt: "2026-08-20T10:00:00.000Z" }] }),

@@ -99,7 +99,7 @@ test("backup writes the admitted current state on success", () => {
       resources: [{
         id: "safe-resource",
         title: "Safe resource",
-        href: "classroom-legacy.html"
+        href: "mission-control.html"
       }, {
         id: "unsafe-resource",
         title: "Unsafe resource",

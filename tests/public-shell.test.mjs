@@ -53,16 +53,21 @@ test("public shell exposes the approved name and exact navigation", async () => 
   assert.doesNotMatch(html, /Mission Control|Teaching Zone/i);
 
   const nav = html.match(/<nav[\s\S]*?<\/nav>/i)?.[0] ?? "";
-  const labels = [...nav.matchAll(/<button[^>]*>([^<]+)<\/button>/gi)].map(
+  const labels = [...nav.matchAll(/<button[^>]+aria-label="([^"]+)"[^>]*>/gi)].map(
     (match) => match[1].trim()
   );
   assert.deepEqual(labels, [
     "Today",
-    "Curriculum",
+    "Year Map",
     "Schedule",
     "Room",
     "Settings"
   ]);
+  assert.equal((nav.match(/<img\b/gi) ?? []).length, 5);
+  for (const icon of ["house", "books", "calendar-dots", "chalkboard-teacher", "gear-six"]) {
+    assert.match(nav, new RegExp(`assets/icons/${icon}\\.svg`));
+  }
+  assert.doesNotMatch(nav, /<svg\b/i);
 });
 
 test("legacy classroom snapshot retains the locked pre-task bytes", async () => {
@@ -101,7 +106,7 @@ test("normal startup contains no demo schedule and keeps default Today copy quie
   const sources = await Promise.all(files.map((file) => readFile(file, "utf8")));
   const combined = sources.join("\n");
 
-  assert.doesNotMatch(combined, /Teacher A|Teacher B|Studio [A-Z]|Evening event/);
+  assert.doesNotMatch(combined, /Teacher A|Teacher B|Studio [A-Z]\b|Evening event/);
   assert.doesNotMatch(combined, /No duty now/);
   assert.doesNotMatch(combined, /One-tap reset|Sync status|Duty weather/);
 });
@@ -116,6 +121,8 @@ test("simplified shell keeps readable colors and 44px controls", async () => {
   assert.match(css, /min-width:\s*44px/);
   assert.match(css, /min-height:\s*44px/);
   assert.match(css, /\.attribution-link,\s*\n\.resource-link\s*\{[^}]*min-height:\s*44px/s);
+  assert.match(css, /\.runner-timer-bar\s*\{[^}]*top:\s*90px/s);
+  assert.match(css, /\.runner-student-timers\s*\{[^}]*top:\s*8px/s);
 
   const channel = (value) => {
     const normalized = value / 255;

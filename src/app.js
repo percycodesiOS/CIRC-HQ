@@ -1,9 +1,20 @@
 import { buildBoardProjection } from "./model/access.js";
+import { buildAdminPlanDocument } from "./model/admin-plan.js";
+import { EXPERIENCE_TIMING_PLANS } from "./model/experience-timing-plans.js";
+import {
+  advanceExperienceRunnerClock,
+  applyExperienceRunnerAction,
+  createExperienceRunner,
+  getActiveRunnerStep,
+  validateExperienceRunner
+} from "./model/experience-runner.js";
+import { PROJECTS, getProjectByNumber } from "./model/project-catalog.js";
+import { ownerKeyForTeacher } from "./model/state.js";
 import { createWeatherService } from "./services/weather.js";
 import { LocalStore } from "./storage/local-store.js";
 import { buildBoardView } from "./ui/board.js";
-import { buildCurriculumView } from "./ui/curriculum.js";
 import { buildRoomView } from "./ui/room.js";
+import { advanceProjectProgress, buildProjectHomeView } from "./ui/project-home.js";
 import {
   applyPlanImport,
   exportSettingsBackup,
@@ -206,25 +217,31 @@ function buildPrivateSeedRecovery(detail, navigate) {
   ]);
 }
 
-function svgIcon(icon) {
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", "0 0 24 24");
-  svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", icon.label);
-  svg.setAttribute("class", `weather-icon weather-icon-${icon.name}`);
-  svg.setAttribute("fill", "none");
-  svg.setAttribute("stroke", "currentColor");
-  svg.setAttribute("stroke-width", "1.8");
-  svg.setAttribute("stroke-linecap", "round");
-  svg.setAttribute("stroke-linejoin", "round");
-  for (const definition of icon.paths) {
-    const child = document.createElementNS("http://www.w3.org/2000/svg", definition.tag);
-    for (const [name, value] of Object.entries(definition)) {
-      if (name !== "tag") child.setAttribute(name, String(value));
+const WEATHER_ICON_FILES = Object.freeze({
+  sun: "sun",
+  "partly-cloudy": "cloud-sun",
+  cloud: "cloud",
+  rain: "cloud-rain",
+  snow: "snowflake",
+  storm: "cloud-lightning",
+  unavailable: "warning-circle"
+});
+
+function imageIcon(name, label, className = "action-icon") {
+  return element("img", {
+    className,
+    attributes: {
+      src: `assets/icons/${name}.svg`,
+      alt: label,
+      role: label ? "img" : null,
+      "aria-label": label || null
     }
-    svg.append(child);
-  }
-  return svg;
+  });
+}
+
+function weatherIcon(icon) {
+  const file = WEATHER_ICON_FILES[icon?.name] ?? WEATHER_ICON_FILES.unavailable;
+  return imageIcon(file, icon?.label ?? "Weather unavailable", `weather-icon weather-icon-${icon?.name ?? "unavailable"}`);
 }
 
 function buildNowCard(now) {
@@ -265,7 +282,7 @@ export function buildWeatherCard(weather) {
           ? "Current weather. Updated earlier."
           : "Current weather"
     }
-  }, [svgIcon(weather.icon), element("div", { className: "weather-copy" }, copy)]);
+  }, [weatherIcon(weather.icon), element("div", { className: "weather-copy" }, copy)]);
 }
 
 function buildDutyCard(duty) {
@@ -303,9 +320,254 @@ function buildTimeline(timeline, onToggle) {
   return element("section", { className: "full-day" }, children);
 }
 
+function actionButton(label, className, onClick, iconName = null) {
+  const children = [element("span", { text: label })];
+  if (iconName) children.push(imageIcon(iconName, "", "button-icon"));
+  const button = element("button", {
+    className,
+    attributes: { type: "button" }
+  }, children);
+  button.addEventListener("click", onClick);
+  return button;
+}
+
+function downloadAdminPlan(project) {
+  const documentText = buildAdminPlanDocument(project);
+  const blob = new Blob([documentText], { type: "text/html;charset=utf-8" });
+  const href = URL.createObjectURL(blob);
+  const link = element("a", {
+    attributes: {
+      href,
+      download: `CIRC-${project.id}-admin-plan.html`
+    }
+  });
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(href);
+}
+
+function buildProjectHero(view, actions) {
+  const project = view.currentProject;
+  const artwork = projectArtwork(project, "project-hero-art")
+  return element("section", { className: "project-hero" }, [
+    artwork,
+    element("div", { className: "project-hero-copy" }, [
+      element("p", { className: "project-kicker", text: view.projectLabel }),
+      element("h2", { className: "project-title", text: project.title }),
+      element("p", { className: "project-strapline", text: project.strapline }),
+      actionButton(view.actions.run, "project-run-button", () => actions.openRunner(project.number), "arrow-right")
+    ]),
+    element("div", { className: "project-quick-actions" }, [
+      actionButton(view.actions.teacher, "project-quick-button", () => actions.openTeacher(project.number), "presentation-chart"),
+      actionButton(view.actions.student, "project-quick-button", () => actions.openStudent(project.number), "student")
+    ])
+  ]);
+}
+
+function projectArtwork(project, className) {
+  return project.number === 2
+    ? element("img", {
+        className,
+        attributes: {
+          src: "assets/tech-terrarium-hero.webp",
+          alt: "A student-built technology terrarium with rocks, plants, tools, and electronic parts",
+          width: "1400",
+          height: "875"
+        }
+      })
+    : null;
+}
+
+function buildIndependencePath(view) {
+  const stages = view.independencePath.map((stage, index) => element("li", {
+    className: `independence-stage${stage.active ? " active" : ""}${stage.complete ? " complete" : ""}`,
+    attributes: { "aria-current": stage.active ? "step" : null }
+  }, [
+    element("span", { className: "stage-number", text: index + 1 }),
+    element("span", { className: "stage-label", text: stage.label })
+  ]));
+  return element("section", { className: "independence-section" }, [
+    element("p", { className: "section-kicker", text: "The independence path" }),
+    element("h2", { text: "From watch me to student studio" }),
+    element("ol", { className: "independence-path" }, stages)
+  ]);
+}
+
+function buildProjectTrail(view, actions) {
+  const steps = view.trail.map((step) => {
+    const button = element("button", {
+      className: `project-trail-step ${step.state}`,
+      text: step.number,
+      attributes: {
+        type: "button",
+        title: `Experience ${step.number}: ${step.title}`,
+        "aria-label": `Experience ${step.number}: ${step.title}, ${step.state}`,
+        "aria-current": step.state === "current" ? "step" : null
+      }
+    });
+    button.addEventListener("click", () => actions.openTeacher(step.number));
+    return element("li", {}, [button]);
+  });
+  return element("section", { className: "project-trail-section" }, [
+    element("p", { className: "section-kicker", text: "The 36-experience year map" }),
+    element("div", { className: "trail-heading" }, [
+      element("h2", { text: "Your 36-experience year map" }),
+      actionButton("Open Year Map", "trail-link", () => actions.navigate("projects"))
+    ]),
+    element("ol", {
+      className: "project-trail",
+      attributes: { "aria-label": "All 36 experiences" }
+    }, steps)
+  ]);
+}
+
+function buildFastFinish(view) {
+  const image = view.currentProject.number === 2
+    ? element("img", {
+        className: "fast-finish-art",
+        attributes: {
+          src: "assets/designers-challenge-sketch.webp",
+          alt: "A design sketch for improving the technology terrarium",
+          width: "480",
+          height: "300"
+        }
+      })
+    : null;
+  return element("section", { className: "fast-finish-card" }, [
+    image,
+    element("div", { className: "fast-finish-copy" }, [
+      element("p", { className: "section-kicker", text: "Fast finish" }),
+      element("h2", { text: view.fastFinish.title }),
+      element("p", { text: view.fastFinish.directions })
+    ])
+  ]);
+}
+
+function formatRunnerTime(seconds) {
+  const safeSeconds = Number.isInteger(seconds) && seconds >= 0 ? seconds : 0;
+  return `${Math.floor(safeSeconds / 60)}:${String(safeSeconds % 60).padStart(2, "0")}`;
+}
+
+function runnerTimerCard(label, seconds, timerKey, className = "") {
+  return element("section", { className: `runner-timer-card ${className}`.trim() }, [
+    element("p", { className: "runner-timer-label", text: label }),
+    element("strong", {
+      className: "runner-timer-value",
+      text: formatRunnerTime(seconds),
+      attributes: { "data-runner-timer": timerKey }
+    })
+  ]);
+}
+
+function runnerStudentDirections(step) {
+  const list = element("ol", { className: "runner-student-directions" });
+  for (const direction of step.directions) list.append(element("li", { text: direction }));
+  return list;
+}
+
+function experienceRunnerRoute(project, runner, actions) {
+  const timer = runner.timer;
+  if (timer.status === "complete") {
+    return element("section", {
+      className: "experience-runner",
+      attributes: { "data-view": "experience-runner" }
+    }, [
+      element("div", { className: "runner-heading" }, [
+        element("p", { className: "project-kicker", text: `Experience ${project.number} of ${PROJECTS.length}` }),
+        element("h1", { text: "Lesson complete" }),
+        element("p", { text: `${project.title} is complete. Both timers have stopped.` }),
+        actionButton("Back to Today", "primary-action", () => actions.navigate("today"))
+      ]),
+      element("div", { className: "runner-timer-bar" }, [
+        runnerTimerCard("Class timer", 0, "class"),
+        runnerTimerCard("Step timer", 0, "step", "runner-step-timer")
+      ])
+    ]);
+  }
+  const step = getActiveRunnerStep(runner, { teacherKey: actions.teacherKey });
+  const paused = timer.status === "paused";
+  const expired = timer.status === "step-expired";
+  const lastStep = timer.currentStepIndex === runner.steps.length - 1;
+  const controls = [
+    actionButton(paused ? "Resume" : "Pause", "runner-control", () => actions.applyRunnerAction(paused ? "resume" : "pause")),
+    actionButton("+1 minute", "runner-control", () => actions.applyRunnerAction("add-minute")),
+    actionButton("Previous", "runner-control", () => actions.applyRunnerAction("previous")),
+    actionButton(lastStep ? "Finish Lesson" : "Next Step", "runner-control runner-next", () => actions.applyRunnerAction(lastStep ? "finish" : "next")),
+  ];
+  return element("section", {
+    className: "experience-runner",
+    attributes: { "data-view": "experience-runner" }
+  }, [
+    element("div", { className: "runner-heading" }, [
+      actionButton("Back to Today", "detail-back", () => actions.navigate("today")),
+      element("p", { className: "project-kicker", text: `Experience ${project.number} of ${PROJECTS.length}` }),
+      element("h1", { text: project.title }),
+      actionButton("Student directions", "primary-action runner-student-action", () => actions.openStudent(project.number), "student")
+    ]),
+    element("div", { className: "runner-timer-bar" }, [
+      runnerTimerCard("Class timer", timer.totalRemainingSeconds, "class"),
+      runnerTimerCard("Step timer", timer.currentStepRemainingSeconds, "step", "runner-step-timer")
+    ]),
+    expired ? element("p", {
+      className: "runner-expired",
+      text: "Step time is up. Choose Next Step when the class is ready.",
+      attributes: { role: "alert" }
+    }) : null,
+    element("section", { className: "runner-step-card" }, [
+      element("p", { className: "section-kicker", text: `Step ${timer.currentStepIndex + 1} of ${runner.steps.length}` }),
+      element("h2", { text: step.label }),
+      element("section", { className: "runner-teacher-card" }, [
+        element("h3", { text: "Say and do" }),
+        textList(step.teacher?.directions ?? [])
+      ]),
+      element("section", { className: "runner-student-card" }, [
+        element("h3", { text: "Students do" }),
+        runnerStudentDirections(step)
+      ])
+    ]),
+    element("div", { className: "runner-controls" }, controls)
+  ].filter(Boolean));
+}
+
+function studentRunnerRoute(project, runner, actions) {
+  const step = getActiveRunnerStep(runner, { teacherKey: actions.teacherKey });
+  const timer = runner.timer;
+  return element("section", {
+    className: "board-view project-student-view runner-student-view",
+    attributes: { "data-view": "project-student" }
+  }, [
+    element("div", { className: "board-heading" }, [
+      element("p", { className: "eyebrow", text: "Student directions" }),
+      element("h1", { text: project.title }),
+      element("p", { className: "board-lesson", text: `Step ${timer.currentStepIndex + 1} of ${runner.steps.length}: ${step.label}` }),
+      actionButton("Exit student view", "primary-action", () => actions.navigate("today"))
+    ]),
+    projectArtwork(project, "runner-student-art"),
+    element("div", { className: "runner-timer-bar runner-student-timers" }, [
+      runnerTimerCard("Class timer", timer.totalRemainingSeconds, "class"),
+      runnerTimerCard("Step timer", timer.currentStepRemainingSeconds, "step", "runner-step-timer")
+    ]),
+    element("section", { className: "board-section runner-student-step" }, [
+      element("h2", { text: step.label }),
+      runnerStudentDirections(step)
+    ])
+  ].filter(Boolean));
+}
+
 function buildToday(model, actions, options) {
   const presentation = buildTodayPresentation(model, options);
+  const projectView = actions.projectView;
   const children = [buildHeading(model, () => actions.navigate("board"))];
+  if (actions.lastCompletion) {
+    children.push(element("div", {
+      className: "completion-undo",
+      attributes: { role: "status", "aria-live": "polite" }
+    }, [
+      element("p", { text: `${actions.lastCompletion.title} marked complete.` }),
+      actionButton("Undo", "completion-undo-action", actions.undoCompletion)
+    ]));
+  }
   if (presentation.showTeacherSelector) {
     children.push(buildTeacherPicker(model, actions.selectTeacher));
   }
@@ -315,38 +577,47 @@ function buildToday(model, actions, options) {
       actions.navigate,
       actions.privateSeedMessage
     ));
-    return element("section", { attributes: { "data-view": "today" } }, children);
+  } else {
+    const dashboard = presentation.dashboard;
+    const companionCards = [
+      buildNextCard(dashboard.next),
+      buildWeatherCard(dashboard.weather),
+      buildDutyCard(dashboard.duty)
+    ].filter(Boolean);
+    children.push(element("div", { className: "today-overview" }, [
+      buildNowCard(dashboard.now),
+      element("div", { className: "today-companions" }, companionCards)
+    ]));
+    if (dashboard.special) {
+      children.push(element("div", {
+        className: "special-banner",
+        text: `${dashboard.special.title}: ${dashboard.special.timeLabel}`
+      }));
+    }
   }
 
-  const dashboard = presentation.dashboard;
-  const companionCards = [
-    buildNextCard(dashboard.next),
-    buildWeatherCard(dashboard.weather),
-    buildDutyCard(dashboard.duty)
-  ].filter(Boolean);
-  children.push(element("div", { className: "today-overview" }, [
-    buildNowCard(dashboard.now),
-    element("div", { className: "today-companions" }, companionCards)
-  ]));
-  if (dashboard.special) {
-    children.push(element("div", {
-      className: "special-banner",
-      text: `${dashboard.special.title}: ${dashboard.special.timeLabel}`
-    }));
+  children.push(buildProjectHero(projectView, actions));
+  children.push(buildIndependencePath(projectView));
+  children.push(buildProjectTrail(projectView, actions));
+  children.push(buildFastFinish(projectView));
+
+  if (presentation.dashboard) {
+    children.push(buildTimeline(presentation.dashboard.timeline, actions.toggleTimeline));
   }
-  children.push(buildTimeline(dashboard.timeline, actions.toggleTimeline));
   if (actions.privateSeedMessage) {
     children.push(buildPrivateSeedRecovery(actions.privateSeedMessage, actions.navigate));
   }
-  children.push(element("details", { className: "today-details" }, [
-    element("summary", { text: "Details" }),
-    element("p", { text: dashboard.quietStatus }),
-    element("a", {
-      className: "attribution-link",
-      text: "Weather by Open-Meteo",
-      attributes: { href: "https://open-meteo.com/", target: "_blank", rel: "noreferrer" }
-    })
-  ]));
+  if (presentation.dashboard) {
+    children.push(element("details", { className: "today-details" }, [
+      element("summary", { text: "Details" }),
+      element("p", { text: presentation.dashboard.quietStatus }),
+      element("a", {
+        className: "attribution-link",
+        text: "Weather by Open-Meteo",
+        attributes: { href: "https://open-meteo.com/", target: "_blank", rel: "noreferrer" }
+      })
+    ]));
+  }
   return element("section", { attributes: { "data-view": "today" } }, children);
 }
 
@@ -404,37 +675,163 @@ function boardRoute(board, navigate) {
   ]);
 }
 
-function curriculumRoute(state, model) {
-  const view = buildCurriculumView(model.current ?? model.next ?? {}, state);
-  const cards = view.cards.map((card, index) => {
-    const content = Array.isArray(card.value)
-      ? (card.value.length ? textList(card.value) : element("p", { text: "Nothing added yet" }))
-      : element("p", { text: card.value || "Nothing added yet" });
-    return element("details", {
-      className: `tool-card${card.visibility === "teacher-private" ? " private-card" : ""}`,
-      attributes: index === 0 ? { open: "" } : {}
+function projectsRoute(actions) {
+  const cards = PROJECTS.map((project) => {
+    const button = element("button", {
+      className: "project-library-card",
+      attributes: {
+        type: "button",
+        "aria-label": `Open Experience ${project.number}: ${project.title}`
+      }
     }, [
-      element("summary", { text: card.label }),
-      content
+      element("span", { className: "project-library-number", text: String(project.number).padStart(2, "0") }),
+      element("span", { className: "project-library-title", text: project.title }),
+      element("span", { className: "project-library-phase", text: project.independence })
     ]);
+    button.addEventListener("click", () => actions.openTeacher(project.number));
+    return button;
   });
-  return element("section", { attributes: { "data-view": "curriculum" } }, [
-    element("div", { className: "page-heading" }, [
+  return element("section", { attributes: { "data-view": "projects" } }, [
+    element("div", { className: "page-heading projects-heading" }, [
       element("div", {}, [
         element("p", { className: "eyebrow", text: "The Playbook" }),
-        element("h1", { text: "Curriculum" }),
-        element("p", { className: "date-line", text: `${view.title} | ${view.status}` })
+        element("h1", { text: "All 36 Experiences" }),
+        element("p", { className: "date-line", text: "Thirty-six separate experiences for grades 5 and 6" })
       ])
     ]),
-    element("div", { className: "tool-grid" }, cards),
-    element("section", { className: "legacy-library" }, [
-      element("h2", { text: view.legacyLibrary.title }),
-      element("p", { text: `${view.legacyLibrary.count} preserved experiences remain in the classroom runner.` }),
-      element("a", {
-        className: "button-link",
-        text: "Open Legacy Activity Library",
-        attributes: { href: view.legacyLibrary.href }
+    element("div", { className: "project-library" }, cards)
+  ]);
+}
+
+function projectDetailHeading(project, label, onBack) {
+  return element("div", { className: "project-detail-heading" }, [
+    actionButton("Back to Today", "detail-back", onBack),
+    element("p", { className: "project-kicker", text: `Experience ${project.number} of ${PROJECTS.length}` }),
+    element("p", { className: "section-kicker", text: label }),
+    element("h1", { text: project.title }),
+    element("p", { className: "project-strapline", text: project.strapline })
+  ]);
+}
+
+function teacherProjectRoute(project, actions) {
+  const download = actionButton(
+    "Download admin plan",
+    "secondary-action detail-download",
+    () => downloadAdminPlan(project),
+    "download-simple"
+  );
+  const student = actionButton(
+    "Student directions",
+    "primary-action",
+    () => actions.openStudent(project.number),
+    "student"
+  );
+  const isCurrentProject = project.number === actions.projectView.currentProject.number;
+  const complete = isCurrentProject && !actions.projectView.progressComplete
+    ? actionButton(
+        project.number < PROJECTS.length
+          ? "Complete experience and move to next"
+          : "Mark final experience complete",
+        "primary-action progress-action",
+        () => actions.completeProject(project.number)
+      )
+    : null;
+  const completedStatus = isCurrentProject && actions.projectView.progressComplete
+    ? element("p", {
+        className: "progress-complete-note",
+        text: "All 36 experiences complete. Demo Day stays available for review."
       })
+    : null;
+  return element("section", {
+    className: "project-detail teacher-project-detail",
+    attributes: { "data-view": "project-teacher" }
+  }, [
+    projectDetailHeading(project, "Teacher script", () => actions.navigate("today")),
+    element("div", { className: "project-detail-actions" }, [
+      student,
+      download,
+      complete,
+      completedStatus
+    ].filter(Boolean)),
+    element("div", { className: "project-detail-grid" }, [
+      element("section", { className: "project-detail-card wide" }, [
+        element("h2", { text: "Goal" }),
+        element("p", { text: project.objective })
+      ]),
+      element("section", { className: "project-detail-card" }, [
+        element("h2", { text: "Say this" }),
+        textList(project.teacherSay)
+      ]),
+      element("section", { className: "project-detail-card" }, [
+        element("h2", { text: "Teacher moves" }),
+        textList(project.teacherDo)
+      ]),
+      element("section", { className: "project-detail-card wide" }, [
+        element("h2", { text: "Student build path" }),
+        textList(project.studentSteps)
+      ]),
+      element("section", { className: "project-detail-card" }, [
+        element("h2", { text: "Materials" }),
+        textList(project.materials)
+      ]),
+      element("section", { className: "project-detail-card" }, [
+        element("h2", { text: "Safety and cleanup" }),
+        element("p", { text: project.safety }),
+        element("p", { text: project.cleanup })
+      ]),
+      element("section", { className: "project-detail-card" }, [
+        element("h2", { text: "Exit evidence" }),
+        element("p", { text: project.exitEvidence })
+      ]),
+      element("section", { className: "project-detail-card wide fast-finish-detail" }, [
+        element("p", { className: "section-kicker", text: "Fast finish" }),
+        element("h2", { text: project.fastFinish.title }),
+        element("p", { text: project.fastFinish.directions }),
+        element("p", { className: "stretch-line", text: `Stretch: ${project.stretch}` })
+      ])
+    ])
+  ]);
+}
+
+function studentProjectRoute(project, actions, runner) {
+  if (runner?.projectNumber === project.number) {
+    return studentRunnerRoute(project, runner, actions);
+  }
+  return element("section", {
+    className: "board-view project-student-view",
+    attributes: { "data-view": "project-student" }
+  }, [
+    element("div", { className: "board-heading" }, [
+      element("p", { className: "eyebrow", text: "Student directions" }),
+      element("h1", { text: project.title }),
+      element("p", { className: "board-lesson", text: project.objective }),
+      actionButton("Return to Today", "primary-action", () => actions.navigate("today"))
+    ]),
+    element("section", { className: "board-section" }, [
+      element("h2", { text: "Build path" }),
+      textList(project.studentSteps)
+    ]),
+    element("section", { className: "board-section" }, [
+      element("h2", { text: "Materials" }),
+      textList(project.materials)
+    ]),
+    element("section", { className: "board-section" }, [
+      element("h2", { text: "Safety" }),
+      element("p", { text: project.safety })
+    ]),
+    element("section", { className: "board-section" }, [
+      element("h2", { text: "Cleanup" }),
+      element("p", { text: project.cleanup })
+    ]),
+    element("section", { className: "board-section board-exit-card" }, [
+      element("h2", { text: "Show your evidence" }),
+      element("p", { text: project.exitEvidence })
+    ]),
+    element("section", { className: "board-section fast-finish-detail" }, [
+      element("p", { className: "section-kicker", text: "Fast finish" }),
+      element("h2", { text: project.fastFinish.title }),
+      element("p", { text: project.fastFinish.directions }),
+      element("p", { className: "stretch-line", text: `Stretch: ${project.stretch}` })
     ])
   ]);
 }
@@ -505,7 +902,8 @@ function scheduleRoute(state, navigate) {
 function settingsRoute(context) {
   const importMessage = element("p", {
     className: "import-message",
-    text: context.privateSeedMessage || "Choose a supported teacher-plan JSON file to preview changes."
+    text: context.privateSeedMessage || "Choose a supported teacher-plan JSON file to preview changes.",
+    attributes: { role: "status", "aria-live": "polite" }
   });
   const applyButton = element("button", {
     className: "primary-action",
@@ -636,15 +1034,6 @@ function settingsRoute(context) {
         element("p", { text: "Cloud setup is not configured. Local mode remains fully usable." })
       ]),
       element("section", {}, [
-        element("h2", { text: "Classroom compatibility" }),
-        element("p", { text: "The preserved classroom application remains available during the transition." }),
-        element("a", {
-          className: "button-link",
-          text: "Open classroom compatibility",
-          attributes: { href: "classroom-legacy.html" }
-        })
-      ]),
-      element("section", {}, [
         element("h2", { text: "Weather resource" }),
         element("p", { text: "Forecast data is provided by Open-Meteo when available." }),
         element("a", {
@@ -668,12 +1057,18 @@ export function renderApp(root, services = {}) {
     state.preferences?.teacherId ??
     state.plan?.teachers?.[0]?.id ??
     null;
+  let selectedProjectNumber = buildProjectHomeView(
+    state,
+    { teacherId: selectedTeacherId }
+  ).currentProject.number;
+  let lastCompletion = null;
   let weather = { status: "unavailable", label: "Weather unavailable" };
   let previewToken = null;
   let privateSeedMessage = "";
   let timelineExpanded = false;
   let lastBoundaryKey = "";
   let lastRenderedMinute = "";
+  let lastRunnerLayoutKey = "";
   const siteHeader = document.querySelector(".site-header");
   const liveStatus = document.getElementById("app-status");
   const navButtons = [...document.querySelectorAll("[data-route]")];
@@ -682,6 +1077,128 @@ export function renderApp(root, services = {}) {
   const navSnapshots = navButtons.map((button) => snapshotAttributes(button));
 
   const now = () => services.clock?.now?.() ?? new Date();
+
+  function confirmFinish() {
+    const message = "Finish this lesson? Both timers will stop at 0:00.";
+    if (typeof services.confirmFinish === "function") {
+      return Boolean(services.confirmFinish(message));
+    }
+    return typeof window.confirm === "function" ? window.confirm(message) : false;
+  }
+
+  function runnerOwnerKey() {
+    return ownerKeyForTeacher(selectedTeacherId);
+  }
+
+  function selectedRunner() {
+    const owner = runnerOwnerKey();
+    const runner = state.experienceRunners?.[owner];
+    if (!runner) return null;
+    if (!validateExperienceRunner(runner, { teacherKey: owner }).ok) return null;
+    const currentTime = now().getTime();
+    const lastTickTime = new Date(runner.lastTickAt).getTime();
+    const updatedTime = new Date(runner.updatedAt).getTime();
+    return lastTickTime <= currentTime && updatedTime <= currentTime ? runner : null;
+  }
+
+  function setRunnerInMemory(runner) {
+    const nextState = structuredClone(state);
+    const runners = nextState.experienceRunners &&
+      typeof nextState.experienceRunners === "object" &&
+      !Array.isArray(nextState.experienceRunners)
+      ? nextState.experienceRunners
+      : {};
+    nextState.experienceRunners = {
+      ...runners,
+      [runnerOwnerKey()]: runner
+    };
+    state = nextState;
+    return selectedRunner();
+  }
+
+  function saveRunner(runner) {
+    setRunnerInMemory(runner);
+    state.updatedAt = now().toISOString();
+    state = typeof store.save === "function" ? store.save(state) : state;
+    return selectedRunner();
+  }
+
+  function runnerLayoutKey(runner) {
+    if (!runner) return "";
+    return `${route}:${runner.projectNumber}:${runner.timer.currentStepIndex}:${runner.timer.status}`;
+  }
+
+  function updateRunnerTimerText(runner) {
+    const classTimer = root.querySelector('[data-runner-timer="class"]');
+    const stepTimer = root.querySelector('[data-runner-timer="step"]');
+    if (!classTimer || !stepTimer) return false;
+    classTimer.textContent = formatRunnerTime(runner.timer.totalRemainingSeconds);
+    stepTimer.textContent = formatRunnerTime(runner.timer.currentStepRemainingSeconds);
+    return true;
+  }
+
+  function refreshRunnerView(runner) {
+    if (!runner) {
+      render();
+      return;
+    }
+    const key = runnerLayoutKey(runner);
+    if (
+      (route === "experience-runner" || route === "project-student") &&
+      key === lastRunnerLayoutKey &&
+      updateRunnerTimerText(runner)
+    ) return;
+    render();
+  }
+
+  function reconcileRunner() {
+    const runner = selectedRunner();
+    if (!runner || (runner.timer.status !== "running" && runner.timer.status !== "step-expired")) {
+      return { runner, changed: false };
+    }
+    const next = advanceExperienceRunnerClock(runner, {
+      teacherKey: runnerOwnerKey(),
+      nowIso: now().toISOString()
+    });
+    if (next.lastTickAt === runner.lastTickAt && next.timer.totalRemainingSeconds === runner.timer.totalRemainingSeconds) {
+      return { runner, changed: false };
+    }
+    return { runner: setRunnerInMemory(next), changed: true };
+  }
+
+  function openRunner(projectNumber) {
+    const project = getProjectByNumber(projectNumber);
+    if (!project) return;
+    const current = selectedRunner();
+    if (!current || current.projectNumber !== projectNumber || current.timer.status === "complete") {
+      const plan = EXPERIENCE_TIMING_PLANS[projectNumber - 1];
+      const created = createExperienceRunner(plan, {
+        teacherKey: runnerOwnerKey(),
+        nowIso: now().toISOString(),
+        ...(projectNumber === 2 ? { modeId: "build-new" } : {})
+      });
+      saveRunner(applyExperienceRunnerAction(created, "start", {
+        teacherKey: runnerOwnerKey(),
+        nowIso: now().toISOString()
+      }));
+    }
+    selectedProjectNumber = projectNumber;
+    navigate("experience-runner");
+  }
+
+  function applyRunnerAction(action) {
+    const { runner } = reconcileRunner();
+    if (!runner) return;
+    if (action === "finish") {
+      if (!confirmFinish()) return;
+      action = "next";
+    }
+    const next = saveRunner(applyExperienceRunnerAction(runner, action, {
+      teacherKey: runnerOwnerKey(),
+      nowIso: now().toISOString()
+    }));
+    refreshRunnerView(next);
+  }
 
   function todayModel() {
     const currentTime = now();
@@ -697,8 +1214,11 @@ export function renderApp(root, services = {}) {
   }
 
   function setNavigation() {
+    const activeRoute = ["project-teacher", "project-student"].includes(route)
+      ? "projects"
+      : route;
     for (const button of navButtons) {
-      const active = button.dataset.route === route;
+      const active = button.dataset.route === activeRoute;
       if (active) button.setAttribute("aria-current", "page");
       else button.removeAttribute("aria-current");
     }
@@ -728,20 +1248,75 @@ export function renderApp(root, services = {}) {
   }
 
   function navigate(nextRoute) {
+    reconcileRunner();
     route = nextRoute;
     if (nextRoute !== "today") timelineExpanded = false;
     render();
     root.focus({ preventScroll: true });
   }
 
+  function openTeacher(projectNumber) {
+    if (!getProjectByNumber(projectNumber)) return;
+    selectedProjectNumber = projectNumber;
+    navigate("project-teacher");
+  }
+
+  function openStudent(projectNumber) {
+    if (!getProjectByNumber(projectNumber)) return;
+    reconcileRunner();
+    selectedProjectNumber = projectNumber;
+    navigate("project-student");
+  }
+
+  function completeProject(projectNumber) {
+    if (!getProjectByNumber(projectNumber)) return;
+    const timestamp = now().toISOString();
+    const previousState = structuredClone(state);
+    const updated = advanceProjectProgress(state, selectedTeacherId, projectNumber, timestamp);
+    state = typeof store.save === "function" ? store.save(updated) : updated;
+    lastCompletion = {
+      previousState,
+      teacherId: selectedTeacherId,
+      projectNumber,
+      title: getProjectByNumber(projectNumber).title
+    };
+    selectedProjectNumber = buildProjectHomeView(
+      state,
+      { teacherId: selectedTeacherId }
+    ).currentProject.number;
+    navigate("today");
+  }
+
+  function undoCompletion() {
+    if (!lastCompletion) return;
+    const completion = lastCompletion;
+    lastCompletion = null;
+    state = typeof store.save === "function"
+      ? store.save(completion.previousState)
+      : structuredClone(completion.previousState);
+    selectedTeacherId = completion.teacherId;
+    selectedProjectNumber = completion.projectNumber;
+    navigate("today");
+  }
+
   function selectTeacher(teacherId) {
+    lastCompletion = null;
     selectedTeacherId = teacherId;
+    selectedProjectNumber = buildProjectHomeView(
+      state,
+      { teacherId: selectedTeacherId }
+    ).currentProject.number;
     render();
   }
 
   function replaceState(nextState) {
+    lastCompletion = null;
     state = nextState;
     selectedTeacherId = state.plan?.teachers?.[0]?.id ?? null;
+    selectedProjectNumber = buildProjectHomeView(
+      state,
+      { teacherId: selectedTeacherId }
+    ).currentProject.number;
     timelineExpanded = false;
     render();
   }
@@ -753,11 +1328,22 @@ export function renderApp(root, services = {}) {
 
   function render() {
     const model = todayModel();
+    const projectView = buildProjectHomeView(state, { teacherId: selectedTeacherId });
+    const runner = selectedRunner();
     const actions = {
       navigate,
+      openTeacher,
+      openStudent,
+      openRunner,
+      applyRunnerAction,
+      completeProject,
+      undoCompletion,
       selectTeacher,
       toggleTimeline,
-      privateSeedMessage
+      privateSeedMessage,
+      projectView,
+      lastCompletion,
+      teacherKey: runnerOwnerKey()
     };
     let view;
     if (route === "today") view = buildToday(model, actions, { timelineExpanded });
@@ -772,7 +1358,26 @@ export function renderApp(root, services = {}) {
       const board = buildBoardView(buildBoardProjection(state, model.current?.id, { liveCountdown }));
       view = boardRoute(board, navigate);
     }
-    else if (route === "curriculum") view = curriculumRoute(state, model);
+    else if (route === "projects") view = projectsRoute(actions);
+    else if (route === "project-teacher") {
+      view = teacherProjectRoute(
+        getProjectByNumber(selectedProjectNumber) ?? projectView.currentProject,
+        actions
+      );
+    }
+    else if (route === "experience-runner") {
+      const project = getProjectByNumber(selectedProjectNumber) ?? projectView.currentProject;
+      view = runner?.projectNumber === project.number
+        ? experienceRunnerRoute(project, runner, actions)
+        : teacherProjectRoute(project, actions);
+    }
+    else if (route === "project-student") {
+      view = studentProjectRoute(
+        getProjectByNumber(selectedProjectNumber) ?? projectView.currentProject,
+        actions,
+        runner
+      );
+    }
     else if (route === "schedule") view = scheduleRoute(state, navigate);
     else if (route === "room") view = roomRoute(state);
     else {
@@ -794,11 +1399,14 @@ export function renderApp(root, services = {}) {
       view = settingsRoute(context);
     }
     root.replaceChildren(view);
-    setBoardShell(route === "board");
+    setBoardShell(route === "board" || route === "project-student");
     setNavigation();
     announceBoundary(model);
     const currentTime = now();
     lastRenderedMinute = `${localDateKey(currentTime)}:${currentTime.getHours()}:${currentTime.getMinutes()}`;
+    lastRunnerLayoutKey = (route === "experience-runner" || route === "project-student")
+      ? runnerLayoutKey(runner)
+      : "";
   }
 
   for (const button of navButtons) {
@@ -817,6 +1425,10 @@ export function renderApp(root, services = {}) {
         if (result.status === "applied") {
           state = result.state;
           selectedTeacherId = state.plan?.teachers?.[0]?.id ?? null;
+          selectedProjectNumber = buildProjectHomeView(
+            state,
+            { teacherId: selectedTeacherId }
+          ).currentProject.number;
           privateSeedMessage = "";
           render();
         } else if (result.nextAction) {
@@ -828,6 +1440,7 @@ export function renderApp(root, services = {}) {
 
   const timer = window.setInterval(() => {
     const currentTime = now();
+    const { runner } = reconcileRunner();
     const clockNode = root.querySelector("[data-live-clock]");
     if (clockNode) {
       clockNode.textContent = new Intl.DateTimeFormat("en-US", {
@@ -837,8 +1450,18 @@ export function renderApp(root, services = {}) {
       }).format(currentTime);
     }
     const minuteKey = `${localDateKey(currentTime)}:${currentTime.getHours()}:${currentTime.getMinutes()}`;
-    if (minuteKey !== lastRenderedMinute) render();
+    if (route === "experience-runner" || route === "project-student") {
+      refreshRunnerView(runner);
+    } else if (minuteKey !== lastRenderedMinute) render();
   }, 1000);
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState !== "hidden") {
+      const { runner } = reconcileRunner();
+      if (route === "experience-runner" || route === "project-student") refreshRunnerView(runner);
+    }
+  };
+  document.addEventListener?.("visibilitychange", handleVisibilityChange);
 
   if (weatherService?.load) {
     Promise.resolve(weatherService.load())
@@ -858,6 +1481,7 @@ export function renderApp(root, services = {}) {
     ready: privateSeedPromise,
     destroy() {
       window.clearInterval(timer);
+      document.removeEventListener?.("visibilitychange", handleVisibilityChange);
       restoreAttributes(siteHeader, siteHeaderSnapshot);
       restoreAttributes(liveStatus, liveStatusSnapshot);
       if (liveStatus) liveStatus.textContent = "";

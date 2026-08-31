@@ -126,6 +126,45 @@ function mergePreferences(local, remote, conflicts) {
   return merged;
 }
 
+function mergeTeacherProgress(local, remote, conflicts) {
+  const admittedLocal = isRecord(local) ? local : {};
+  const admittedRemote = isRecord(remote) ? remote : {};
+  const entries = [];
+  const teacherIds = new Set([
+    ...Object.keys(admittedLocal),
+    ...Object.keys(admittedRemote)
+  ]);
+  for (const teacherId of teacherIds) {
+    const left = admittedLocal[teacherId];
+    const right = admittedRemote[teacherId];
+    if (left === undefined) {
+      entries.push([teacherId, clone(right)]);
+      continue;
+    }
+    if (right === undefined || deepEqual(left, right)) {
+      entries.push([teacherId, clone(left)]);
+      continue;
+    }
+    if (timestamp(right) > timestamp(left)) {
+      entries.push([teacherId, clone(right)]);
+      continue;
+    }
+    if (timestamp(left) > timestamp(right)) {
+      entries.push([teacherId, clone(left)]);
+      continue;
+    }
+    entries.push([teacherId, clone(left)]);
+    conflicts.push({
+      collection: "teacherProgress",
+      id: teacherId,
+      reason: "equal-timestamp-divergence",
+      local: clone(left),
+      remote: clone(right)
+    });
+  }
+  return Object.fromEntries(entries);
+}
+
 export function mergeStates(local, remote) {
   if (!isRecord(local)) throw new TypeError("local state must be an object");
   if (!isRecord(remote)) {
@@ -145,6 +184,16 @@ export function mergeStates(local, remote) {
     : admittedLocal.updatedAt;
   state.tombstones = mergeTombstones(admittedLocal.tombstones, admittedRemote.tombstones);
   state.plan = mergePlan(admittedLocal.plan, admittedRemote.plan, conflicts);
+  if (
+    Object.hasOwn(admittedLocal, "teacherProgress") ||
+    Object.hasOwn(admittedRemote, "teacherProgress")
+  ) {
+    state.teacherProgress = mergeTeacherProgress(
+      admittedLocal.teacherProgress,
+      admittedRemote.teacherProgress,
+      conflicts
+    );
+  }
   for (const collection of ENTITY_COLLECTIONS) {
     state[collection] = withoutTombstonedEntities(
       collection,

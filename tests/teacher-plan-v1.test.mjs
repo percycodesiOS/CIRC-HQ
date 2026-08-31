@@ -146,6 +146,17 @@ test("requires a caller supplied stable teacher id and display name", () => {
   }
 });
 
+test("preserves previously valid nonempty teacher ids during v1 migration", () => {
+  for (const id of ["teacher@example.com", "first.last", "default", " teacher alpha ", "a".repeat(65)]) {
+    const result = migrateTeacherPlanV1(genericSource(), genericOptions({
+      teacher: { id, name: "Teacher Alpha" }
+    }));
+
+    assert.equal(result.ok, true, id);
+    assert.equal(result.value.teachers[0].id, id);
+  }
+});
+
 test("converts morning noon and afternoon ranges deterministically inside the school window", () => {
   const result = migrateTeacherPlanV1(genericSource(), genericOptions());
 

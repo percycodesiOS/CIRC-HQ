@@ -11,7 +11,41 @@ const LEGACY_NORMALIZED_SHA256 =
   "6E7FF5AA3B15A57A44F0D3351C6C6A5A3B3D14813E9B5616AF3D138C5E41B69F";
 const EXPECTED_ROOT_GITIGNORE = "/.superpowers/\n";
 const ALLOWED_UNTRACKED = new Set([
+  "_config.yml",
+  "design-qa.md",
+  "assets/designers-challenge-sketch.webp",
+  "assets/icons/LICENSE-phosphor.txt",
+  "assets/icons/arrow-right.svg",
+  "assets/icons/books.svg",
+  "assets/icons/calendar-dots.svg",
+  "assets/icons/chalkboard-teacher.svg",
+  "assets/icons/cloud-lightning.svg",
+  "assets/icons/cloud-rain.svg",
+  "assets/icons/cloud-sun.svg",
+  "assets/icons/cloud.svg",
+  "assets/icons/download-simple.svg",
+  "assets/icons/gear-six.svg",
+  "assets/icons/house.svg",
+  "assets/icons/play-circle.svg",
+  "assets/icons/presentation-chart.svg",
+  "assets/icons/snowflake.svg",
+  "assets/icons/student.svg",
+  "assets/icons/sun.svg",
+  "assets/icons/warning-circle.svg",
+  "assets/tech-terrarium-hero.webp",
+  "src/model/admin-plan.js",
+  "src/model/experience-runner.js",
+  "src/model/experience-timing-plans.js",
+  "src/model/project-catalog.js",
+  "src/model/step-timer.js",
+  "src/ui/project-home.js",
   "scripts/verify-public.mjs",
+  "tests/admin-plan.test.mjs",
+  "tests/experience-runner.test.mjs",
+  "tests/experience-timing-plans.test.mjs",
+  "tests/project-catalog.test.mjs",
+  "tests/project-home.test.mjs",
+  "tests/step-timer.test.mjs",
   "tests/security.test.mjs"
 ]);
 const FORBIDDEN_CANDIDATE_ROOTS = new Set([
@@ -25,8 +59,11 @@ const FORBIDDEN_CANDIDATE_ROOTS = new Set([
 ]);
 const GATE_NAMES = Object.freeze([
   "candidate-boundary",
+  "pages-boundary",
+  "runtime-import-boundary",
   "entrypoint-identity",
   "legacy-lock",
+  "asset-lock",
   "firebase-placeholders",
   "typography-scan",
   "credential-scan",
@@ -39,30 +76,57 @@ const GATE_NAMES = Object.freeze([
 ]);
 const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "app.css",
-  "classroom-legacy.html",
+  "assets/designers-challenge-sketch.webp",
+  "assets/icons/arrow-right.svg",
+  "assets/icons/books.svg",
+  "assets/icons/calendar-dots.svg",
+  "assets/icons/chalkboard-teacher.svg",
+  "assets/icons/cloud-lightning.svg",
+  "assets/icons/cloud-rain.svg",
+  "assets/icons/cloud-sun.svg",
+  "assets/icons/cloud.svg",
+  "assets/icons/download-simple.svg",
+  "assets/icons/gear-six.svg",
+  "assets/icons/house.svg",
+  "assets/icons/play-circle.svg",
+  "assets/icons/presentation-chart.svg",
+  "assets/icons/snowflake.svg",
+  "assets/icons/student.svg",
+  "assets/icons/sun.svg",
+  "assets/icons/warning-circle.svg",
+  "assets/tech-terrarium-hero.webp",
   "index.html",
   "mission-control.html",
   "src/app.js",
   "src/model/access.js",
+  "src/model/admin-plan.js",
+  "src/model/experience-runner.js",
+  "src/model/experience-timing-plans.js",
   "src/model/lesson-guide.js",
+  "src/model/project-catalog.js",
   "src/model/schedule.js",
   "src/model/state.js",
+  "src/model/step-timer.js",
   "src/model/teacher-plan-v1.js",
   "src/model/teacher-plan.js",
   "src/services/weather.js",
   "src/storage/local-store.js",
   "src/ui/board.js",
-  "src/ui/curriculum.js",
+  "src/ui/project-home.js",
   "src/ui/room.js",
   "src/ui/settings.js",
   "src/ui/today-ui.js",
   "src/ui/view-model.js"
 ]);
 const REVIEWED_CANDIDATE_MANIFEST = new Set([
+  "_config.yml",
   ".gitignore",
   "BUILDLOG.md",
+  "design-qa.md",
   "README.md",
   ...EXPECTED_PUBLIC_MANIFEST,
+  "assets/icons/LICENSE-phosphor.txt",
+  "classroom-legacy.html",
   "docs/FIREBASE-ACTIVATION-GATE.md",
   "firebase-config.example.js",
   "firebase/playbook.rules.fragment",
@@ -71,19 +135,29 @@ const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "scripts/verify-public.mjs",
   "src/storage/firebase-adapter.js",
   "src/storage/sync-engine.js",
+  "src/model/experience-runner.js",
+  "src/model/experience-timing-plans.js",
+  "src/model/step-timer.js",
+  "src/ui/curriculum.js",
   "tests/access.test.mjs",
+  "tests/admin-plan.test.mjs",
   "tests/app-render.test.mjs",
   "tests/board-view.test.mjs",
   "tests/dev-server.test.mjs",
   "tests/firebase-adapter.test.mjs",
+  "tests/experience-runner.test.mjs",
+  "tests/experience-timing-plans.test.mjs",
   "tests/lesson-guide.test.mjs",
   "tests/local-store.test.mjs",
   "tests/public-shell.test.mjs",
+  "tests/project-catalog.test.mjs",
+  "tests/project-home.test.mjs",
   "tests/schedule.test.mjs",
   "tests/security.test.mjs",
   "tests/settings.test.mjs",
   "tests/state.test.mjs",
   "tests/sync-engine.test.mjs",
+  "tests/step-timer.test.mjs",
   "tests/teacher-plan-v1.test.mjs",
   "tests/teacher-plan.test.mjs",
   "tests/today-render.test.mjs",
@@ -114,9 +188,21 @@ const TEXT_EXTENSIONS = new Set([
   ".html",
   ".js",
   ".json",
+  ".yml",
   ".md",
   ".mjs",
+  ".svg",
   ".txt"
+]);
+const REVIEWED_BINARY_ASSETS = new Map([
+  [
+    "assets/designers-challenge-sketch.webp",
+    "207704BEEF933454EE3BEFF35C345F940605E946E60FD786409E5A1A3AA5F17F"
+  ],
+  [
+    "assets/tech-terrarium-hero.webp",
+    "0854D643412ADAF5F720818DB9F665397D1942C721CDFCC096CA1A80A9DE2109"
+  ]
 ]);
 
 function normalizedPath(value) {
@@ -151,6 +237,22 @@ export async function inspectReleaseLocks(root = ROOT) {
     legacyOk: normalizedTextSha256(legacyBytes) === LEGACY_NORMALIZED_SHA256,
     firebaseOk: normalizedText(firebaseBytes) === EXPECTED_FIREBASE_EXAMPLE
   };
+}
+
+export async function inspectAssetLocks(root = ROOT) {
+  let violations = 0;
+  for (const [relativePath, expectedHash] of REVIEWED_BINARY_ASSETS) {
+    try {
+      const bytes = await readFile(path.join(root, ...relativePath.split("/")));
+      const actualHash = createHash("sha256").update(bytes).digest("hex").toUpperCase();
+      if (actualHash !== expectedHash) violations += 1;
+    } catch {
+      violations += 1;
+    }
+  }
+  return violations === 0
+    ? { ok: true, count: REVIEWED_BINARY_ASSETS.size }
+    : { ok: false, count: violations };
 }
 
 export async function inspectRepositoryIgnore(root = ROOT) {
@@ -197,7 +299,7 @@ export function classifyCandidatePaths(candidatePaths, trackedPaths) {
     const candidate = normalizedPath(rawPath);
     if (isForbiddenCandidatePath(candidate)) forbiddenCandidateCount += 1;
     if (!REVIEWED_CANDIDATE_MANIFEST.has(candidate)) unreviewedCandidateCount += 1;
-    if (!isTextCandidate(candidate)) unsupportedCandidateCount += 1;
+    if (!isSupportedCandidate(candidate)) unsupportedCandidateCount += 1;
     if (tracked.has(candidate)) trackedCount += 1;
     else if (ALLOWED_UNTRACKED.has(candidate)) allowedUntrackedCount += 1;
     else unexpectedUntrackedCount += 1;
@@ -247,7 +349,7 @@ function candidateBoundaryResult(candidatePaths, trackedPaths) {
     const violates = unexpected ||
       isForbiddenCandidatePath(candidate) ||
       !REVIEWED_CANDIDATE_MANIFEST.has(candidate) ||
-      !isTextCandidate(candidate);
+      !isSupportedCandidate(candidate);
     return count + Number(violates);
   }, 0);
   return {
@@ -264,11 +366,130 @@ export function inspectCandidateBoundary(root = ROOT) {
   );
 }
 
+function isAutomaticallyJekyllHidden(relativePath) {
+  const candidate = normalizedPath(relativePath);
+  return candidate === "_config.yml" || candidate.split("/").some((segment) =>
+    segment.startsWith(".") || segment.startsWith("_")
+  );
+}
+
+export function parseJekyllExcludes(value) {
+  const text = normalizedText(value);
+  if (text === null) return null;
+  let insideExcludeList = false;
+  const excludes = [];
+  for (const line of text.split("\n")) {
+    if (line === "" || line.startsWith("#")) continue;
+    if (!insideExcludeList) {
+      if (line !== "exclude:") return null;
+      insideExcludeList = true;
+      continue;
+    }
+    const match = line.match(/^  - ([A-Za-z0-9][A-Za-z0-9._/-]*)$/);
+    if (!match) return null;
+    const exclusion = normalizedPath(match[1]);
+    if (
+      exclusion.endsWith("/") ||
+      isForbiddenCandidatePath(exclusion) ||
+      excludes.includes(exclusion)
+    ) return null;
+    excludes.push(exclusion);
+  }
+  return insideExcludeList ? excludes : null;
+}
+
+function isExactlyExcluded(relativePath, exclusions) {
+  const candidate = normalizedPath(relativePath);
+  return exclusions.some((exclusion) =>
+    candidate === exclusion || candidate.startsWith(`${exclusion}/`)
+  );
+}
+
+export function pagesPublicationBoundaryResult(candidatePaths, exclusions) {
+  if (!Array.isArray(exclusions)) return { ok: false, count: 1 };
+  const runtime = new Set(EXPECTED_PUBLIC_MANIFEST);
+  let violations = 0;
+  for (const rawPath of candidatePaths) {
+    const candidate = normalizedPath(rawPath);
+    const hidden = isAutomaticallyJekyllHidden(candidate);
+    const excluded = isExactlyExcluded(candidate, exclusions);
+    if (runtime.has(candidate)) {
+      violations += Number(hidden || excluded);
+    } else {
+      violations += Number(!hidden && !excluded);
+    }
+  }
+  return violations === 0
+    ? { ok: true, count: candidatePaths.length }
+    : { ok: false, count: violations };
+}
+
+export async function inspectPagesPublicationBoundary(root = ROOT) {
+  const candidates = gitListAt(root, ["ls-files", "-co", "--exclude-standard", "-z"]);
+  try {
+    const config = await readFile(path.join(root, "_config.yml"));
+    return pagesPublicationBoundaryResult(candidates, parseJekyllExcludes(config));
+  } catch {
+    return { ok: false, count: 1 };
+  }
+}
+
+function staticModuleSpecifiers(source) {
+  const specifiers = [];
+  const pattern = /^\s*(?:import\s+(?:(?:[\s\S]*?)\s+from\s+)?|export\s+(?:[\s\S]*?)\s+from\s+)["']([^"']+)["']/gm;
+  for (const match of source.matchAll(pattern)) specifiers.push(match[1]);
+  return specifiers;
+}
+
+function resolveRelativeModulePath(importer, specifier) {
+  if (typeof specifier !== "string" || !specifier.startsWith(".")) return null;
+  const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(importer), specifier));
+  return resolved.startsWith("src/") && resolved.endsWith(".js") ? resolved : null;
+}
+
+export async function inspectRuntimeImportBoundary(root = ROOT) {
+  const runtime = new Set(EXPECTED_PUBLIC_MANIFEST);
+  const pending = ["src/app.js"];
+  const inspected = new Set();
+  let violations = 0;
+
+  while (pending.length > 0) {
+    const importer = pending.pop();
+    if (inspected.has(importer)) continue;
+    inspected.add(importer);
+
+    let source;
+    try {
+      source = await readFile(path.join(root, ...importer.split("/")), "utf8");
+    } catch {
+      violations += 1;
+      continue;
+    }
+
+    for (const specifier of staticModuleSpecifiers(source)) {
+      const imported = resolveRelativeModulePath(importer, specifier);
+      if (!imported || !runtime.has(imported)) {
+        violations += 1;
+        continue;
+      }
+      pending.push(imported);
+    }
+  }
+
+  return violations === 0
+    ? { ok: true, count: inspected.size }
+    : { ok: false, count: violations };
+}
+
 function isTextCandidate(relativePath) {
   const basename = path.posix.basename(relativePath);
   return basename === ".gitignore" ||
     basename === "README" ||
     TEXT_EXTENSIONS.has(path.posix.extname(relativePath));
+}
+
+function isSupportedCandidate(relativePath) {
+  return isTextCandidate(relativePath) || REVIEWED_BINARY_ASSETS.has(relativePath);
 }
 
 async function readCandidate(root, relativePath) {
@@ -281,9 +502,9 @@ async function createContext(root) {
   const reviewedCandidates = candidates.filter((candidate) =>
     REVIEWED_CANDIDATE_MANIFEST.has(candidate) &&
     !isForbiddenCandidatePath(candidate) &&
-    isTextCandidate(candidate)
+    isSupportedCandidate(candidate)
   );
-  const textPaths = reviewedCandidates;
+  const textPaths = reviewedCandidates.filter(isTextCandidate);
   const textEntries = await Promise.all(textPaths.map(async (relativePath) => ({
     relativePath,
     text: await readCandidate(root, relativePath)
@@ -343,6 +564,7 @@ function isPublicRuntimePath(relativePath) {
   return relativePath === "app.css" ||
     relativePath === "index.html" ||
     relativePath === "mission-control.html" ||
+    (relativePath.startsWith("assets/icons/") && relativePath.endsWith(".svg")) ||
     (relativePath.startsWith("src/") && relativePath.endsWith(".js"));
 }
 
@@ -359,6 +581,19 @@ async function candidateBoundaryGate(context) {
   };
 }
 
+async function pagesBoundaryGate(context) {
+  try {
+    const config = await readFile(path.join(context.root, "_config.yml"));
+    return pagesPublicationBoundaryResult(context.candidates, parseJekyllExcludes(config));
+  } catch {
+    return { ok: false, count: 1 };
+  }
+}
+
+async function runtimeImportBoundaryGate(context) {
+  return inspectRuntimeImportBoundary(context.root);
+}
+
 async function entrypointIdentityGate(context) {
   const [indexBytes, mirrorBytes] = await Promise.all([
     readFile(path.join(context.root, "index.html")),
@@ -370,6 +605,10 @@ async function entrypointIdentityGate(context) {
 async function legacyLockGate(context) {
   const locks = await inspectReleaseLocks(context.root);
   return resultFromViolations(1, Number(!locks.legacyOk));
+}
+
+async function assetLockGate(context) {
+  return inspectAssetLocks(context.root);
 }
 
 async function firebasePlaceholdersGate(context) {
@@ -471,8 +710,11 @@ async function nodeTestsGate(context) {
 
 const GATES = Object.freeze([
   ["candidate-boundary", candidateBoundaryGate],
+  ["pages-boundary", pagesBoundaryGate],
+  ["runtime-import-boundary", runtimeImportBoundaryGate],
   ["entrypoint-identity", entrypointIdentityGate],
   ["legacy-lock", legacyLockGate],
+  ["asset-lock", assetLockGate],
   ["firebase-placeholders", firebasePlaceholdersGate],
   ["typography-scan", typographyGate],
   ["credential-scan", credentialGate],

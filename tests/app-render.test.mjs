@@ -2,6 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { renderApp } from "../src/app.js";
+import { EXPERIENCE_TIMING_PLANS } from "../src/model/experience-timing-plans.js";
+import {
+  advanceExperienceRunnerClock,
+  applyExperienceRunnerAction,
+  createExperienceRunner
+} from "../src/model/experience-runner.js";
 
 class FakeNode {
   constructor(tagName) {
@@ -18,6 +24,7 @@ class FakeNode {
   }
 
   replaceChildren(...children) {
+    this.replaceChildrenCount = (this.replaceChildrenCount ?? 0) + 1;
     this.children = children.filter(Boolean);
   }
 
@@ -47,6 +54,8 @@ class FakeNode {
 
   querySelector(selector) {
     if (selector === "[data-live-clock]" && this.attributes.has("data-live-clock")) return this;
+    const runnerTimer = /^\[data-runner-timer="([a-z]+)"\]$/.exec(selector);
+    if (runnerTimer && this.getAttribute("data-runner-timer") === runnerTimer[1]) return this;
     for (const child of this.children) {
       const match = child.querySelector?.(selector);
       if (match) return match;
@@ -79,12 +88,18 @@ function findAll(node, predicate, found = []) {
 }
 
 function fakeDocument({ header = null, navButtons = [], status = null } = {}) {
+  const listeners = new Map();
   return {
     createElement: (tagName) => new FakeNode(tagName),
     createElementNS: (_namespace, tagName) => new FakeNode(tagName),
     querySelector: (selector) => selector === ".site-header" ? header : null,
     querySelectorAll: (selector) => selector === "[data-route]" ? navButtons : [],
-    getElementById: (id) => id === "app-status" ? status : null
+    getElementById: (id) => id === "app-status" ? status : null,
+    addEventListener: (name, listener) => listeners.set(name, listener),
+    removeEventListener: (name, listener) => {
+      if (listeners.get(name) === listener) listeners.delete(name);
+    },
+    dispatchEvent: (event) => listeners.get(event.type)?.(event)
   };
 }
 
@@ -146,6 +161,26 @@ function stateWithActiveEvent(type) {
     preferences: {},
     tombstones: []
   };
+}
+
+function runningLastStepRunner() {
+  const timestamp = "2026-08-20T13:10:00.000Z";
+  let runner = createExperienceRunner(EXPERIENCE_TIMING_PLANS[1], {
+    teacherKey: "teacher:teacher-alpha",
+    nowIso: timestamp,
+    modeId: "build-new"
+  });
+  runner = applyExperienceRunnerAction(runner, "start", {
+    teacherKey: "teacher:teacher-alpha",
+    nowIso: timestamp
+  });
+  while (runner.timer.currentStepIndex < runner.steps.length - 1) {
+    runner = applyExperienceRunnerAction(runner, "next", {
+      teacherKey: "teacher:teacher-alpha",
+      nowIso: timestamp
+    });
+  }
+  return runner;
 }
 
 async function renderBoard(state) {
@@ -284,7 +319,7 @@ test("rendered Room anchors use only admitted safeHref values", async () => {
       visibility: "teacher-private",
       validated: true,
       source: "local",
-      href: "/classroom-legacy.html"
+      href: "/mission-control.html"
     },
     {
       id: "safe-external",
@@ -302,7 +337,7 @@ test("rendered Room anchors use only admitted safeHref values", async () => {
 
   assert.doesNotMatch(rendered, /UNSAFE_SCRIPT_RESOURCE|UNSAFE_HTTP_RESOURCE|UNSAFE_NORMALIZED_RESOURCE/);
   assert.equal(anchors.length, 2);
-  assert.equal(anchors[0].getAttribute("href"), "/classroom-legacy.html");
+  assert.equal(anchors[0].getAttribute("href"), "/mission-control.html");
   assert.equal(anchors[0].className, "resource-link");
   assert.match(anchors[0].getAttribute("aria-label"), /^Open Safe local resource\b/);
   assert.equal(anchors[0].getAttribute("target"), null);
@@ -325,6 +360,669 @@ test("Today and Settings render only scoped 44px attribution link classes", asyn
     const matches = findAll(root, (node) => node.tagName === "a" && node.textContent === label);
     assert.equal(matches.length, 1, route);
     assert.equal(matches[0].className, "attribution-link", route);
+  }
+});
+
+test("Option 2 Today keeps the live day and the complete project launcher together", async () => {
+  const state = stateWithActiveEvent("teach");
+  const root = await renderRoute(state, "today");
+  const rendered = textOf(root);
+
+  assert.match(rendered, /Experience 2 of 36/);
+  assert.match(rendered, /Tech Terrarium/);
+  assert.match(rendered, /Build it\. Test it\. Leave your mark\./);
+  assert.match(rendered, /Run today's experience/);
+  assert.match(rendered, /Teacher script/);
+  assert.match(rendered, /Student directions/);
+  assert.match(rendered, /Designer's Challenge/);
+  assert.match(rendered, /36-experience year map/i);
+  assert.match(rendered, /PRIVATE_TEACH_LABEL/);
+  assert.equal(findAll(root, (node) => /\bproject-trail-step\b/.test(node.className)).length, 36);
+});
+
+test("Year Map route exposes all 36 choices without private schedule content", async () => {
+  const state = stateWithActiveEvent("teach");
+  const root = await renderRoute(state, "projects");
+  const rendered = textOf(root);
+
+  assert.match(rendered, /All 36 Experiences/);
+  assert.match(rendered, /Meet the CIRC Teacher and the Outdoor Classroom/);
+  assert.match(rendered, /Demo Day/);
+  assert.equal(findAll(root, (node) => /\bproject-library-card\b/.test(node.className)).length, 36);
+  assert.doesNotMatch(rendered, /PRIVATE_TEACH_LABEL|PRIVATE_CLASS_TITLE/);
+  assert.equal(findAll(root, (node) => node.tagName === "a" && /classroom-legacy\.html/.test(node.getAttribute("href") ?? "")).length, 0);
+});
+
+test("teacher and student project routes separate teacher language from Board-safe directions", async () => {
+  const state = stateWithActiveEvent("teach");
+  const teacherRoot = await renderRoute(state, "project-teacher");
+  const studentRoot = await renderRoute(state, "project-student");
+  const teacherText = textOf(teacherRoot);
+  const studentText = textOf(studentRoot);
+
+  assert.match(teacherText, /Teacher script/);
+  assert.match(teacherText, /Today the class turns ordinary outdoor materials into one shared build/);
+  assert.match(teacherText, /Teacher moves/);
+  assert.match(teacherText, /Student build path/);
+  assert.match(teacherText, /Wash the rocks, rinse away loose soil/);
+  assert.match(teacherText, /Exit evidence/);
+  assert.match(teacherText, /Name one contribution to the shared terrarium/);
+  assert.match(teacherText, /Complete experience and move to next/);
+  assert.match(teacherText, /Download admin plan/);
+  assert.match(studentText, /Student directions/);
+  assert.match(studentText, /Wash the rocks, rinse away loose soil/);
+  assert.match(studentText, /Plant-safe decorations/);
+  assert.match(studentText, /Name one contribution to the shared terrarium/);
+  assert.match(studentText, /Fast finish/);
+  assert.match(studentText, /Designer's Challenge/);
+  assert.match(studentText, /Stretch/);
+  assert.doesNotMatch(studentText, /Teacher script|Teacher moves|Download admin plan|Today the class turns ordinary outdoor materials/);
+});
+
+test("Run today's experience opens one live runner and Student directions keeps its timers without teacher content or a trapped exit", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  let currentTime = new Date("2026-08-20T09:10:00-04:00");
+  let timerCallback = null;
+  const state = stateWithActiveEvent("teach");
+  const store = {
+    load: () => ({ state, error: null }),
+    save: (nextState) => structuredClone(nextState)
+  };
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: (callback) => {
+      timerCallback = callback;
+      return 1;
+    },
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store,
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => currentTime }
+    });
+    await controller.ready;
+
+    const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience");
+    assert.equal(run.length, 1);
+    run[0].click();
+    assert.match(textOf(root), /Class timer/);
+    assert.match(textOf(root), /Step timer/);
+    assert.match(textOf(root), /Pause/);
+    assert.match(textOf(root), /\+1 minute/);
+    assert.match(textOf(root), /Previous/);
+    assert.match(textOf(root), /Next Step/);
+    const initialTimerValues = findAll(root, (node) => /\brunner-timer-value\b/.test(node.className))
+      .map((node) => textOf(node));
+    assert.equal(initialTimerValues.length, 2);
+
+    currentTime = new Date("2026-08-20T09:10:30-04:00");
+    timerCallback();
+    const delayedTimerValues = findAll(root, (node) => /\brunner-timer-value\b/.test(node.className))
+      .map((node) => textOf(node));
+    assert.notDeepEqual(delayedTimerValues, initialTimerValues);
+    const student = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Student directions");
+    assert.equal(student.length, 1);
+    student[0].click();
+    const studentText = textOf(root);
+    assert.match(studentText, /Class timer/);
+    assert.match(studentText, /Step timer/);
+    assert.match(studentText, /\d+:\d{2}/);
+    assert.doesNotMatch(studentText, /Teacher script|Teacher moves|Download admin plan|Pause|\+1 minute|Previous|Next Step/);
+
+    const exit = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Exit student view");
+    assert.equal(exit.length, 1);
+    exit[0].click();
+    assert.match(textOf(root), /Run today's experience/);
+    assert.doesNotMatch(textOf(root), /Student directions Step \d+ of \d+/);
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("no-plan Today starts a locally owned runner instead of requiring a teacher schedule", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = {
+    format: "playbook.state.v1",
+    schemaVersion: 1,
+    updatedAt: "2026-08-20T12:00:00.000Z",
+    teacherProgress: {},
+    checklist: [],
+    classes: [],
+    lessonGuides: [],
+    specialEvents: [],
+    resources: [],
+    notes: [],
+    preferences: {},
+    tombstones: []
+  };
+  let saved = null;
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({ state, error: null }),
+        save: (nextState) => {
+          saved = structuredClone(nextState);
+          return structuredClone(nextState);
+        }
+      },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+    });
+    await controller.ready;
+
+    const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience");
+    assert.equal(run.length, 1);
+    assert.doesNotThrow(() => run[0].click());
+    assert.match(textOf(root), /Class timer/);
+    assert.equal(saved.experienceRunners["local:default"].teacherKey, "local:default");
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("a persisted email teacher keeps the Today schedule and launches a namespaced runner", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithActiveEvent("teach");
+  state.plan.teachers[0].id = "teacher@example.com";
+  state.plan.teachers[0].days[1][0].label = "Email teacher live schedule";
+  let saved = null;
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({ state, error: null }),
+        save: (nextState) => {
+          saved = structuredClone(nextState);
+          return structuredClone(nextState);
+        }
+      },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+    });
+    await controller.ready;
+
+    assert.match(textOf(root), /Email teacher live schedule/);
+    const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience");
+    assert.equal(run.length, 1);
+    assert.doesNotThrow(() => run[0].click());
+    assert.equal(
+      saved.experienceRunners["teacher:teacher@example.com"].teacherKey,
+      "teacher:teacher@example.com"
+    );
+    assert.equal(saved.plan.teachers[0].id, "teacher@example.com");
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("a real default teacher cannot adopt the synthetic local runner or progress", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithActiveEvent("teach");
+  state.plan.teachers[0].id = "default";
+  state.teacherProgress = {
+    "local:default": {
+      currentProjectNumber: 19,
+      completedProjectNumbers: [1]
+    }
+  };
+  const syntheticTimestamp = "2026-08-20T13:10:00.000Z";
+  let syntheticRunner = createExperienceRunner(EXPERIENCE_TIMING_PLANS[1], {
+    teacherKey: "local:default",
+    nowIso: syntheticTimestamp,
+    modeId: "build-new"
+  });
+  syntheticRunner = applyExperienceRunnerAction(syntheticRunner, "start", {
+    teacherKey: "local:default",
+    nowIso: syntheticTimestamp
+  });
+  state.experienceRunners = { "local:default": syntheticRunner };
+  let saved = null;
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({ state, error: null }),
+        save: (nextState) => {
+          saved = structuredClone(nextState);
+          return structuredClone(nextState);
+        }
+      },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+    });
+    await controller.ready;
+
+    assert.match(textOf(root), /Experience 2 of 36/);
+    assert.doesNotMatch(textOf(root), /Experience 19 of 36/);
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+
+    assert.equal(saved.experienceRunners["local:default"].teacherKey, "local:default");
+    assert.equal(saved.experienceRunners["teacher:default"].teacherKey, "teacher:default");
+    assert.notDeepEqual(
+      saved.experienceRunners["teacher:default"],
+      saved.experienceRunners["local:default"]
+    );
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("a malformed saved runner is ignored until Run replaces it without breaking navigation or the interval", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithActiveEvent("teach");
+  state.experienceRunners = { "teacher:teacher-alpha": { teacherKey: "teacher:teacher-alpha" } };
+  let saved = null;
+  let timerCallback = null;
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: (callback) => {
+      timerCallback = callback;
+      return 1;
+    },
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({ state, error: null }),
+        save: (nextState) => {
+          saved = structuredClone(nextState);
+          return structuredClone(nextState);
+        }
+      },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+    });
+    await controller.ready;
+
+    assert.doesNotThrow(() => controller.navigate("projects"));
+    assert.doesNotThrow(() => timerCallback());
+    controller.navigate("today");
+    const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience");
+    assert.equal(run.length, 1);
+    assert.doesNotThrow(() => run[0].click());
+    assert.match(textOf(root), /Class timer/);
+    assert.equal(saved.experienceRunners["teacher:teacher-alpha"].teacherKey, "teacher:teacher-alpha");
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("a saved runner from the future is ignored until Run safely replaces it", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithActiveEvent("teach");
+  const futureTimestamp = "2026-08-20T13:20:00.000Z";
+  let futureRunner = createExperienceRunner(EXPERIENCE_TIMING_PLANS[1], {
+    teacherKey: "teacher:teacher-alpha",
+    nowIso: futureTimestamp,
+    modeId: "build-new"
+  });
+  futureRunner = applyExperienceRunnerAction(futureRunner, "start", {
+    teacherKey: "teacher:teacher-alpha",
+    nowIso: futureTimestamp
+  });
+  state.experienceRunners = { "teacher:teacher-alpha": futureRunner };
+  let saved = null;
+  let timerCallback = null;
+  const currentTime = new Date("2026-08-20T09:10:00-04:00");
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: (callback) => {
+      timerCallback = callback;
+      return 1;
+    },
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    assert.throws(
+      () => advanceExperienceRunnerClock(futureRunner, {
+        teacherKey: "teacher:teacher-alpha",
+        nowIso: currentTime.toISOString()
+      }),
+      /runner-clock-moved-backward/
+    );
+
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({ state, error: null }),
+        save: (nextState) => {
+          saved = structuredClone(nextState);
+          return structuredClone(nextState);
+        }
+      },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => currentTime }
+    });
+    await controller.ready;
+
+    assert.doesNotThrow(() => timerCallback());
+    const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience");
+    assert.equal(run.length, 1);
+    assert.doesNotThrow(() => run[0].click());
+    assert.match(textOf(root), /Class timer/);
+    assert.equal(saved.experienceRunners["teacher:teacher-alpha"].lastTickAt, currentTime.toISOString());
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("ordinary runner ticks update timer text without replacing the root or checkpointing every second", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithActiveEvent("teach");
+  let currentTime = new Date("2026-08-20T09:10:00-04:00");
+  let timerCallback = null;
+  let saveCount = 0;
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: (callback) => {
+      timerCallback = callback;
+      return 1;
+    },
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({ state, error: null }),
+        save: (nextState) => {
+          saveCount += 1;
+          return structuredClone(nextState);
+        }
+      },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => currentTime }
+    });
+    await controller.ready;
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    const renderedCount = root.replaceChildrenCount;
+    const savedAfterStart = saveCount;
+    const classTimer = findAll(root, (node) => node.getAttribute?.("data-runner-timer") === "class")[0];
+    assert.ok(classTimer, "class timer needs a stable data attribute");
+    const initialClassTime = textOf(classTimer);
+
+    currentTime = new Date("2026-08-20T09:10:01-04:00");
+    timerCallback();
+    assert.equal(root.replaceChildrenCount, renderedCount);
+    assert.equal(saveCount, savedAfterStart);
+    assert.notEqual(textOf(classTimer), initialClassTime);
+
+    currentTime = new Date("2026-08-20T09:20:00-04:00");
+    timerCallback();
+    assert.equal(root.replaceChildrenCount, renderedCount + 1);
+    assert.equal(findAll(root, (node) => node.getAttribute?.("role") === "alert").length, 1);
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Next Step")[0].click();
+    assert.equal(saveCount, savedAfterStart + 1);
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("last-step completion needs confirmation and then replaces runner controls with a clear exit", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithActiveEvent("teach");
+  const runner = runningLastStepRunner();
+  state.experienceRunners = { "teacher:teacher-alpha": runner };
+  let saveCount = 0;
+  let accepted = false;
+  const messages = [];
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({ state, error: null }),
+        save: (nextState) => {
+          saveCount += 1;
+          return structuredClone(nextState);
+        }
+      },
+      confirmFinish: (message) => {
+        messages.push(message);
+        return accepted;
+      },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+    });
+    await controller.ready;
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    assert.match(textOf(root), new RegExp(`Step ${runner.steps.length} of ${runner.steps.length}`));
+    assert.match(textOf(root), /35:00/);
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Next Step").length, 0);
+    const finish = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Finish Lesson");
+    assert.equal(finish.length, 1);
+
+    finish[0].click();
+    assert.equal(saveCount, 0);
+    assert.match(textOf(root), /Finish Lesson/);
+    assert.doesNotMatch(textOf(root), /Lesson complete/);
+    assert.match(messages[0], /Both timers will stop at 0:00/);
+
+    accepted = true;
+    finish[0].click();
+    assert.equal(saveCount, 1);
+    assert.match(textOf(root), /Lesson complete/);
+    assert.match(textOf(root), /0:00/);
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Back to Today").length, 1);
+    assert.doesNotMatch(textOf(root), /Pause|\+1 minute|Previous|Finish Lesson/);
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("destroy removes the runner visibility handler so stale views do not reconcile or render", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const document = fakeDocument();
+  const state = stateWithActiveEvent("teach");
+  let currentTime = new Date("2026-08-20T09:10:00-04:00");
+  document.visibilityState = "visible";
+  globalThis.document = document;
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({ state, error: null }),
+        save: (nextState) => structuredClone(nextState)
+      },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => currentTime }
+    });
+    await controller.ready;
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    const renderedCount = root.replaceChildrenCount;
+
+    controller.destroy();
+    currentTime = new Date("2026-08-20T09:20:00-04:00");
+    document.dispatchEvent({ type: "visibilitychange" });
+
+    assert.equal(root.replaceChildrenCount, renderedCount);
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("completing the current project persists the next project while previews cannot advance", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithActiveEvent("teach");
+  state.teacherProgress = {
+    "teacher-alpha": {
+      currentProjectNumber: 2,
+      completedProjectNumbers: [1]
+    }
+  };
+  let saved = null;
+  const store = {
+    load: () => ({ state, error: null }),
+    save: (nextState) => {
+      saved = structuredClone(nextState);
+      return structuredClone(nextState);
+    }
+  };
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+
+  try {
+    const controller = renderApp(root, {
+      store,
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-29T12:00:00.000Z") }
+    });
+    await controller.ready;
+    controller.navigate("project-teacher");
+    const complete = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Complete experience and move to next");
+    assert.equal(complete.length, 1);
+    complete[0].click();
+
+    assert.equal(saved.teacherProgress["teacher:teacher-alpha"].currentProjectNumber, 3);
+    assert.match(textOf(root), /Experience 3 of 36/);
+    const undo = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Undo");
+    assert.equal(undo.length, 1);
+    assert.match(textOf(root), /Tech Terrarium marked complete/);
+    undo[0].click();
+    assert.equal(saved.teacherProgress["teacher-alpha"].currentProjectNumber, 2);
+    assert.match(textOf(root), /Experience 2 of 36/);
+    assert.doesNotMatch(textOf(root), /Tech Terrarium marked complete/);
+
+    controller.navigate("projects");
+    const future = findAll(root, (node) => node.getAttribute?.("aria-label") === "Open Experience 20: Black Box Systems");
+    assert.equal(future.length, 1);
+    future[0].click();
+    assert.doesNotMatch(textOf(root), /Complete experience and move to next/);
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("Settings announces import and apply results as a polite status", async () => {
+  const root = await renderRoute(stateWithActiveEvent("teach"), "settings");
+  const messages = findAll(root, (node) => /\bimport-message\b/.test(node.className));
+
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0].getAttribute("role"), "status");
+  assert.equal(messages[0].getAttribute("aria-live"), "polite");
+});
+
+test("the completed final project stays reviewable without another completion action", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithActiveEvent("teach");
+  state.teacherProgress = {
+    "teacher-alpha": {
+      currentProjectNumber: 36,
+      completedProjectNumbers: Array.from({ length: 36 }, (_, index) => index + 1),
+      complete: true
+    }
+  };
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+
+  try {
+    const controller = renderApp(root, {
+      store: memoryStore(state),
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-29T12:00:00.000Z") }
+    });
+    await controller.ready;
+    controller.navigate("project-teacher");
+
+    assert.match(textOf(root), /All 36 experiences complete/);
+    assert.doesNotMatch(textOf(root), /Mark final experience complete/);
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
   }
 });
 

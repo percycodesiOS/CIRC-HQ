@@ -26,6 +26,14 @@ async function withServer(context) {
     writeFixture(root, "classroom-legacy.html", "GENERIC_LEGACY"),
     writeFixture(root, "app.css", "GENERIC_CSS"),
     writeFixture(root, "src/app.js", "GENERIC_APP"),
+    writeFixture(root, "src/model/admin-plan.js", "GENERIC_ADMIN_PLAN"),
+    writeFixture(root, "src/model/experience-runner.js", "GENERIC_EXPERIENCE_RUNNER"),
+    writeFixture(root, "src/model/experience-timing-plans.js", "GENERIC_EXPERIENCE_TIMING"),
+    writeFixture(root, "src/model/project-catalog.js", "GENERIC_PROJECT_CATALOG"),
+    writeFixture(root, "src/model/step-timer.js", "GENERIC_STEP_TIMER"),
+    writeFixture(root, "src/ui/project-home.js", "GENERIC_PROJECT_HOME"),
+    writeFixture(root, "assets/tech-terrarium-hero.webp", "GENERIC_HERO_IMAGE"),
+    writeFixture(root, "assets/icons/house.svg", "GENERIC_HOUSE_ICON"),
     writeFixture(root, ".superpowers/private/generic.json", "GENERIC_IGNORED_PRIVATE"),
     writeFixture(root, ".superpowers/sdd/generic-report.md", "GENERIC_INTERNAL_REPORT"),
     writeFixture(root, ".git", "GENERIC_GIT_METADATA"),
@@ -55,6 +63,7 @@ async function withServer(context) {
       status: response.status,
       allow: response.headers.get("allow"),
       cacheControl: response.headers.get("cache-control"),
+      contentType: response.headers.get("content-type"),
       body: await response.text()
     };
   };
@@ -90,14 +99,24 @@ test("the real dev server serves only the explicit public runtime allowlist", as
     ["/", "GENERIC_INDEX"],
     ["/index.html", "GENERIC_INDEX"],
     ["/mission-control.html", "GENERIC_MIRROR"],
-    ["/classroom-legacy.html", "GENERIC_LEGACY"],
     ["/app.css", "GENERIC_CSS"],
-    ["/src/app.js", "GENERIC_APP"]
+    ["/src/app.js", "GENERIC_APP"],
+    ["/src/model/admin-plan.js", "GENERIC_ADMIN_PLAN"],
+    ["/src/model/experience-runner.js", "GENERIC_EXPERIENCE_RUNNER"],
+    ["/src/model/experience-timing-plans.js", "GENERIC_EXPERIENCE_TIMING"],
+    ["/src/model/project-catalog.js", "GENERIC_PROJECT_CATALOG"],
+    ["/src/model/step-timer.js", "GENERIC_STEP_TIMER"],
+    ["/src/ui/project-home.js", "GENERIC_PROJECT_HOME"],
+    ["/assets/tech-terrarium-hero.webp", "GENERIC_HERO_IMAGE"],
+    ["/assets/icons/house.svg", "GENERIC_HOUSE_ICON"]
   ]) {
     const response = await request(pathname);
     assert.equal(response.status, 200, pathname);
     assert.equal(response.body, expectedBody, pathname);
   }
+
+  assert.equal((await request("/assets/tech-terrarium-hero.webp")).contentType, "image/webp");
+  assert.equal((await request("/assets/icons/house.svg")).contentType, "image/svg+xml; charset=utf-8");
 
   for (const pathname of [
     "/.superpowers/private/generic.json",
@@ -110,12 +129,13 @@ test("the real dev server serves only the explicit public runtime allowlist", as
     "/tests/generic.test.mjs",
     "/scripts/dev-server.mjs",
     "/package.json",
+    "/classroom-legacy.html",
     "/src/storage/firebase-adapter.js",
     "/src/storage/sync-engine.js"
   ]) {
     const response = await request(pathname);
     assert.equal(response.status, 404, pathname);
-    assert.doesNotMatch(response.body, /GENERIC_(?:IGNORED_PRIVATE|INTERNAL_REPORT|GIT_METADATA|TEST|SERVER_SOURCE|PACKAGE|UNUSED_FIREBASE|UNUSED_SYNC)/, pathname);
+    assert.doesNotMatch(response.body, /GENERIC_(?:IGNORED_PRIVATE|INTERNAL_REPORT|GIT_METADATA|TEST|SERVER_SOURCE|PACKAGE|LEGACY|UNUSED_FIREBASE|UNUSED_SYNC)/, pathname);
   }
 });
 

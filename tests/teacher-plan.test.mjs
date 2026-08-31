@@ -69,6 +69,18 @@ test("accepts a valid playbook.teacherPlan.v2 value without mutation", () => {
   assert.deepEqual(candidate, snapshot);
 });
 
+test("accepts previously valid nonempty teacher id formats", () => {
+  for (const id of ["teacher@example.com", "first.last", "default", " teacher alpha ", "a".repeat(65)]) {
+    const candidate = makeValidPlan();
+    candidate.teachers[0].id = id;
+
+    const result = validateTeacherPlan(candidate);
+
+    assert.equal(result.ok, true, id);
+    assert.equal(result.value.teachers[0].id, id);
+  }
+});
+
 test("rejects schema version values other than 1", () => {
   const candidate = makeValidPlan();
   candidate.version = 2;

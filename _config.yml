@@ -1,0 +1,15 @@
+exclude:
+  - BUILDLOG.md
+  - README.md
+  - assets/icons/LICENSE-phosphor.txt
+  - classroom-legacy.html
+  - design-qa.md
+  - docs
+  - firebase
+  - firebase-config.example.js
+  - package.json
+  - scripts
+  - src/storage/firebase-adapter.js
+  - src/storage/sync-engine.js
+  - src/ui/curriculum.js
+  - tests

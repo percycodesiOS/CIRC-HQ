@@ -193,7 +193,7 @@ function safeResource(overrides = {}) {
     id: "safe-resource",
     title: "Reviewed resource",
     visibility: "teacher-private",
-    href: "classroom-legacy.html?mode=one#start",
+    href: "mission-control.html?mode=one#start",
     note: "Reviewed note",
     updatedAt: "2026-08-28T12:00:00.000Z",
     ...overrides
@@ -259,7 +259,7 @@ test("plan validation stores only the normalized resource schema", () => {
     id: "safe-resource",
     title: "Reviewed resource",
     visibility: "teacher-private",
-    href: "/classroom-legacy.html?mode=one#start",
+    href: "/mission-control.html?mode=one#start",
     external: false,
     note: "Reviewed note",
     updatedAt: "2026-08-28T12:00:00.000Z"
@@ -330,7 +330,7 @@ test("Room presents only fields returned by shared resource admission", () => {
     id: "safe-resource",
     title: "Reviewed resource",
     note: "Reviewed note",
-    safeHref: "/classroom-legacy.html?mode=one#start",
+    safeHref: "/mission-control.html?mode=one#start",
     external: false
   }]);
   assert.equal(JSON.stringify(view).includes("PRIVATE_RESOURCE_NOTE"), false);
@@ -341,20 +341,43 @@ test("public server manifest is an exact reviewed allowlist", () => {
   assert.equal(typeof devServer.getPublicStaticManifest, "function");
   assert.deepEqual(devServer.getPublicStaticManifest(), [
     "app.css",
-    "classroom-legacy.html",
+    "assets/designers-challenge-sketch.webp",
+    "assets/icons/arrow-right.svg",
+    "assets/icons/books.svg",
+    "assets/icons/calendar-dots.svg",
+    "assets/icons/chalkboard-teacher.svg",
+    "assets/icons/cloud-lightning.svg",
+    "assets/icons/cloud-rain.svg",
+    "assets/icons/cloud-sun.svg",
+    "assets/icons/cloud.svg",
+    "assets/icons/download-simple.svg",
+    "assets/icons/gear-six.svg",
+    "assets/icons/house.svg",
+    "assets/icons/play-circle.svg",
+    "assets/icons/presentation-chart.svg",
+    "assets/icons/snowflake.svg",
+    "assets/icons/student.svg",
+    "assets/icons/sun.svg",
+    "assets/icons/warning-circle.svg",
+    "assets/tech-terrarium-hero.webp",
     "index.html",
     "mission-control.html",
     "src/app.js",
     "src/model/access.js",
+    "src/model/admin-plan.js",
+    "src/model/experience-runner.js",
+    "src/model/experience-timing-plans.js",
     "src/model/lesson-guide.js",
+    "src/model/project-catalog.js",
     "src/model/schedule.js",
     "src/model/state.js",
+    "src/model/step-timer.js",
     "src/model/teacher-plan-v1.js",
     "src/model/teacher-plan.js",
     "src/services/weather.js",
     "src/storage/local-store.js",
     "src/ui/board.js",
-    "src/ui/curriculum.js",
+    "src/ui/project-home.js",
     "src/ui/room.js",
     "src/ui/settings.js",
     "src/ui/today-ui.js",
@@ -369,8 +392,11 @@ test("public verifier has a recursive-safe sanitized gate contract", () => {
   assert.equal(typeof verifier.getGateNames, "function");
   assert.deepEqual(verifier.getGateNames(), [
     "candidate-boundary",
+    "pages-boundary",
+    "runtime-import-boundary",
     "entrypoint-identity",
     "legacy-lock",
+    "asset-lock",
     "firebase-placeholders",
     "typography-scan",
     "credential-scan",
@@ -401,6 +427,27 @@ test("public verifier has a recursive-safe sanitized gate contract", () => {
       unsupportedCandidateCount: 0
     }
   );
+});
+
+test("reviewed visual assets are exact and opaque files fail closed", async (context) => {
+  assert.equal(typeof verifier.inspectAssetLocks, "function");
+  assert.deepEqual(await verifier.inspectAssetLocks(ROOT), { ok: true, count: 2 });
+
+  const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-asset-lock-"));
+  context.after(() => rm(repository, { recursive: true, force: true }));
+  await mkdir(path.join(repository, "assets"), { recursive: true });
+  await writeFile(path.join(repository, "assets", "tech-terrarium-hero.webp"), "TAMPERED");
+  assert.deepEqual(await verifier.inspectAssetLocks(repository), { ok: false, count: 2 });
+
+  const counts = verifier.classifyCandidatePaths([
+    "assets/tech-terrarium-hero.webp",
+    "unexpected.webp"
+  ], [
+    "assets/tech-terrarium-hero.webp",
+    "unexpected.webp"
+  ]);
+  assert.equal(counts.unreviewedCandidateCount, 1);
+  assert.equal(counts.unsupportedCandidateCount, 1);
 });
 
 test("candidate classifier rejects forbidden namespaces even when tracked", () => {
@@ -435,6 +482,58 @@ test("candidate classifier rejects forbidden namespaces even when tracked", () =
       unsupportedCandidateCount: 2
     }
   );
+});
+
+test("Pages boundary fails closed for an unexcluded file and an excluded runtime file", async (context) => {
+  assert.equal(typeof verifier.inspectPagesPublicationBoundary, "function");
+  const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-pages-boundary-"));
+  context.after(() => rm(repository, { recursive: true, force: true }));
+  await mkdir(path.join(repository, "notes"), { recursive: true });
+  await Promise.all([
+    writeFile(path.join(repository, ".gitignore"), ROOT_GITIGNORE),
+    writeFile(path.join(repository, "_config.yml"), [
+      "exclude:",
+      "  - classroom-legacy.html",
+      "  - index.html",
+      ""
+    ].join("\n")),
+    writeFile(path.join(repository, "index.html"), "<!doctype html>"),
+    writeFile(path.join(repository, "classroom-legacy.html"), "GENERIC_LEGACY"),
+    writeFile(path.join(repository, "notes", "release-note.md"), "GENERIC_NOTE")
+  ]);
+  execFileSync("git", ["init", "-q"], { cwd: repository });
+  execFileSync("git", ["add", "--", ".gitignore", "_config.yml", "index.html", "classroom-legacy.html", "notes/release-note.md"], {
+    cwd: repository,
+    stdio: "pipe"
+  });
+
+  assert.deepEqual(await verifier.inspectPagesPublicationBoundary(repository), {
+    ok: false,
+    count: 2
+  });
+});
+
+test("runtime import boundary rejects an imported module absent from the public manifest", async (context) => {
+  assert.equal(typeof verifier.inspectRuntimeImportBoundary, "function");
+  const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-runtime-import-boundary-"));
+  context.after(() => rm(repository, { recursive: true, force: true }));
+  await mkdir(path.join(repository, "src", "model"), { recursive: true });
+  await Promise.all([
+    writeFile(path.join(repository, "src", "app.js"), [
+      'import "./model/unreviewed-runtime.js";',
+      "export const genericApp = true;",
+      ""
+    ].join("\n")),
+    writeFile(
+      path.join(repository, "src", "model", "unreviewed-runtime.js"),
+      "export const genericRuntime = true;\n"
+    )
+  ]);
+
+  assert.deepEqual(await verifier.inspectRuntimeImportBoundary(repository), {
+    ok: false,
+    count: 1
+  });
 });
 
 test("candidate boundary reads a temporary Git repository and fails closed", async (context) => {
@@ -835,8 +934,9 @@ test("resource admission rejects the complete unsafe URL matrix", () => {
   for (const href of unsafeHrefs) {
     assert.equal(access.admitResource(safeResource({ href })), null);
   }
-  assert.equal(access.admitResource(safeResource({ href: "classroom-legacy.html" })).href,
-    "/classroom-legacy.html");
+  assert.equal(access.admitResource(safeResource({ href: "mission-control.html" })).href,
+    "/mission-control.html");
+  assert.equal(access.admitResource(safeResource({ href: "classroom-legacy.html" })), null);
   assert.equal(access.admitResource(safeResource({ href: "https://example.invalid/generic" })).external,
     true);
 });

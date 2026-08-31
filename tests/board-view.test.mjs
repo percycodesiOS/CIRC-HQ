@@ -371,7 +371,7 @@ test("Room admits only normalized same-origin app paths and HTTPS resource URLs"
       visibility: "teacher-private",
       validated: true,
       source: "local",
-      href: "classroom-legacy.html?mode=one#start"
+      href: "mission-control.html?mode=one#start"
     },
     {
       id: "safe-https",
@@ -389,7 +389,7 @@ test("Room admits only normalized same-origin app paths and HTTPS resource URLs"
     {
       id: "safe-local",
       title: "Safe local",
-      safeHref: "/classroom-legacy.html?mode=one#start",
+      safeHref: "/mission-control.html?mode=one#start",
       external: false
     },
     {

@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import * as stateModel from "../src/model/state.js";
 import {
   createInitialState,
   createClassroomProjection,
@@ -45,6 +46,15 @@ test("returns a deterministic safe ID for imported content", () => {
   assert.equal(first, second);
   assert.match(first, /^check-[a-z0-9]+$/);
   assert.notEqual(first, stableId("check", "Buy chargers!"));
+});
+
+test("maps synthetic and real owners into separate injective namespaces", () => {
+  assert.equal(stateModel.ownerKeyForTeacher(null), "local:default");
+  assert.equal(stateModel.ownerKeyForTeacher("teacher-alpha"), "teacher:teacher-alpha");
+  assert.equal(stateModel.ownerKeyForTeacher("teacher@example.com"), "teacher:teacher@example.com");
+  assert.equal(stateModel.ownerKeyForTeacher("default"), "teacher:default");
+  assert.notEqual(stateModel.ownerKeyForTeacher(null), stateModel.ownerKeyForTeacher("default"));
+  assert.throws(() => stateModel.ownerKeyForTeacher("   "), /teacherId/);
 });
 
 test("reads legacy values without removing their source keys", () => {

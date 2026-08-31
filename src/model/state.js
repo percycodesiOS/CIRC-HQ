@@ -3,6 +3,22 @@ import { validateTeacherPlan } from "./teacher-plan.js";
 
 export const STATE_FORMAT = "playbook.state.v1";
 export const STATE_SCHEMA_VERSION = 1;
+export const LOCAL_OWNER_KEY = "local:default";
+
+export function ownerKeyForTeacher(teacherId) {
+  if (teacherId === null) return LOCAL_OWNER_KEY;
+  if (typeof teacherId !== "string" || teacherId.trim() === "") {
+    throw new TypeError("teacherId must be null or a nonempty string");
+  }
+  return `teacher:${teacherId}`;
+}
+
+export function isOwnerKey(value) {
+  if (value === LOCAL_OWNER_KEY) return true;
+  return typeof value === "string" &&
+    value.startsWith("teacher:") &&
+    value.slice("teacher:".length).trim() !== "";
+}
 
 function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);

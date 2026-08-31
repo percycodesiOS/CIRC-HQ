@@ -1,5 +1,55 @@
 # Mission Control - BUILDLOG
 
+## 2026-08-30 live runner and Pages hardening checkpoint
+
+- The live teacher runner now launches from Today and keeps a full class timer plus a larger current-step timer visible. Pause or Resume, +1 minute, Previous, and Next Step are available during ordinary steps.
+- A step that reaches `0:00` remains on screen until the teacher moves forward, while the class timer continues. Route changes and delayed browser intervals reconcile elapsed wall-clock time without writing a local checkpoint every second.
+- Student directions keep only current student directions, an available local image, and the two timers. Teacher script, runner controls, schedule, and private content stay out. Exit student view returns safely to Today.
+- The final step uses Finish Lesson instead of ordinary Next Step. The UI asks for explicit confirmation before the unchanged runner model completes. Cancellation changes nothing. Completion shows Lesson complete, two stopped `0:00` timers, and Back to Today with no inactive runner controls.
+- The final ownership contract separates no-plan state under `local:default` from every real teacher under `teacher:` plus the complete original teacher ID. Previously valid schedule IDs remain compatible, raw progress migrates only when ownership is unambiguous, and a future-dated runner is ignored until Run replaces it safely.
+- Fresh final-candidate `npm test` verification reported 260 pass, 0 fail, and 1 expected private-environment skip across 261 tests.
+- Fresh final-candidate `npm run verify` passed all 15 public-release gates, including the candidate, Pages, runtime-import, entrypoint, legacy, asset, privacy, credential, DOM-sink, local-server, JavaScript, and Node-test boundaries.
+- Browser acceptance covered 1440 by 900, 390 by 844, and 360 by 800 with no horizontal overflow or console errors. Teacher controls remained at least 48 pixels high on the phone layouts, and the isolated student view kept only approved classroom content and a safe exit.
+- No commit, push, Pages publication, deployment, Firebase configuration, account creation, billing change, or private-data upload occurred in this checkpoint.
+
+## 2026-08-29 Option 2 CIRC HQ experience year map
+
+Option 2 rebuilt the current CIRC HQ Today experience around the selected bright maker-studio direction while keeping the existing live teacher schedule and privacy boundaries.
+
+- Today now combines the live schedule, clock, weather, duty state, Tech Terrarium experience hero, teacher script, isolated student directions, independence path, 36-experience year map, and fast finish.
+- Year Map now exposes 36 separate experiences for grades 5 and 6. The revised mix adds cardboard fabrication, outdoor and environmental work, circuits, physical computing, accessibility, student choice, troubleshooting, and showcase experiences.
+- Experience 1 is the teacher introduction, CIRC routines, and outdoor classroom tour. Experience 2 is the actual shared Tech Terrarium build. Experience 3 is the outdoor classroom redesign.
+- Per-teacher local progress advances only from the current experience. Past and future previews cannot change progress, and Experience 36 settles into one complete reviewable state.
+- Download admin plan creates a local printable HTML plan from approved catalog fields only.
+- Two optimized local WebP images and the reviewed local Phosphor icon set replace placeholders and remote asset dependencies.
+- The public server and verifier use exact path allowlists and exact image hashes. Unreviewed files and changed image bytes fail closed.
+- The selected visual source and final implementation were compared together at the same visible browser frame. The final report is in `design-qa.md`.
+
+TDD and browser findings:
+
+- Project-home RED: the module was missing and the old Curriculum navigation label failed the new shell contract.
+- Project-home GREEN: the project launcher, five-stage independence path, and complete 36-project trail passed.
+- App-render RED: Option 2 project UI and teacher or student routes were missing.
+- App-render GREEN: Today, Projects, teacher detail, and isolated student directions passed.
+- Progress RED: current-project completion, final completion, and cross-device merge behavior were missing or ambiguous.
+- Progress GREEN: current-only advancement, per-teacher persistence, final completion, and per-teacher timestamp or conflict merge behavior passed without activating Firebase.
+- Server and verifier RED: new reviewed modules and image assets were rejected until exact allowlist, MIME, binary, and hash-lock contracts existed.
+- Server and verifier GREEN: both images, all icons, all new modules, and every fail-closed boundary passed.
+- Browser P1 mobile finding: stacked status cards hid the main action below the first phone viewport. The compact glance row fixed it.
+- Browser P1 desktop finding: the largest title size extended outside the copy panel. The maximum display size was reduced and passed a measured boundary check.
+- Browser P2 mobile finding: `Day complete` could split inside a word. Mobile heading wrapping now preserves whole words.
+- Browser P1 mobile title finding: `Terrarium` was clipped at the 390 and 360 pixel widths. The final display size now keeps the full word visible on one line with no horizontal overflow.
+
+Final verified commands and counts on 2026-08-29:
+
+- `npm test`: all runnable tests passed with one expected private-environment skip.
+- `npm run verify`: every public-release gate passed, including candidate boundary, entrypoint identity, locked assets, Firebase placeholders, typography, credentials, privacy sentinels, runtime policy, DOM sinks, server allowlist, JavaScript syntax, and Node tests.
+- Browser acceptance covered 1440 by 900, 390 by 844, and 360 by 800. The main action was visible in the first phone viewport, horizontal overflow stayed absent, all 36 project choices rendered, teacher and student flows stayed separated, and the console had zero warnings or errors.
+- At 1440 by 900, the title right edge measured 691 pixels and the copy panel right edge measured 811 pixels.
+- At 390 by 844, the main action top measured 566 pixels. At 360 by 800, it measured 589 pixels. The full `Tech Terrarium` title remained inside the card at both widths.
+
+No push, publication, deployment, Firebase configuration, account creation, billing change, or private-data upload occurred in the Option 2 build.
+
 ## 2026-08-28 Task 6 public release verification
 
 Task 6 started from exact clean commit `c96d53a553bd537f0d7954243c3c6769f9d9856d`.

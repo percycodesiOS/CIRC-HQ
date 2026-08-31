@@ -6,8 +6,7 @@ const RESOURCE_APP_ORIGIN = "https://circ-hq.invalid";
 const RESOURCE_APP_PATHS = new Set([
   "/",
   "/index.html",
-  "/mission-control.html",
-  "/classroom-legacy.html"
+  "/mission-control.html"
 ]);
 const RESOURCE_SOURCES = new Set(["local", "authorized-cloud"]);
 
