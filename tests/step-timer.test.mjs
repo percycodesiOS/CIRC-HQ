@@ -50,6 +50,16 @@ test("creates a ready serializable timer with step and class countdowns", () => 
   assert.deepEqual(JSON.parse(JSON.stringify(state)), state);
 });
 
+test("creates a shorter ready class clock without truncating the current step", () => {
+  const state = timer.createStepTimer(timer.OUTDOOR_MICROCLIMATE_MAP_PLAN, {
+    classDurationSeconds: 31 * 60
+  });
+
+  assert.equal(state.status, "ready");
+  assert.equal(state.currentStepRemainingSeconds, 120);
+  assert.equal(state.totalRemainingSeconds, 1860);
+});
+
 test("rejects malformed plans and plans that do not total 35 minutes", () => {
   const validSteps = expectedOutdoorSteps.map((step) => ({ ...step }));
   const invalidPlans = [
@@ -103,6 +113,13 @@ test("starts, pauses, and resumes without mutating earlier states", () => {
   const paused = timer.pauseStepTimer?.(running);
   assert.equal(paused?.status, "paused");
   assert.equal(timer.resumeStepTimer?.(paused)?.status, "running");
+});
+
+test("only Start can move a ready timer into the running lifecycle", () => {
+  const ready = timer.createStepTimer(timer.OUTDOOR_MICROCLIMATE_MAP_PLAN);
+
+  assert.deepEqual(timer.nextStepTimer(ready), ready);
+  assert.equal(timer.startStepTimer(ready).status, "running");
 });
 
 test("resets controls and countdowns to the original ready state", () => {

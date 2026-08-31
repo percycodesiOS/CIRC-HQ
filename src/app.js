@@ -393,10 +393,13 @@ function buildProjectHero(view, actions) {
       element("h2", { className: "project-title", text: project.title }),
       element("p", { className: "project-strapline", text: project.strapline }),
       view.previewOnly
-        ? element("p", {
-            className: "preview-only-note",
-            text: "Read-only preview. Set up this device to run an experience."
-          })
+        ? element("div", { className: "preview-launch" }, [
+            element("p", {
+              className: "preview-only-note",
+              text: "Preview only. Nothing is saved."
+            }),
+            actionButton("Preview experience", "project-run-button", () => actions.openRunner(project.number), "arrow-right")
+          ])
         : actionButton(view.actions.run, "project-run-button", () => actions.openRunner(project.number), "arrow-right")
     ]),
     element("div", { className: "project-quick-actions" }, [
@@ -503,8 +506,63 @@ function runnerTimerCard(label, seconds, timerKey, className = "") {
 
 function runnerStudentDirections(step) {
   const list = element("ol", { className: "runner-student-directions" });
-  for (const direction of step.directions) list.append(element("li", { text: direction }));
+  for (const direction of step.directions.slice(0, 3)) {
+    list.append(element("li", { text: direction }));
+  }
   return list;
+}
+
+function runnerTeacherDirections(step) {
+  const directions = step.teacher?.directions;
+  if (Array.isArray(directions)) return directions;
+  return typeof directions === "string" ? [directions] : [];
+}
+
+function runnerCue(label, content, className = "") {
+  const body = Array.isArray(content) ? textList(content, "runner-cue-list") : element("p", { text: content });
+  return element("section", { className: `runner-cue ${className}`.trim() }, [
+    element("h3", { text: label }),
+    body
+  ]);
+}
+
+function runnerMoreContext(project) {
+  return element("details", { className: "runner-more-context" }, [
+    element("summary", { text: "More context" }),
+    element("section", {}, [
+      element("h3", { text: "Objective" }),
+      element("p", { text: project.objective })
+    ]),
+    element("section", {}, [
+      element("h3", { text: "Materials" }),
+      textList(project.materials)
+    ]),
+    element("section", {}, [
+      element("h3", { text: "Safety" }),
+      element("p", { text: project.safety })
+    ]),
+    element("section", {}, [
+      element("h3", { text: "Teacher context" }),
+      textList([...project.teacherSay, ...project.teacherDo])
+    ])
+  ]);
+}
+
+function formatScheduleClock(minutes) {
+  const normalized = ((minutes % (24 * 60)) + (24 * 60)) % (24 * 60);
+  const hour24 = Math.floor(normalized / 60);
+  const minute = normalized % 60;
+  const period = hour24 >= 12 ? "PM" : "AM";
+  const hour12 = hour24 % 12 || 12;
+  return `${hour12}:${String(minute).padStart(2, "0")} ${period}`;
+}
+
+function runnerSchedule(current) {
+  if (current?.type !== "teach" || !Number.isInteger(current.endMinutes)) return null;
+  return {
+    endLabel: formatScheduleClock(current.endMinutes),
+    cleanupLabel: formatScheduleClock(current.endMinutes - 6)
+  };
 }
 
 function experienceRunnerRoute(project, runner, actions) {
@@ -528,14 +586,26 @@ function experienceRunnerRoute(project, runner, actions) {
   }
   const step = getActiveRunnerStep(runner, { teacherKey: actions.teacherKey });
   const paused = timer.status === "paused";
+  const ready = timer.status === "ready";
   const expired = timer.status === "step-expired";
   const lastStep = timer.currentStepIndex === runner.steps.length - 1;
-  const controls = [
-    actionButton(paused ? "Resume" : "Pause", "runner-control", () => actions.applyRunnerAction(paused ? "resume" : "pause")),
-    actionButton("+1 minute", "runner-control", () => actions.applyRunnerAction("add-minute")),
-    actionButton("Previous", "runner-control", () => actions.applyRunnerAction("previous")),
-    actionButton(lastStep ? "Finish Lesson" : "Next Step", "runner-control runner-next", () => actions.applyRunnerAction(lastStep ? "finish" : "next")),
-  ];
+  const primaryControl = actionButton(
+    ready ? "Start class" : paused ? "Resume" : "Pause",
+    "runner-control runner-primary-control",
+    () => actions.applyRunnerAction(ready ? "start" : paused ? "resume" : "pause")
+  );
+  const controls = actions.previewOnly
+    ? []
+    : ready
+      ? [primaryControl]
+      : [
+          primaryControl,
+          actionButton("+1 minute", "runner-control", () => actions.applyRunnerAction("add-minute")),
+          actionButton("Previous", "runner-control", () => actions.applyRunnerAction("previous")),
+          actionButton(lastStep ? "Finish Lesson" : "Next Step", "runner-control runner-next", () => actions.applyRunnerAction(lastStep ? "finish" : "next")),
+        ];
+  const teacherDirections = runnerTeacherDirections(step);
+  const studentDirections = step.directions.slice(0, 3);
   return element("section", {
     className: "experience-runner",
     attributes: { "data-view": "experience-runner" }
@@ -544,8 +614,15 @@ function experienceRunnerRoute(project, runner, actions) {
       actionButton("Back to Today", "detail-back", () => actions.navigate("today")),
       element("p", { className: "project-kicker", text: `Experience ${project.number} of ${PROJECTS.length}` }),
       element("h1", { text: project.title }),
+      actions.previewOnly
+        ? element("p", { className: "runner-preview-label", text: "Preview only" })
+        : null,
       actionButton("Student directions", "primary-action runner-student-action", () => actions.openStudent(project.number), "student")
     ]),
+    actions.schedule ? element("div", { className: "runner-schedule" }, [
+      element("strong", { text: `Class ends at ${actions.schedule.endLabel}` }),
+      element("span", { text: `Cleanup begins at ${actions.schedule.cleanupLabel}` })
+    ]) : null,
     element("div", { className: "runner-timer-bar" }, [
       runnerTimerCard("Class timer", timer.totalRemainingSeconds, "class"),
       runnerTimerCard("Step timer", timer.currentStepRemainingSeconds, "step", "runner-step-timer")
@@ -558,16 +635,24 @@ function experienceRunnerRoute(project, runner, actions) {
     element("section", { className: "runner-step-card" }, [
       element("p", { className: "section-kicker", text: `Step ${timer.currentStepIndex + 1} of ${runner.steps.length}` }),
       element("h2", { text: step.label }),
-      element("section", { className: "runner-teacher-card" }, [
-        element("h3", { text: "Say and do" }),
-        textList(step.teacher?.directions ?? [])
+      element("div", { className: "runner-now-grid" }, [
+        runnerCue("Say", teacherDirections[0] ?? "Name the next step."),
+        runnerCue("Do", teacherDirections.slice(1)),
+        element("section", { className: "runner-cue runner-student-card" }, [
+          element("h3", { text: "Students" }),
+          runnerStudentDirections(step)
+        ]),
+        runnerCue(
+          "Done when",
+          `Students have completed ${studentDirections.length === 1 ? "this direction" : `all ${studentDirections.length} directions`} and can show the result.`
+        ),
+        runnerCue("If stuck", "Pause. Model one example. Restart with one team."),
+        runnerCue("Finished early", [project.fastFinish.title, project.fastFinish.directions]),
+        runnerCue("Return to the build", "Good question. Let us test it while we keep building.", "runner-return-cue")
       ]),
-      element("section", { className: "runner-student-card" }, [
-        element("h3", { text: "Students do" }),
-        runnerStudentDirections(step)
-      ])
+      runnerMoreContext(project)
     ]),
-    element("div", { className: "runner-controls" }, controls)
+    controls.length ? element("div", { className: "runner-controls" }, controls) : null
   ].filter(Boolean));
 }
 
@@ -1233,21 +1318,34 @@ export function renderApp(root, services = {}) {
   }
 
   function openRunner(projectNumber) {
-    if (previewOnly) return;
     const project = getProjectByNumber(projectNumber);
     if (!project) return;
     const current = selectedRunner();
     if (!current || current.projectNumber !== projectNumber || current.timer.status === "complete") {
       const plan = EXPERIENCE_TIMING_PLANS[projectNumber - 1];
+      const currentTime = now();
+      const activeEvent = todayModel(currentTime).current;
+      let classDurationSeconds;
+      if (activeEvent?.type === "teach" && Number.isInteger(activeEvent.endMinutes)) {
+        const scheduledEnd = new Date(currentTime);
+        scheduledEnd.setHours(
+          Math.floor(activeEvent.endMinutes / 60),
+          activeEvent.endMinutes % 60,
+          0,
+          0
+        );
+        classDurationSeconds = Math.ceil(
+          (scheduledEnd.getTime() - currentTime.getTime()) / 1000
+        );
+      }
       const created = createExperienceRunner(plan, {
         teacherKey: runnerOwnerKey(),
-        nowIso: now().toISOString(),
+        nowIso: currentTime.toISOString(),
+        ...(classDurationSeconds !== undefined ? { classDurationSeconds } : {}),
         ...(projectNumber === 2 ? { modeId: "build-new" } : {})
       });
-      saveRunner(applyExperienceRunnerAction(created, "start", {
-        teacherKey: runnerOwnerKey(),
-        nowIso: now().toISOString()
-      }));
+      if (previewOnly) setRunnerInMemory(created);
+      else saveRunner(created);
     }
     selectedProjectNumber = projectNumber;
     navigate("experience-runner");
@@ -1268,8 +1366,7 @@ export function renderApp(root, services = {}) {
     refreshRunnerView(next);
   }
 
-  function todayModel() {
-    const currentTime = now();
+  function todayModel(currentTime = now()) {
     return buildTodayViewModel({
       plan: state.plan,
       teacherId: selectedTeacherId,
@@ -1434,6 +1531,7 @@ export function renderApp(root, services = {}) {
       projectView,
       lastCompletion,
       teacherKey: runnerOwnerKey(),
+      schedule: runnerSchedule(model.current),
       previewOnly
     };
     let view;

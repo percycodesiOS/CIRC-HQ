@@ -62,8 +62,17 @@ export const OUTDOOR_MICROCLIMATE_MAP_PLAN = frozenPlan({
   ]
 });
 
-export function createStepTimer(plan) {
+export function createStepTimer(plan, { classDurationSeconds = LESSON_MINUTES * 60 } = {}) {
   const normalized = normalizedPlan(plan);
+  if (
+    !Number.isInteger(classDurationSeconds) ||
+    classDurationSeconds < 1 ||
+    classDurationSeconds > LESSON_MINUTES * 60
+  ) {
+    throw new TypeError(
+      `classDurationSeconds must be an integer from 1 through ${LESSON_MINUTES * 60}.`
+    );
+  }
   const serializablePlan = normalized.id
     ? { id: normalized.id, name: normalized.name, steps: normalized.steps }
     : normalized;
@@ -74,7 +83,7 @@ export function createStepTimer(plan) {
     status: "ready",
     currentStepIndex: 0,
     currentStepRemainingSeconds: serializablePlan.steps[0].minutes * 60,
-    totalRemainingSeconds: LESSON_MINUTES * 60
+    totalRemainingSeconds: classDurationSeconds
   };
 }
 
@@ -129,7 +138,7 @@ export function addMinuteToStepTimer(state) {
 
 export function nextStepTimer(state) {
   const next = copyState(state);
-  if (next.status === "complete") return next;
+  if (next.status === "ready" || next.status === "complete") return next;
 
   const lastStepIndex = next.plan.steps.length - 1;
   if (next.currentStepIndex === lastStepIndex) return completeState(next);

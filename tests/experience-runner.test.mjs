@@ -254,6 +254,44 @@ test("ready and paused runners do not consume elapsed time", () => {
   assert.equal(paused.timer.totalRemainingSeconds, 2090);
 });
 
+test("a schedule-sized runner stays ready with a full first step and a stationary class clock", () => {
+  const {
+    advanceExperienceRunnerClock,
+    createExperienceRunner,
+  } = getRunnerModel();
+  const ready = createExperienceRunner(EXPERIENCE_TIMING_PLANS[0], {
+    teacherKey: TEACHER_KEY,
+    nowIso: NOW,
+    classDurationSeconds: 31 * 60,
+  });
+
+  assert.equal(ready.timer.status, "ready");
+  assert.equal(ready.timer.currentStepRemainingSeconds, 180);
+  assert.equal(ready.timer.totalRemainingSeconds, 1860);
+  const later = advanceExperienceRunnerClock(ready, {
+    teacherKey: TEACHER_KEY,
+    nowIso: "2026-08-30T12:04:00.000Z",
+  });
+  assert.equal(later.timer.totalRemainingSeconds, 1860);
+  assert.equal(later.lastTickAt, NOW);
+});
+
+test("runner creation rejects invalid scheduled class durations", () => {
+  const { createExperienceRunner } = getRunnerModel();
+
+  for (const classDurationSeconds of [0, -1, 60.5, 2101, Number.NaN]) {
+    assert.throws(
+      () => createExperienceRunner(EXPERIENCE_TIMING_PLANS[0], {
+        teacherKey: TEACHER_KEY,
+        nowIso: NOW,
+        classDurationSeconds,
+      }),
+      /classDurationSeconds/,
+      String(classDurationSeconds),
+    );
+  }
+});
+
 test("manual next releases an expired step while preserving the remaining class clock", () => {
   const {
     advanceExperienceRunnerClock,

@@ -587,8 +587,15 @@ function assertValidExperiencePlan(plan) {
 
 export function createExperienceRunner(
   plan,
-  { teacherKey, nowIso, modeId, fallbackId } = {},
+  { teacherKey, nowIso, modeId, fallbackId, classDurationSeconds = 35 * 60 } = {},
 ) {
+  if (
+    !Number.isInteger(classDurationSeconds) ||
+    classDurationSeconds < 1 ||
+    classDurationSeconds > 35 * 60
+  ) {
+    throw new TypeError("classDurationSeconds must be an integer from 1 through 2100.");
+  }
   const normalizedInput = normalizedPlanInput(plan);
   assertValidExperiencePlan(normalizedInput);
   const normalizedPlan = resolvedPlanSelection(
@@ -601,14 +608,17 @@ export function createExperienceRunner(
   const owner = normalizedTeacherKey(teacherKey);
   const timestamp = canonicalIso(nowIso, "nowIso");
   const steps = copiedSteps(normalizedPlan.steps);
-  const timer = createStepTimer({
-    id: `experience-${normalizedPlan.projectNumber}`,
-    name: normalizedPlan.title,
-    steps: steps.map((step) => ({
-      name: step.label,
-      minutes: step.minutes,
-    })),
-  });
+  const timer = createStepTimer(
+    {
+      id: `experience-${normalizedPlan.projectNumber}`,
+      name: normalizedPlan.title,
+      steps: steps.map((step) => ({
+        name: step.label,
+        minutes: step.minutes,
+      })),
+    },
+    { classDurationSeconds },
+  );
   const fallbacks = copiedFallbacks(normalizedPlan);
 
   const runner = {
