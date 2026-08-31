@@ -135,15 +135,13 @@ function stateWithActiveEvent(type) {
         name: "Teacher Alpha",
         days: {
           1: [{
-            id: `active-${type}`,
+            id: `event-active-${type}`,
             type,
             label: `PRIVATE_${type.toUpperCase()}_LABEL`,
             start: "09:00",
             end: "09:30",
             classId: "class-alpha",
-            lessonGuideId: "guide-alpha",
-            countdown: `PRIVATE_${type.toUpperCase()}_COUNTDOWN`,
-            currentProcessStep: `PRIVATE_${type.toUpperCase()}_STEP`
+            lessonGuideId: "guide-alpha"
           }]
         }
       }],
@@ -249,6 +247,18 @@ async function renderRoom(state) {
 function stateWithBackToBackEvents(secondType = "teach", secondStart = "09:15") {
   const state = stateWithActiveEvent("teach");
   const event = state.plan.teachers[0].days[1][0];
+  const secondEvent = {
+    ...event,
+    id: "event-second",
+    type: secondType,
+    label: "PRIVATE_SECOND_CLASS",
+    start: secondStart,
+    end: "09:30"
+  };
+  if (secondType !== "teach") {
+    delete secondEvent.classId;
+    delete secondEvent.lessonGuideId;
+  }
   state.plan.teachers[0].days[1] = [
     {
       ...event,
@@ -257,14 +267,7 @@ function stateWithBackToBackEvents(secondType = "teach", secondStart = "09:15") 
       start: "09:00",
       end: "09:15"
     },
-    {
-      ...event,
-      id: "event-second",
-      type: secondType,
-      label: "PRIVATE_SECOND_CLASS",
-      start: secondStart,
-      end: "09:30"
-    }
+    secondEvent
   ];
   state.sharedArtifacts = {};
   return state;
@@ -304,7 +307,7 @@ async function exerciseTeachingEventBoundary({ pauseRunner }) {
     });
     await controller.ready;
 
-    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     if (pauseRunner) {
       findAll(root, (node) => node.tagName === "button" && textOf(node) === "Start class")[0].click();
       findAll(root, (node) => node.tagName === "button" && textOf(node) === "Pause")[0].click();
@@ -361,7 +364,8 @@ function activeArtifact({ handoff = null } = {}) {
   return handoff
     ? recordArtifactHandoff(artifact, {
         handoff,
-        eventId: "artifact-private-event-id",
+        eventId: "event-artifact-private",
+        visitDate: "2026-08-20",
         nowIso: "2026-08-20T12:05:00.000Z"
       })
     : artifact;
@@ -465,7 +469,7 @@ test("welcome preview opens Today without saving or creating progress", async ()
     assert.equal(controller.previewOnly, true);
     assert.match(textOf(root), /Today/);
     assert.equal(findAll(root, (node) =>
-      node.tagName === "button" && node.textContent === "Run today's experience"
+      node.tagName === "button" && node.textContent === "Open class runner"
     ).length, 0);
     assert.equal(saveCount, 0);
     assert.deepEqual(state, original);
@@ -742,7 +746,6 @@ test("rendered Board receives a student-safe teach projection without model fall
     reviewedForBoard: true
   };
   state.plan.teachers[0].days[1][0].label = "PRIVATE_TEACH_EVENT_LABEL";
-  state.plan.teachers[0].days[1][0].countdown = "05:00";
   const rendered = await renderBoard(state);
 
   assert.match(rendered, /Classroom-safe studio session/);
@@ -845,7 +848,7 @@ test("Option 2 Today keeps the live day and the complete project launcher togeth
   assert.match(rendered, /Experience 2 of 36/);
   assert.match(rendered, /Tech Terrarium/);
   assert.match(rendered, /Build it\. Test it\. Leave your mark\./);
-  assert.match(rendered, /Run today's experience/);
+  assert.match(rendered, /Open class runner/);
   assert.match(rendered, /Teacher script/);
   assert.match(rendered, /Student directions/);
   assert.match(rendered, /Designer's Challenge/);
@@ -893,7 +896,7 @@ test("Today and the project 2 teacher runner derive a private-safe artifact disp
     assert.equal(textOf(todayChip[0]), "PRIVATE_TEACH_LABEL");
     assert.equal(saves.length, 0);
 
-    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     assert.equal(saves.length, 1);
     assert.deepEqual(saves[0].sharedArtifacts, {});
     assert.match(textOf(root), /Define the system/);
@@ -919,7 +922,7 @@ test("Today and the project 2 teacher runner derive a private-safe artifact disp
     assert.equal(artifact.stageId, "define");
     assert.equal(artifact.contributionIndex, 1);
     assert.equal(artifact.visits.length, 1);
-    assert.equal(artifact.visits[0].eventId, "active-teach");
+    assert.equal(artifact.visits[0].eventId, "event-active-teach");
     assert.equal(JSON.stringify(artifact).includes("PRIVATE_TEACH_LABEL"), false);
     assert.match(textOf(root), /Mark living and nonliving zones/);
 
@@ -986,7 +989,7 @@ test("a teaching boundary into no current or non-teaching work clears pending ha
       });
       await controller.ready;
 
-      findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+      findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
       findAll(root, (node) => node.tagName === "button" && textOf(node) === "Repeat")[0].click();
       const staleConfirm = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Confirm handoff")[0];
       const savesBeforeBoundary = saves.length;
@@ -1048,7 +1051,7 @@ test("Preview, no plan, no current event, and a current non-teaching event canno
         findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview without saving")[0].click();
         findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview experience")[0].click();
       } else {
-        findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+        findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
       }
 
       for (const label of ["Ready", "Repeat", "Park", "Confirm handoff"]) {
@@ -1068,7 +1071,7 @@ test("overlapping current teaching events retain deterministic first-match hando
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   try {
-    for (const ids of [["overlap-a", "overlap-b"], ["overlap-b", "overlap-a"]]) {
+    for (const ids of [["event-overlap-a", "event-overlap-b"], ["event-overlap-b", "event-overlap-a"]]) {
       const root = new FakeNode("main");
       const state = stateWithActiveEvent("teach");
       const event = state.plan.teachers[0].days[1][0];
@@ -1099,13 +1102,13 @@ test("overlapping current teaching events retain deterministic first-match hando
         clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
       });
       await controller.ready;
-      findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+      findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
       findAll(root, (node) => node.tagName === "button" && textOf(node) === "Repeat")[0].click();
       findAll(root, (node) => node.tagName === "button" && textOf(node) === "Confirm handoff")[0].click();
 
       const serialized = JSON.stringify(saved.sharedArtifacts[TECH_TERRARIUM_ARTIFACT_ID]);
       assert.equal(saved.sharedArtifacts[TECH_TERRARIUM_ARTIFACT_ID].visits[0].eventId, ids[0]);
-      assert.doesNotMatch(serialized, /PRIVATE_overlap/);
+      assert.doesNotMatch(serialized, /PRIVATE_event-overlap/);
       controller.destroy();
     }
   } finally {
@@ -1151,7 +1154,7 @@ test("a clock rollback cannot crash or write a confirmed artifact handoff", asyn
     });
     await controller.ready;
 
-    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Ready")[0].click();
     const confirm = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Confirm handoff")[0];
     assert.doesNotThrow(() => confirm.click());
@@ -1202,7 +1205,7 @@ test("Board and Student views receive no artifact history, current class chip, o
   const studentText = textOf(await renderRoute(state, "project-student"));
 
   for (const rendered of [boardText, studentText]) {
-    assert.doesNotMatch(rendered, /artifact-private-event-id|Inspect and map the system|Define the system|PRIVATE_TEACH_LABEL/);
+    assert.doesNotMatch(rendered, /event-artifact-private|Inspect and map the system|Define the system|PRIVATE_TEACH_LABEL/);
     assert.doesNotMatch(rendered, /Ready|Repeat|Park|Confirm handoff/);
   }
 });
@@ -1246,7 +1249,7 @@ test("teacher and student project routes separate teacher language from Board-sa
   assert.doesNotMatch(studentText, /Teacher script|Teacher moves|Download admin plan|Today the class turns ordinary outdoor materials/);
 });
 
-test("Run today's experience opens one live runner and Student directions keeps its timers without teacher content or a trapped exit", async () => {
+test("Open class runner opens one live runner and Student directions keeps its timers without teacher content or a trapped exit", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   const root = new FakeNode("main");
@@ -1276,7 +1279,7 @@ test("Run today's experience opens one live runner and Student directions keeps 
     });
     await controller.ready;
 
-    const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience");
+    const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner");
     assert.equal(run.length, 1);
     run[0].click();
     assert.match(textOf(root), /Class timer/);
@@ -1320,7 +1323,7 @@ test("Run today's experience opens one live runner and Student directions keeps 
     const exit = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Exit student view");
     assert.equal(exit.length, 1);
     exit[0].click();
-    assert.match(textOf(root), /Run today's experience/);
+    assert.match(textOf(root), /Open class runner/);
     assert.doesNotMatch(textOf(root), /Student directions Step \d+ of \d+/);
   } finally {
     globalThis.document = previousDocument;
@@ -1360,7 +1363,7 @@ test("scheduled class launch saves a stationary ready runner and renders compact
     });
     await controller.ready;
 
-    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     const rendered = textOf(root);
     assert.equal(saveCount, 1);
     assert.equal(saved.experienceRunners["teacher:teacher-alpha"].timer.status, "ready");
@@ -1453,7 +1456,7 @@ test("teacher detour controls hold the step, stay out of Student directions, and
     });
     await controller.ready;
 
-    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Question Detour").length, 0);
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Start class")[0].click();
     assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Question Detour").length, 1);
@@ -1505,7 +1508,7 @@ test("teacher detour controls hold the step, stay out of Student directions, and
     }
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Exit student view")[0].click();
-    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Add 2 minutes")[0].click();
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Add 2 minutes")[0].click();
     assert.equal(saved.experienceRunners["teacher:teacher-alpha"].detour.remainingSeconds, 360);
@@ -1625,7 +1628,7 @@ test("opening a stale same-project ready runner rebases it to the current schedu
     });
     await controller.ready;
 
-    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     assert.equal(saveCount, 1);
     const corrected = saved.experienceRunners["teacher:teacher-alpha"];
     assert.equal(corrected.timer.status, "ready");
@@ -1687,7 +1690,7 @@ test("opening same-project running and paused runners preserves their active lif
       });
       await controller.ready;
 
-      findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+      findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
       assert.equal(saveCount, 0, expected);
       assert.equal(
         findAll(root, (node) => node.tagName === "button" && textOf(node) === expected).length,
@@ -1812,7 +1815,7 @@ test("no-plan Today remains read-only instead of starting a local runner", async
     await controller.ready;
     controller.navigate("today");
 
-    const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience");
+    const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner");
     assert.equal(run.length, 0);
     assert.doesNotMatch(textOf(root), /Class timer/);
     assert.equal(saved, null);
@@ -1853,7 +1856,7 @@ test("a persisted email teacher keeps the Today schedule and launches a namespac
     await controller.ready;
 
     assert.match(textOf(root), /Email teacher live schedule/);
-    const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience");
+    const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner");
     assert.equal(run.length, 1);
     assert.doesNotThrow(() => run[0].click());
     assert.equal(
@@ -1915,7 +1918,7 @@ test("a real default teacher cannot adopt the synthetic local runner or progress
 
     assert.match(textOf(root), /Experience 2 of 36/);
     assert.doesNotMatch(textOf(root), /Experience 19 of 36/);
-    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
 
     assert.equal(saved.experienceRunners["local:default"].teacherKey, "local:default");
     assert.equal(saved.experienceRunners["teacher:default"].teacherKey, "teacher:default");
@@ -1965,7 +1968,7 @@ test("a malformed saved runner is ignored until Run replaces it without breaking
     assert.doesNotThrow(() => controller.navigate("projects"));
     assert.doesNotThrow(() => timerCallback());
     controller.navigate("today");
-    const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience");
+    const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner");
     assert.equal(run.length, 1);
     assert.doesNotThrow(() => run[0].click());
     assert.match(textOf(root), /Class timer/);
@@ -2029,7 +2032,7 @@ test("a saved runner from the future is ignored until Run safely replaces it", a
     await controller.ready;
 
     assert.doesNotThrow(() => timerCallback());
-    const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience");
+    const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner");
     assert.equal(run.length, 1);
     assert.doesNotThrow(() => run[0].click());
     assert.match(textOf(root), /Class timer/);
@@ -2079,7 +2082,7 @@ test("ordinary runner ticks update timer text without replacing the root or chec
     });
     await controller.ready;
 
-    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Start class")[0].click();
     const renderedCount = root.replaceChildrenCount;
     const savedAfterStart = saveCount;
@@ -2150,7 +2153,7 @@ test("last-step completion needs confirmation and then replaces runner controls 
     });
     await controller.ready;
 
-    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     assert.match(textOf(root), new RegExp(`Step ${runner.steps.length} of ${runner.steps.length}`));
     assert.match(textOf(root), /35:00/);
     assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Next Step").length, 0);
@@ -2204,7 +2207,7 @@ test("destroy removes the runner visibility handler so stale views do not reconc
       clock: { now: () => currentTime }
     });
     await controller.ready;
-    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     const renderedCount = root.replaceChildrenCount;
 
     controller.destroy();
@@ -2373,7 +2376,7 @@ test("an actionable private-seed failure keeps Today usable and shows one Settin
     const state = stateWithActiveEvent("teach");
     state.plan.teachers[0].days[1][0].label = "VISIBLE_NOW_EVENT";
     state.plan.teachers[0].days[1].push({
-      id: "visible-next",
+      id: "event-visible-next",
       type: "teach",
       label: "VISIBLE_NEXT_EVENT",
       start: "10:00",
@@ -2522,21 +2525,21 @@ test("Board keeps the live region isolated across timer boundaries and restores 
   const state = stateWithActiveEvent("prep");
   state.plan.teachers[0].days[1] = [
     {
-      id: "event-a",
+      id: "event-one",
       type: "prep",
       label: "GENERIC_INTERNAL_A",
       start: "09:00",
       end: "09:30"
     },
     {
-      id: "event-b",
+      id: "event-two",
       type: "prep",
       label: "GENERIC_INTERNAL_B",
       start: "09:30",
       end: "10:00"
     },
     {
-      id: "event-c",
+      id: "event-three",
       type: "prep",
       label: "GENERIC_INTERNAL_C",
       start: "10:00",
@@ -2582,6 +2585,286 @@ test("Board keeps the live region isolated across timer boundaries and restores 
     currentTime = new Date("2026-08-20T10:01:00-04:00");
     timerCallback();
     assert.match(status.textContent, /GENERIC_INTERNAL_C/);
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("a recovered backup renders a visible truthful recovery notice", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithActiveEvent("teach");
+  let saveCount = 0;
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({
+          state,
+          status: "recovered-backup",
+          error: "Recovered saved playbook state from the local backup"
+        }),
+        save: (nextState) => {
+          saveCount += 1;
+          return structuredClone(nextState);
+        }
+      },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+    });
+    await controller.ready;
+
+    const notices = findAll(root, (node) =>
+      /recovered.*local backup/i.test(textOf(node)) &&
+      ["alert", "status"].includes(node.getAttribute("role"))
+    );
+    assert.equal(notices.length, 1);
+    assert.match(textOf(notices[0]), /primary.*could not be read|saved primary/i);
+    assert.doesNotMatch(textOf(notices[0]), /first use|new setup|clean start/i);
+    assert.equal(saveCount, 0);
+    controller.destroy();
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("configured Preview lesson is in memory, exits cleanly, then live runner stays Ready until Start class", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithActiveEvent("teach");
+  state.teacherProgress = {
+    "teacher:teacher-alpha": {
+      currentProjectNumber: 2,
+      completedProjectNumbers: [1],
+      updatedAt: "2026-08-20T12:00:00.000Z"
+    }
+  };
+  state.sharedArtifacts = {};
+  const progressBefore = structuredClone(state.teacherProgress);
+  const artifactsBefore = structuredClone(state.sharedArtifacts);
+  let currentTime = new Date("2026-08-20T09:10:00-04:00");
+  let timerCallback = null;
+  const saves = [];
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: (callback) => {
+      timerCallback = callback;
+      return 1;
+    },
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({ state, error: null, status: "primary" }),
+        importPlan: () => { throw new Error("configured preview must not import"); },
+        save: (nextState) => {
+          const saved = structuredClone(nextState);
+          saves.push(saved);
+          return saved;
+        }
+      },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => currentTime }
+    });
+    await controller.ready;
+
+    const preview = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview lesson");
+    const live = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner");
+    assert.equal(preview.length, 1);
+    assert.equal(live.length, 1);
+
+    preview[0].click();
+    assert.equal(controller.previewOnly, true);
+    assert.match(textOf(root), /Preview only/);
+    assert.equal(saves.length, 0);
+    assert.deepEqual(state.teacherProgress, progressBefore);
+    assert.deepEqual(state.sharedArtifacts, artifactsBefore);
+    assert.equal(state.experienceRunners?.["teacher:teacher-alpha"], undefined);
+    for (const label of ["Ready", "Repeat", "Park", "Confirm handoff", "Complete experience and move to next"]) {
+      assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === label).length, 0, label);
+    }
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Student directions")[0].click();
+    assert.match(textOf(root), /Preview only/);
+    assert.doesNotMatch(textOf(root), /Teacher script|Teacher moves|Confirm handoff/);
+    assert.equal(saves.length, 0);
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Exit student view")[0].click();
+
+    assert.equal(controller.previewOnly, false);
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview lesson").length, 1);
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner").length, 1);
+    assert.equal(saves.length, 0);
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
+    assert.equal(controller.previewOnly, false);
+    assert.equal(saves.length, 1);
+    assert.equal(saves[0].experienceRunners["teacher:teacher-alpha"].timer.status, "ready");
+    const initialTimers = findAll(root, (node) => /\brunner-timer-value\b/.test(node.className)).map(textOf);
+    currentTime = new Date("2026-08-20T09:10:30-04:00");
+    timerCallback();
+    assert.deepEqual(findAll(root, (node) => /\brunner-timer-value\b/.test(node.className)).map(textOf), initialTimers);
+    assert.equal(saves.length, 1);
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Start class").length, 1);
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Start class")[0].click();
+    assert.equal(saves.length, 2);
+    assert.equal(saves[1].experienceRunners["teacher:teacher-alpha"].timer.status, "running");
+    assert.deepEqual(saves[1].teacherProgress, progressBefore);
+    assert.deepEqual(saves[1].sharedArtifacts, artifactsBefore);
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Back to Today")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview lesson")[0].click();
+    controller.navigate("settings");
+    controller.navigate("today");
+    assert.equal(controller.previewOnly, false);
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner").length, 1);
+    controller.destroy();
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("Teacher Setup file chooser has a visible associated name when enabled and in disabled Preview", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    for (const configured of [true, false]) {
+      const root = new FakeNode("main");
+      const state = configured ? stateWithActiveEvent("teach") : stateWithoutPlan();
+      const controller = renderApp(root, {
+        store: memoryStore(state),
+        loadPrivateSeed: false,
+        weatherService: {},
+        clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+      });
+      await controller.ready;
+      if (!configured) {
+        findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview without saving")[0].click();
+      }
+      controller.navigate("settings");
+      const input = findAll(root, (node) => node.tagName === "input" && node.getAttribute("type") === "file")[0];
+      const labels = findAll(root, (node) =>
+        node.tagName === "label" &&
+        textOf(node) === "Choose teacher plan file" &&
+        node.getAttribute("for") === input.getAttribute("id")
+      );
+      assert.equal(labels.length, 1, configured ? "enabled" : "preview");
+      assert.equal(input.getAttribute("id"), "teacher-plan-file");
+      assert.equal(input.hasAttribute("disabled"), !configured);
+      controller.destroy();
+    }
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("artifact handoff controls are inert after one event visit, across detached clicks and reload, then return next visit date", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  let currentTime = new Date("2026-08-20T09:10:00-04:00");
+  let timerCallback = null;
+  let persisted = stateWithActiveEvent("teach");
+  persisted.sharedArtifacts = {};
+  let saveCount = 0;
+  const store = {
+    load: () => ({ state: structuredClone(persisted), error: null, status: "primary" }),
+    save: (nextState) => {
+      saveCount += 1;
+      persisted = structuredClone(nextState);
+      return structuredClone(persisted);
+    }
+  };
+  const installWindow = () => {
+    globalThis.document = fakeDocument();
+    globalThis.window = {
+      location: { hostname: "example.test" },
+      setInterval: (callback) => {
+        timerCallback = callback;
+        return 1;
+      },
+      clearInterval: () => {},
+      fetch: async () => ({ ok: false })
+    };
+  };
+  try {
+    installWindow();
+    let root = new FakeNode("main");
+    let controller = renderApp(root, {
+      store,
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => currentTime }
+    });
+    await controller.ready;
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
+    const ready = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Ready")[0];
+    assert.ok(ready, textOf(root));
+    ready.click();
+    const confirm = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Confirm handoff")[0];
+    const beforeConfirm = saveCount;
+    confirm.click();
+    confirm.click();
+    ready.click();
+    assert.equal(saveCount, beforeConfirm + 1);
+    assert.equal(persisted.sharedArtifacts[TECH_TERRARIUM_ARTIFACT_ID].visits.length, 1);
+    assert.equal(persisted.sharedArtifacts[TECH_TERRARIUM_ARTIFACT_ID].visits[0].visitDate, "2026-08-20");
+    for (const label of ["Ready", "Repeat", "Park", "Confirm handoff"]) {
+      assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === label).length, 0, label);
+    }
+    controller.destroy();
+
+    installWindow();
+    root = new FakeNode("main");
+    controller = renderApp(root, {
+      store,
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => currentTime }
+    });
+    await controller.ready;
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
+    for (const label of ["Ready", "Repeat", "Park", "Confirm handoff"]) {
+      assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === label).length, 0, `reload:${label}`);
+    }
+    const beforeLaterVisit = saveCount;
+    currentTime = new Date("2026-08-27T09:10:00-04:00");
+    timerCallback();
+    for (const label of ["Ready", "Repeat", "Park"]) {
+      assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === label).length, 1, `next:${label}`);
+    }
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Repeat")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Confirm handoff")[0].click();
+    assert.equal(saveCount, beforeLaterVisit + 1);
+    assert.equal(persisted.sharedArtifacts[TECH_TERRARIUM_ARTIFACT_ID].visits.length, 2);
+    assert.deepEqual(
+      persisted.sharedArtifacts[TECH_TERRARIUM_ARTIFACT_ID].visits.map((visit) => visit.visitDate),
+      ["2026-08-20", "2026-08-27"]
+    );
+    controller.destroy();
   } finally {
     globalThis.document = previousDocument;
     globalThis.window = previousWindow;

@@ -253,7 +253,7 @@ test("project home presents the independence path and usable core actions", () =
   assert.equal(view.independencePath.filter((stage) => stage.active).length, 1);
   assert.equal(view.independencePath.find((stage) => stage.active).label, "Shared Crew");
   assert.deepEqual(view.actions, {
-    run: "Run today's experience",
+    run: "Open class runner",
     teacher: "Teacher script",
     student: "Student directions",
     admin: "Download admin plan"

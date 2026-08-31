@@ -118,18 +118,8 @@ test("converts the exact v1 envelope to one validated v2 teacher without mutatin
   assert.equal(result.value.teachers[0].name, "Teacher Alpha");
   assert.deepEqual(result.value.specialEvents, []);
   assert.deepEqual(result.value.resources, []);
-  assert.deepEqual(result.value.legacyV1, {
-    sourceFormat: "playbook.teacherPlan.v1",
-    preferredDay: 2,
-    planStatus: "reviewed",
-    dayLabels: [
-      { day: 1, label: "Cycle One" },
-      { day: 2, label: "Cycle Two" },
-      { day: 3, label: "Cycle Three" },
-      { day: 4, label: "Cycle Four" },
-      { day: 5, label: "Cycle Five" }
-    ]
-  });
+  assert.equal(Object.hasOwn(result.value, "legacyV1"), false);
+  assert.deepEqual(result.warnings, ["legacy-v1-metadata-stripped"]);
   assert.equal(eventCount(result.value), 6);
   assert.equal(validateTeacherPlan(result.value).ok, true);
   assert.deepEqual(source, sourceBefore);

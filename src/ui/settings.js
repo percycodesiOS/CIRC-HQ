@@ -198,7 +198,7 @@ export function previewSpecialEvent(current, input = {}) {
     return invalidPreview(["special-event-invalid"]);
   }
   const event = {
-    id: stableId("special", `${input.date}|${input.start ?? ""}|${input.end ?? ""}|${input.label}`),
+    id: stableId("event", `${input.date}|${input.start ?? ""}|${input.end ?? ""}|${input.label}`),
     type: "special",
     label: input.label,
     date: input.date

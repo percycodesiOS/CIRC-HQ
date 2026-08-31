@@ -39,6 +39,7 @@ const ALLOWED_UNTRACKED = new Set([
   "src/model/experience-timing-plans.js",
   "src/model/project-catalog.js",
   "src/model/shared-artifact.js",
+  "src/model/schema-admission.js",
   "src/model/step-timer.js",
   "src/ui/project-home.js",
   "scripts/verify-public.mjs",
@@ -70,6 +71,7 @@ const GATE_NAMES = Object.freeze([
   "firebase-placeholders",
   "typography-scan",
   "credential-scan",
+  "local-path-scan",
   "privacy-sentinel-scan",
   "public-runtime-policy",
   "dom-sink-scan",
@@ -109,6 +111,7 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "src/model/lesson-guide.js",
   "src/model/project-catalog.js",
   "src/model/schedule.js",
+  "src/model/schema-admission.js",
   "src/model/shared-artifact.js",
   "src/model/state.js",
   "src/model/step-timer.js",
@@ -515,11 +518,16 @@ async function createContext(root) {
     isSupportedCandidate(candidate)
   );
   const textPaths = reviewedCandidates.filter(isTextCandidate);
+  const trackedTextPaths = tracked.filter(isTextCandidate);
   const textEntries = await Promise.all(textPaths.map(async (relativePath) => ({
     relativePath,
     text: await readCandidate(root, relativePath)
   })));
-  return { root, candidates, tracked, reviewedCandidates, textEntries };
+  const trackedTextEntries = await Promise.all(trackedTextPaths.map(async (relativePath) => ({
+    relativePath,
+    text: await readCandidate(root, relativePath)
+  })));
+  return { root, candidates, tracked, reviewedCandidates, textEntries, trackedTextEntries };
 }
 
 function passCount(count) {
@@ -542,6 +550,42 @@ export function countCredentialViolations(text) {
     /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.(?:edu|school|k12\.[A-Z]{2}|net)\b/i
   ];
   return patterns.reduce((count, pattern) => count + Number(pattern.test(text)), 0);
+}
+
+export function countLocalPathViolations(text) {
+  const slash = "[\\\\/]";
+  const dotCodex = ["\\.", "codex"].join("");
+  const userRoot = ["Users", "Documents", "and", "Settings"].join("|").replace(
+    "Documents|and|Settings",
+    "Documents and Settings"
+  );
+  const unixUsers = ["/", "Users", "/"].join("");
+  const unixHome = ["/", "home", "/"].join("");
+  const tildeHome = ["~", "/"].join("");
+  const dollarHome = ["\\$", "(?:\\{)?", "HOME", "(?:\\})?"].join("");
+  const userProfile = [
+    "(?:%", "USERPROFILE", "%|\\$", "(?:env:)?", "USERPROFILE", "|\\$\\{", "USERPROFILE", "\\})"
+  ].join("");
+  const patterns = [
+    new RegExp(`\\b[A-Za-z]:${slash}(?:${userRoot})${slash}[^\\s<>\"']+`, "gi"),
+    new RegExp(`(?:^|${slash})${dotCodex}(?:${slash}|$)`, "gim"),
+    new RegExp(`${unixUsers}[^/\\s]+(?:/[^\\s<>\"']*)?`, "g"),
+    new RegExp(`${unixHome}[^/\\s]+(?:/[^\\s<>\"']*)?`, "g"),
+    new RegExp(`(?:^|[\\s(\"'])${tildeHome}[^\\s<>\"']*`, "gm"),
+    new RegExp(`${dollarHome}(?:${slash}|\\b)`, "g"),
+    new RegExp(`${userProfile}(?:${slash}|\\b)`, "gi")
+  ];
+  return patterns.reduce((count, pattern) => count + (text.match(pattern)?.length ?? 0), 0);
+}
+
+export async function inspectLocalPaths(root = ROOT) {
+  const tracked = gitListAt(root, ["ls-files", "-z"]);
+  const textPaths = tracked.filter(isTextCandidate);
+  let violations = 0;
+  for (const relativePath of textPaths) {
+    violations += countLocalPathViolations(await readCandidate(root, relativePath));
+  }
+  return resultFromViolations(textPaths.length, violations);
 }
 
 export function countUnsafeRuntimeLinks(text) {
@@ -643,6 +687,14 @@ async function credentialGate(context) {
   return resultFromViolations(context.textEntries.length, violations);
 }
 
+async function localPathGate(context) {
+  let violations = 0;
+  for (const entry of context.trackedTextEntries) {
+    violations += countLocalPathViolations(entry.text);
+  }
+  return resultFromViolations(context.trackedTextEntries.length, violations);
+}
+
 async function privacySentinelGate(context) {
   let tokensChecked = 0;
   let violations = 0;
@@ -728,6 +780,7 @@ const GATES = Object.freeze([
   ["firebase-placeholders", firebasePlaceholdersGate],
   ["typography-scan", typographyGate],
   ["credential-scan", credentialGate],
+  ["local-path-scan", localPathGate],
   ["privacy-sentinel-scan", privacySentinelGate],
   ["public-runtime-policy", publicRuntimePolicyGate],
   ["dom-sink-scan", domSinkGate],

@@ -123,6 +123,7 @@ test("Ready records the worked position and advances exactly one contribution", 
   const result = recordArtifactHandoff(source, {
     handoff: "ready",
     eventId: "event-day3-class1",
+    visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
 
@@ -133,6 +134,7 @@ test("Ready records the worked position and advances exactly one contribution", 
   assert.equal(result.updatedAt, NEXT_AT);
   assert.deepEqual(result.visits, [{
     eventId: "event-day3-class1",
+    visitDate: "2026-08-31",
     handoff: "ready",
     stageId: "define",
     contributionIndex: 0,
@@ -144,6 +146,7 @@ test("Ready wraps from a stage's final contribution to the next stage", () => {
   const result = recordArtifactHandoff(artifactAt("define", 2), {
     handoff: "ready",
     eventId: "event-next-class",
+    visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
 
@@ -157,6 +160,7 @@ test("Ready wraps from a stage's final contribution to the next stage", () => {
   });
   assert.deepEqual(result.visits[0], {
     eventId: "event-next-class",
+    visitDate: "2026-08-31",
     handoff: "ready",
     stageId: "define",
     contributionIndex: 2,
@@ -169,6 +173,7 @@ test("the final Ready records once, retains the final position, and completes te
   const completed = recordArtifactHandoff(source, {
     handoff: "ready",
     eventId: "event-final-class",
+    visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
 
@@ -181,6 +186,7 @@ test("the final Ready records once, retains the final position, and completes te
     assert.throws(() => recordArtifactHandoff(completed, {
       handoff,
       eventId: "event-too-late",
+      visitDate: "2026-08-31",
       nowIso: "2026-08-31T14:00:00.000Z"
     }), /complete/i);
     assert.deepEqual(completed, beforeRejectedHandoff);
@@ -192,11 +198,13 @@ test("Repeat and Park retain the worked contribution and record only the private
   const repeated = recordArtifactHandoff(source, {
     handoff: "repeat",
     eventId: "event-repeat-class",
+    visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
   const parked = recordArtifactHandoff(source, {
     handoff: "park",
     eventId: "event-park-class",
+    visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
 
@@ -211,7 +219,8 @@ test("Repeat and Park retain the worked contribution and record only the private
     "eventId",
     "handoff",
     "recordedAt",
-    "stageId"
+    "stageId",
+    "visitDate"
   ]);
   assert.doesNotMatch(JSON.stringify([repeated, parked]), /classLabel|teacher|student|roster|notes/i);
 });
@@ -221,16 +230,19 @@ test("Ready and Repeat resume a parked artifact while Park stays parked and reco
   const ready = recordArtifactHandoff(parked, {
     handoff: "ready",
     eventId: "event-ready-resume",
+    visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
   const repeated = recordArtifactHandoff(parked, {
     handoff: "repeat",
     eventId: "event-repeat-resume",
+    visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
   const parkedAgain = recordArtifactHandoff(parked, {
     handoff: "park",
     eventId: "event-park-again",
+    visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
 
@@ -244,6 +256,7 @@ test("validation returns a detached strict-schema clone", () => {
   const source = recordArtifactHandoff(initialArtifact(), {
     handoff: "repeat",
     eventId: "event-safe-clone",
+    visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
   const admitted = validateSharedArtifact(source);
@@ -288,6 +301,7 @@ test("validation fails closed for malformed visit fields, chronology, and extra 
   const valid = recordArtifactHandoff(initialArtifact(), {
     handoff: "repeat",
     eventId: "event-valid",
+    visitDate: "2026-08-31",
     nowIso: NEXT_AT
   });
   const visit = valid.visits[0];
@@ -317,11 +331,13 @@ test("validation rejects complete state away from the final contribution and rev
   const first = recordArtifactHandoff(initialArtifact(), {
     handoff: "repeat",
     eventId: "event-first",
+    visitDate: "2026-08-31",
     nowIso: "2026-08-31T13:10:00.000Z"
   });
   const second = recordArtifactHandoff(first, {
     handoff: "repeat",
     eventId: "event-second",
+    visitDate: "2026-08-31",
     nowIso: "2026-08-31T13:20:00.000Z"
   });
   const reversed = { ...second, visits: [...second.visits].reverse() };
@@ -333,12 +349,13 @@ test("creation and handoffs reject noncanonical inputs and never mutate their so
   const before = structuredClone(source);
 
   for (const options of [
-    { handoff: "next", eventId: "event-valid", nowIso: NEXT_AT },
-    { handoff: "ready", eventId: "", nowIso: NEXT_AT },
-    { handoff: "ready", eventId: " event-valid ", nowIso: NEXT_AT },
-    { handoff: "ready", eventId: "event-valid", nowIso: "2026-08-31T13:35:00Z" },
-    { handoff: "ready", eventId: "event-valid", nowIso: "2026-08-31T12:59:59.000Z" },
-    { handoff: "ready", eventId: "event-valid", nowIso: NEXT_AT, classLabel: "Private class" }
+    { handoff: "ready", eventId: "event-valid", nowIso: NEXT_AT },
+    { handoff: "next", eventId: "event-valid", visitDate: "2026-08-31", nowIso: NEXT_AT },
+    { handoff: "ready", eventId: "", visitDate: "2026-08-31", nowIso: NEXT_AT },
+    { handoff: "ready", eventId: " event-valid ", visitDate: "2026-08-31", nowIso: NEXT_AT },
+    { handoff: "ready", eventId: "event-valid", visitDate: "2026-08-31", nowIso: "2026-08-31T13:35:00Z" },
+    { handoff: "ready", eventId: "event-valid", visitDate: "2026-08-31", nowIso: "2026-08-31T12:59:59.000Z" },
+    { handoff: "ready", eventId: "event-valid", visitDate: "2026-08-31", nowIso: NEXT_AT, classLabel: "Private class" }
   ]) {
     assert.throws(() => recordArtifactHandoff(source, options));
     assert.deepEqual(source, before);
@@ -357,4 +374,70 @@ test("creation and handoffs reject noncanonical inputs and never mutate their so
     nowIso: CREATED_AT,
     teacherId: "private-teacher"
   }));
+});
+
+test("a scheduled event records exactly one handoff per visit date and permits the next date", () => {
+  const source = initialArtifact();
+  const first = recordArtifactHandoff(source, {
+    handoff: "repeat",
+    eventId: "event-recurring-class",
+    visitDate: "2026-08-31",
+    nowIso: NEXT_AT
+  });
+  assert.deepEqual(first.visits[0], {
+    eventId: "event-recurring-class",
+    visitDate: "2026-08-31",
+    handoff: "repeat",
+    stageId: "define",
+    contributionIndex: 0,
+    recordedAt: NEXT_AT
+  });
+
+  const beforeDuplicate = structuredClone(first);
+  assert.throws(() => recordArtifactHandoff(first, {
+    handoff: "ready",
+    eventId: "event-recurring-class",
+    visitDate: "2026-08-31",
+    nowIso: "2026-08-31T13:36:00.000Z"
+  }), /visit|handoff|duplicate/i);
+  assert.deepEqual(first, beforeDuplicate);
+
+  const nextDate = recordArtifactHandoff(first, {
+    handoff: "ready",
+    eventId: "event-recurring-class",
+    visitDate: "2026-09-01",
+    nowIso: "2026-09-01T13:35:00.000Z"
+  });
+  assert.equal(nextDate.visits.length, 2);
+  assert.deepEqual(nextDate.visits.map(({ eventId, visitDate }) => ({ eventId, visitDate })), [
+    { eventId: "event-recurring-class", visitDate: "2026-08-31" },
+    { eventId: "event-recurring-class", visitDate: "2026-09-01" }
+  ]);
+});
+
+test("shared artifact visits use the common event ID grammar and a canonical local date", () => {
+  const source = initialArtifact();
+  for (const eventId of [
+    "teacher@example.com",
+    "event/private",
+    "event\\private",
+    "event:private",
+    "Event-Upper",
+    "event prose"
+  ]) {
+    assert.throws(() => recordArtifactHandoff(source, {
+      handoff: "repeat",
+      eventId,
+      visitDate: "2026-08-31",
+      nowIso: NEXT_AT
+    }), /invalid/i, eventId);
+  }
+  for (const visitDate of ["2026-8-31", "2026-02-30", "2026/08/31", " 2026-08-31 "]) {
+    assert.throws(() => recordArtifactHandoff(source, {
+      handoff: "repeat",
+      eventId: "event-valid",
+      visitDate,
+      nowIso: NEXT_AT
+    }), /invalid/i, visitDate);
+  }
 });

@@ -2,19 +2,19 @@
 
 ## Visual source
 
-- Selected source: `C:\Users\Administrator\.codex\generated_images\01a008d6-fe07-7c81-896e-726f03c9bf7a\exec-7889ebed-7f8d-4e4d-b285-f1de7f823cb4.png`
+- Selected source: approved option 2 reference image reviewed during visual QA.
 - Source size: 853 by 1844 pixels.
 - Source state: CIRC HQ Today screen, Project 2 of 36, Tech Terrarium.
 
 ## Browser implementation evidence
 
 - Local URL: `http://127.0.0.1:4173/`
-- Matching implementation capture: `C:\Users\Administrator\.codex\visualizations\2026\08\16\01a008d6-fe07-7c81-896e-726f03c9bf7a\circ-option2-implementation-current-full.png`
-- Combined comparison: `C:\Users\Administrator\.codex\visualizations\2026\08\16\01a008d6-fe07-7c81-896e-726f03c9bf7a\circ-option2-side-by-side-current.png`
+- Matching implementation capture: locally generated full-page capture reviewed during implementation QA.
+- Combined comparison: locally generated side-by-side reference comparison reviewed during implementation QA.
 - Browser viewport and capture: 853 by 1844 CSS pixels.
 - Comparison normalization: source and implementation were placed side by side at their native 853 by 1844 dimensions. No crop, scaling, or color adjustment was applied.
-- Final mobile acceptance captures: `C:\Users\Administrator\.codex\visualizations\2026\08\16\01a008d6-fe07-7c81-896e-726f03c9bf7a\circ-option2-mobile-390-final.png` and `C:\Users\Administrator\.codex\visualizations\2026\08\16\01a008d6-fe07-7c81-896e-726f03c9bf7a\circ-option2-mobile-360-final.png`.
-- Final desktop acceptance capture: `C:\Users\Administrator\.codex\visualizations\2026\08\16\01a008d6-fe07-7c81-896e-726f03c9bf7a\circ-option2-desktop-1440-final.png`.
+- Final mobile acceptance: locally generated 390-pixel and 360-pixel captures reviewed during implementation QA.
+- Final desktop acceptance: locally generated 1440-pixel capture reviewed during implementation QA.
 
 ## Source match assessment
 

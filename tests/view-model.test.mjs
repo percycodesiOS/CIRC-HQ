@@ -16,12 +16,13 @@ const calendar = {
 };
 
 function event(id, title, start, end, type = "teach", extra = {}) {
-  return { id, title, start, end, type, ...extra };
+  const eventId = id.startsWith("event-") ? id : `event-${id}`;
+  return { id: eventId, label: title, start, end, type, ...extra };
 }
 
 function duty(id, title, start, end, dutyLabel) {
   return event(id, title, start, end, "duty", {
-    duty: {
+    dutyDetails: {
       label: dutyLabel,
       assignment: "Spaces 1-4",
       location: "Spot 4"
@@ -86,9 +87,9 @@ function makePlan() {
     ],
     specialEvents: [
       {
-        id: "special-1",
+        id: "event-special-one",
         type: "special",
-        title: "Evening event",
+        label: "Evening event",
         date: "2026-08-28"
       }
     ],

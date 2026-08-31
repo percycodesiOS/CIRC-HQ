@@ -592,7 +592,13 @@ h2 { font-size: 1.15rem; }
   display: block;
   width: 100%;
   max-width: 100%;
-  margin: 12px 0;
+  margin: 6px 0 12px;
+}
+
+.file-picker-label {
+  display: block;
+  margin-top: 12px;
+  font-weight: 800;
 }
 
 .settings-grid input[type="file"]::file-selector-button {
@@ -1084,6 +1090,23 @@ h2 { font-size: 1.15rem; }
 .project-run-button:hover {
   background: #a4d4f1;
   border-color: var(--heading);
+}
+
+.project-launch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.project-launch-actions .secondary-action {
+  min-height: 52px;
+  padding: 11px 17px;
+  border: 2px solid var(--heading);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--heading);
+  font-weight: 850;
 }
 
 .preview-launch {
@@ -1641,6 +1664,8 @@ h2 { font-size: 1.15rem; }
     font-size: clamp(3.1rem, 14vw, 4.3rem);
     letter-spacing: -0.055em;
   }
+  .project-launch-actions { display: grid; }
+  .project-launch-actions .secondary-action,
   .project-run-button { width: 100%; }
 
   .project-quick-actions {

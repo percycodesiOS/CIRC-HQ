@@ -146,7 +146,7 @@ export function buildProjectHomeView(state = {}, { teacherId = null, previewOnly
       ).every((number) => completed.has(number))
     })),
     actions: {
-      run: "Run today's experience",
+      run: "Open class runner",
       teacher: "Teacher script",
       student: "Student directions",
       admin: "Download admin plan"

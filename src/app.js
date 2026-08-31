@@ -407,7 +407,10 @@ function buildProjectHero(view, actions) {
             }),
             actionButton("Preview experience", "project-run-button", () => actions.openRunner(project.number), "arrow-right")
           ])
-        : actionButton(view.actions.run, "project-run-button", () => actions.openRunner(project.number), "arrow-right")
+        : element("div", { className: "project-launch-actions" }, [
+            actionButton("Preview lesson", "secondary-action", () => actions.openConfiguredPreview(project.number)),
+            actionButton(view.actions.run, "project-run-button", () => actions.openRunner(project.number), "arrow-right")
+          ])
     ]),
     element("div", { className: "project-quick-actions" }, [
       actionButton(view.actions.teacher, "project-quick-button", () => actions.openTeacher(project.number), "presentation-chart"),
@@ -1127,10 +1130,16 @@ function settingsRoute(context) {
   });
   const picker = element("input", {
     attributes: {
+      id: "teacher-plan-file",
       type: "file",
       accept: "application/json,.json",
       ...(readOnly ? { disabled: "" } : {})
     }
+  });
+  const pickerLabel = element("label", {
+    className: "file-picker-label",
+    text: "Choose teacher plan file",
+    attributes: { for: "teacher-plan-file" }
   });
 
   picker.addEventListener("change", async () => {
@@ -1242,6 +1251,7 @@ function settingsRoute(context) {
       element("section", {}, [
         element("h2", { text: "Import schedule" }),
         importMessage,
+        pickerLabel,
         picker,
         applyButton
       ]),
@@ -1298,6 +1308,8 @@ export function renderApp(root, services = {}) {
   let weather = { status: "unavailable", label: "Weather unavailable" };
   let previewToken = null;
   let previewOnly = !state.plan;
+  let configuredPreview = false;
+  let previewRunner = null;
   let setupImportAllowed = false;
   let privateSeedMessage = "";
   let timelineExpanded = false;
@@ -1328,7 +1340,7 @@ export function renderApp(root, services = {}) {
 
   function selectedRunner() {
     const owner = runnerOwnerKey();
-    const runner = state.experienceRunners?.[owner];
+    const runner = previewOnly ? previewRunner : state.experienceRunners?.[owner];
     if (!runner) return null;
     if (!validateExperienceRunner(runner, { teacherKey: owner }).ok) return null;
     const currentTime = now().getTime();
@@ -1338,6 +1350,10 @@ export function renderApp(root, services = {}) {
   }
 
   function setRunnerInMemory(runner) {
+    if (previewOnly) {
+      previewRunner = structuredClone(runner);
+      return selectedRunner();
+    }
     const nextState = structuredClone(state);
     const runners = nextState.experienceRunners &&
       typeof nextState.experienceRunners === "object" &&
@@ -1353,7 +1369,7 @@ export function renderApp(root, services = {}) {
   }
 
   function saveRunner(runner) {
-    if (previewOnly) return selectedRunner();
+    if (previewOnly) return setRunnerInMemory(runner);
     setRunnerInMemory(runner);
     state.updatedAt = now().toISOString();
     state = typeof store.save === "function" ? store.save(state) : state;
@@ -1372,6 +1388,7 @@ export function renderApp(root, services = {}) {
       runner.detour?.status ?? "build",
       model.current?.id ?? "no-current-event",
       model.current?.type ?? "no-current-type",
+      model.clock?.dateKey ?? "no-visit-date",
       previewOnly ? "preview" : "live",
       state.plan ? "plan" : "no-plan"
     ].join(":");
@@ -1536,6 +1553,7 @@ export function renderApp(root, services = {}) {
   function artifactHandoffEligibility(model, artifact = artifactForTeacherDisplay(now().toISOString())) {
     const event = currentTeachingEvent(model);
     const runner = selectedRunner();
+    const visitDate = localDateKey(now());
     if (
       !state.plan ||
       previewOnly ||
@@ -1545,8 +1563,12 @@ export function renderApp(root, services = {}) {
       !event ||
       artifact.status === "complete"
     ) return null;
+    if (artifact.visits.some((visit) =>
+      visit.eventId === event.id && visit.visitDate === visitDate
+    )) return null;
     return {
       eventId: event.id,
+      visitDate,
       teacherId: selectedTeacherId,
       runnerOwner: runnerOwnerKey(),
       projectNumber: 2
@@ -1555,9 +1577,10 @@ export function renderApp(root, services = {}) {
 
   function pendingArtifactHandoffMatches(eligibility) {
     if (!pendingArtifactHandoff || !eligibility) return false;
-    return Object.keys(pendingArtifactHandoff).length === 5 &&
+    return Object.keys(pendingArtifactHandoff).length === 6 &&
       ["ready", "repeat", "park"].includes(pendingArtifactHandoff.handoff) &&
       pendingArtifactHandoff.eventId === eligibility.eventId &&
+      pendingArtifactHandoff.visitDate === eligibility.visitDate &&
       pendingArtifactHandoff.teacherId === eligibility.teacherId &&
       pendingArtifactHandoff.runnerOwner === eligibility.runnerOwner &&
       pendingArtifactHandoff.projectNumber === eligibility.projectNumber;
@@ -1578,6 +1601,7 @@ export function renderApp(root, services = {}) {
     pendingArtifactHandoff = Object.freeze({
       handoff,
       eventId: eligibility.eventId,
+      visitDate: eligibility.visitDate,
       teacherId: eligibility.teacherId,
       runnerOwner: eligibility.runnerOwner,
       projectNumber: eligibility.projectNumber
@@ -1615,6 +1639,7 @@ export function renderApp(root, services = {}) {
     const transitioned = recordArtifactHandoff(artifact, {
       handoff: confirmedHandoff.handoff,
       eventId: confirmedHandoff.eventId,
+      visitDate: confirmedHandoff.visitDate,
       nowIso
     });
     const nextState = structuredClone(state);
@@ -1664,6 +1689,15 @@ export function renderApp(root, services = {}) {
   function navigate(nextRoute) {
     reconcileRunner();
     pendingArtifactHandoff = null;
+    if (
+      configuredPreview &&
+      nextRoute !== "experience-runner" &&
+      nextRoute !== "project-student"
+    ) {
+      configuredPreview = false;
+      previewOnly = false;
+      previewRunner = null;
+    }
     if (nextRoute === "today" && !state.plan) previewOnly = true;
     route = nextRoute;
     if (nextRoute !== "today") timelineExpanded = false;
@@ -1733,6 +1767,8 @@ export function renderApp(root, services = {}) {
     pendingArtifactHandoff = null;
     state = nextState;
     previewOnly = !state.plan;
+    configuredPreview = false;
+    previewRunner = null;
     if (state.plan) setupImportAllowed = false;
     if (state.plan) route = "today";
     selectedTeacherId = state.plan?.teachers?.[0]?.id ?? null;
@@ -1751,8 +1787,19 @@ export function renderApp(root, services = {}) {
 
   function openPreview() {
     setupImportAllowed = false;
+    configuredPreview = false;
+    previewRunner = null;
     previewOnly = true;
     navigate("today");
+  }
+
+  function openConfiguredPreview(projectNumber) {
+    if (!state.plan || !getProjectByNumber(projectNumber)) return;
+    setupImportAllowed = false;
+    configuredPreview = true;
+    previewOnly = true;
+    previewRunner = null;
+    openRunner(projectNumber);
   }
 
   function openSetup() {
@@ -1773,6 +1820,7 @@ export function renderApp(root, services = {}) {
       openTeacher,
       openStudent,
       openRunner,
+      openConfiguredPreview,
       openPreview,
       openSetup,
       applyRunnerAction,
@@ -1860,7 +1908,14 @@ export function renderApp(root, services = {}) {
       };
       view = settingsRoute(context);
     }
-    root.replaceChildren(view);
+    const recoveryNotice = loaded.status === "recovered-backup"
+      ? element("p", {
+          className: "recovery-notice",
+          text: "Recovered saved playbook state from the local backup because the saved primary copy could not be read. Export a backup before continuing.",
+          attributes: { role: "alert" }
+        })
+      : null;
+    root.replaceChildren(...[recoveryNotice, view].filter(Boolean));
     setBoardShell(route === "board" || route === "project-student");
     setNavigation();
     announceBoundary(model);

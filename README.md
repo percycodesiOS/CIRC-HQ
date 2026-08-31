@@ -106,7 +106,7 @@ npm test
 npm run verify
 ```
 
-The verifier checks the recursive Git candidate set, Jekyll publication boundary, runtime imports, entrypoint identity, locked legacy and asset bytes, inert Firebase placeholders, typography, credentials, privacy sentinels, runtime policy, DOM sinks, server allowlist, JavaScript syntax, and the complete Node test suite. It prints gate names and counts without printing matched private content.
+The verifier runs 16 fail-closed gates. It checks the recursive Git candidate set, Jekyll publication boundary, runtime imports, entrypoint identity, locked legacy and asset bytes, inert Firebase placeholders, typography, credentials, local path disclosures in every tracked text candidate, privacy sentinels, runtime policy, DOM sinks, server allowlist, JavaScript syntax, and the complete Node test suite. It prints gate names and counts without printing matched private content.
 
 ## Publication status
 

@@ -1,5 +1,19 @@
 # CIRC HQ - BUILDLOG
 
+## 2026-08-31 release review fix wave
+
+- Closed all six release-review findings in one coordinated change: backup recovery, configured lesson preview, one artifact handoff per scheduled visit, closed plan and local-state admission with shared event IDs, public local-path disclosure prevention, and an accessible Teacher Setup file chooser.
+- Strict TDD captured separate RED evidence before production edits. The six focused groups initially reported recovery 0 of 4, configured preview 0 of 1, visit handoff 0 of 2, schema admission 0 of 5, local-path gate 0 of 1, and chooser accessibility 0 of 1. Focused GREEN then ran 184 tests: 183 passed, 0 failed, and 1 intentional private-package skip.
+- `LocalStore.load()` now reads the new backup key only after an existing new primary key fails admission, returns an explicit recovered status without writing, preserves both raw values, and keeps recovered state intact through export and later saves. The app renders a visible recovery notice.
+- Configured teachers now have separate `Preview lesson` and `Open class runner` actions. Preview uses only an in-memory read-only runner, stays visibly marked, and exits back to live Today without a reload or a save.
+- Shared-artifact visits bind one confirmed handoff to one machine event ID and local visit date. Duplicate or detached confirmations remain inert, reload preserves the boundary, and the same recurring event ID is eligible on a later date.
+- One shared lowercase event-ID grammar and closed reconstruction now cover teacher plans, local state, resources, runners, progress, and artifacts. Unknown fields are dropped where legacy state compatibility is safe, forbidden individual-record families fail closed, and exact legacy v1 metadata is accepted for migration but not retained.
+- Public design provenance no longer contains local user or tool paths. The distinct `local-path-scan` checks every tracked text candidate, including Jekyll-excluded documentation, while binary candidates remain outside text scanning.
+- Full `npm test` ran 337 tests: 336 passed, 0 failed, and 1 intentional private-package skip.
+- Final committed-tree `npm run verify` passed all 16 gates: candidate boundary 87, Pages boundary 87, runtime import boundary 21, entrypoint identity 2, legacy lock 1, asset lock 3, Firebase placeholders 1, typography 84, credentials 84, local paths 84, privacy sentinel 96605, runtime policy 45, DOM sinks 25, server allowlist 45, JavaScript syntax 54, and Node tests 26.
+- Both outside-Git one-teacher packages passed the current direct validator and Settings preview with zero mutation, 5 cycle days, valid shared event IDs, and unchanged hashes. Their event counts remained 60 and 51. No schedule labels were printed or copied into Git.
+- No remote, push, publication, Pages, Firebase, account, private-package, old-repository, Drive, Command Center, or private-output change occurred in this fix wave.
+
 ## 2026-08-31 Task 7 staged release preparation
 
 - Prepared the release documentation from reviewed Task 4 HEAD `9ded2d1c19ca5419359307844bab0e36bfef621e` on branch `circ-hq-v1`.

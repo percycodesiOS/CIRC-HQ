@@ -31,15 +31,34 @@ export class LocalStore {
 
   load() {
     const raw = this.storage.getItem(STATE_KEY);
-    if (raw === null) return { state: createInitialState(this.clock.now()), error: null };
+    if (raw === null) {
+      return { state: createInitialState(this.clock.now()), error: null, status: "empty" };
+    }
     try {
-      return { state: parseAdmittedState(raw), error: null };
+      return { state: parseAdmittedState(raw), error: null, status: "primary" };
     } catch {
-      return { state: createInitialState(this.clock.now()), error: "Saved playbook state could not be read" };
+      const backupRaw = this.storage.getItem(BACKUP_KEY);
+      if (backupRaw !== null) {
+        try {
+          return {
+            state: parseAdmittedState(backupRaw),
+            error: "Recovered saved playbook state from the local backup because the saved primary copy could not be read",
+            status: "recovered-backup"
+          };
+        } catch {
+          // Both raw values remain untouched. Fall through to the closed initial state.
+        }
+      }
+      return {
+        state: createInitialState(this.clock.now()),
+        error: "Saved playbook state could not be read and no valid local backup was available",
+        status: "unrecoverable"
+      };
     }
   }
 
   save(state) {
+    const admitted = admittedState(state);
     const previous = this.storage.getItem(STATE_KEY);
     if (previous !== null) {
       try {
@@ -48,24 +67,18 @@ export class LocalStore {
         // Preserve the last known-good backup when prior state cannot be admitted.
       }
     }
-    const admitted = admittedState(state);
     this.storage.setItem(STATE_KEY, JSON.stringify(admitted));
     return admittedState(admitted);
   }
 
   backup() {
-    const prior = this.storage.getItem(STATE_KEY);
-    if (prior === null) return { state: createInitialState(this.clock.now()), error: null };
-    try {
-      const state = parseAdmittedState(prior);
+    const loaded = this.load();
+    if (loaded.status === "primary") {
+      const state = loaded.state;
       this.storage.setItem(BACKUP_KEY, JSON.stringify(state));
-      return { state, error: null };
-    } catch {
-      return {
-        state: createInitialState(this.clock.now()),
-        error: "Saved playbook state could not be read"
-      };
+      return { state: admittedState(state), error: null, status: "primary" };
     }
+    return { state: admittedState(loaded.state), error: loaded.error, status: loaded.status };
   }
 
   importPlan(plan) {

@@ -247,9 +247,7 @@ test("plan import rejects an unsafe resource before preview", () => {
 test("plan validation stores only the normalized resource schema", () => {
   const resource = safeResource({
     validated: true,
-    source: "local",
-    privateNote: "PRIVATE_RESOURCE_NOTE",
-    arbitrary: "PRIVATE_ARBITRARY_FIELD"
+    source: "local"
   });
 
   const validated = validateTeacherPlan(resourcePlan([resource]));
@@ -264,6 +262,12 @@ test("plan validation stores only the normalized resource schema", () => {
     note: "Reviewed note",
     updatedAt: "2026-08-28T12:00:00.000Z"
   }]);
+
+  const withUnknownFields = safeResource({
+    privateNote: "PRIVATE_RESOURCE_NOTE",
+    arbitrary: "PRIVATE_ARBITRARY_FIELD"
+  });
+  assert.equal(validateTeacherPlan(resourcePlan([withUnknownFields])).ok, false);
 });
 
 test("local persistence drops unsafe resources on load save and export", () => {
@@ -320,9 +324,7 @@ test("Room presents only fields returned by shared resource admission", () => {
   const view = buildRoomView({
     resources: [safeResource({
       validated: true,
-      source: "local",
-      privateNote: "PRIVATE_RESOURCE_NOTE",
-      arbitrary: "PRIVATE_ARBITRARY_FIELD"
+      source: "local"
     }), unsafeResource()]
   });
 
@@ -371,6 +373,7 @@ test("public server manifest is an exact reviewed allowlist", () => {
     "src/model/lesson-guide.js",
     "src/model/project-catalog.js",
     "src/model/schedule.js",
+    "src/model/schema-admission.js",
     "src/model/shared-artifact.js",
     "src/model/state.js",
     "src/model/step-timer.js",
@@ -402,6 +405,7 @@ test("public verifier has a recursive-safe sanitized gate contract", () => {
     "firebase-placeholders",
     "typography-scan",
     "credential-scan",
+    "local-path-scan",
     "privacy-sentinel-scan",
     "public-runtime-policy",
     "dom-sink-scan",
@@ -490,6 +494,78 @@ test("candidate classifier rejects forbidden namespaces even when tracked", () =
       unsupportedCandidateCount: 2
     }
   );
+});
+
+test("validation and import reject forbidden plan records without retaining adversarial values", () => {
+  const plan = resourcePlan([]);
+  plan.teachers[0].days = {
+    1: [{
+      id: "event-safe",
+      type: "teach",
+      label: "Safe class label",
+      start: "09:00",
+      end: "09:30"
+    }]
+  };
+  const probes = [
+    (candidate) => { candidate.studentRoster = ["ROOT_PRIVATE_VALUE"]; },
+    (candidate) => { candidate.teachers[0].studentRecords = ["TEACHER_PRIVATE_VALUE"]; },
+    (candidate) => { candidate.teachers[0].days[1][0].studentNames = ["EVENT_PRIVATE_VALUE"]; },
+    (candidate) => { candidate.teachers[0].days[1][0].privateNote = "PRIVATE_NOTE_VALUE"; }
+  ];
+
+  for (const inject of probes) {
+    const candidate = structuredClone(plan);
+    inject(candidate);
+    const validated = validateTeacherPlan(candidate);
+    const previewed = previewPlanImport(null, JSON.stringify(candidate));
+    assert.equal(validated.ok, false);
+    assert.equal(validated.value, null);
+    assert.equal(previewed.ok, false);
+    assert.equal(previewed.candidate, null);
+    assert.doesNotMatch(
+      JSON.stringify({ validated, previewed }),
+      /ROOT_PRIVATE_VALUE|TEACHER_PRIVATE_VALUE|EVENT_PRIVATE_VALUE|PRIVATE_NOTE_VALUE/
+    );
+  }
+});
+
+test("local path gate scans tracked text including excluded docs, ignores binaries, and passes this tree", async (context) => {
+  assert.equal(typeof verifier.inspectLocalPaths, "function");
+  const currentTree = await verifier.inspectLocalPaths(ROOT);
+  assert.equal(currentTree.ok, true);
+  assert.ok(currentTree.count > 0);
+
+  const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-local-path-scan-"));
+  context.after(() => rm(repository, { recursive: true, force: true }));
+  await mkdir(path.join(repository, "docs"), { recursive: true });
+  const probes = [
+    ["C:", "\\", "Users", "\\", "Generic", "\\", "private.txt"].join(""),
+    ["C:", "\\", "Generic", "\\", ".", "codex", "\\", "skills"].join(""),
+    ["/", "Users", "/", "generic", "/", "private.txt"].join(""),
+    ["/", "home", "/", "generic", "/", "private.txt"].join(""),
+    ["~", "/", "private.txt"].join(""),
+    ["$", "HOME", "/", "private.txt"].join(""),
+    ["$", "{", "HOME", "}", "/", "private.txt"].join(""),
+    ["%", "USERPROFILE", "%", "\\", "private.txt"].join("")
+  ];
+  await Promise.all([
+    writeFile(path.join(repository, "design-qa.md"), probes.slice(0, 4).join("\n")),
+    writeFile(path.join(repository, "docs", "excluded.md"), probes.slice(4).join("\n")),
+    writeFile(path.join(repository, "assets.bin"), Buffer.from(probes.join("\n")))
+  ]);
+  execFileSync("git", ["init", "-q"], { cwd: repository });
+  execFileSync("git", ["add", "--", "design-qa.md", "docs/excluded.md", "assets.bin"], { cwd: repository });
+
+  const failed = await verifier.inspectLocalPaths(repository);
+  assert.equal(failed.ok, false);
+  assert.equal(failed.count, probes.length);
+
+  await Promise.all([
+    writeFile(path.join(repository, "design-qa.md"), "Repository-relative provenance only\n"),
+    writeFile(path.join(repository, "docs", "excluded.md"), "No local path disclosure\n")
+  ]);
+  assert.deepEqual(await verifier.inspectLocalPaths(repository), { ok: true, count: 2 });
 });
 
 test("Jekyll exclusions cover every nonruntime release path and expose every public runtime path", async () => {

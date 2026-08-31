@@ -13,7 +13,7 @@ import {
   startStepTimer,
   tickStepTimer,
 } from "./step-timer.js";
-import { isOwnerKey } from "./state.js";
+import { isOwnerKey } from "./schema-admission.js";
 
 const TEACHER_FIELDS = new Set(["directions", "cue", "model"]);
 const STEP_KINDS = new Set(["ready", "safety", "transition", "work", "cleanup", "exit"]);

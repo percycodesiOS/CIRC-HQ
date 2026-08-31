@@ -351,7 +351,7 @@ export function migrateTeacherPlanV1(source, options = {}) {
     ok: true,
     value: validation.value,
     errors: [],
-    warnings: [],
+    warnings: validation.warnings,
     audit
   };
 }

@@ -1,3 +1,10 @@
+import {
+  hasExactKeys,
+  isCanonicalIso,
+  isEventId,
+  isLocalDate
+} from "./schema-admission.js";
+
 export const TECH_TERRARIUM_ARTIFACT_ID = "tech-terrarium-2026-27";
 
 function deepFreeze(value) {
@@ -71,38 +78,16 @@ const ARTIFACT_KEYS = Object.freeze([
 ].sort());
 const VISIT_KEYS = Object.freeze([
   "eventId",
+  "visitDate",
   "handoff",
   "stageId",
   "contributionIndex",
   "recordedAt"
 ].sort());
 const CREATE_KEYS = Object.freeze(["artifactId", "nowIso"].sort());
-const HANDOFF_KEYS = Object.freeze(["handoff", "eventId", "nowIso"].sort());
+const HANDOFF_KEYS = Object.freeze(["handoff", "eventId", "visitDate", "nowIso"].sort());
 const STATUSES = new Set(["active", "parked", "complete"]);
 const HANDOFFS = new Set(["ready", "repeat", "park"]);
-
-function isPlainRecord(value) {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
-  const prototype = Object.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
-}
-
-function hasExactKeys(value, expected) {
-  if (!isPlainRecord(value)) return false;
-  const actual = Object.keys(value).sort();
-  return actual.length === expected.length &&
-    actual.every((key, index) => key === expected[index]);
-}
-
-function isCanonicalIso(value) {
-  if (typeof value !== "string") return false;
-  const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp) && new Date(timestamp).toISOString() === value;
-}
-
-function isEventId(value) {
-  return typeof value === "string" && value.length > 0 && value === value.trim();
-}
 
 function stageForId(stageId) {
   return TECH_TERRARIUM_STAGES.find((stage) => stage.id === stageId) ?? null;
@@ -125,7 +110,11 @@ function isFinalPosition(stageId, contributionIndex) {
 
 function validVisit(visit, createdTimestamp, updatedTimestamp, previousTimestamp) {
   if (!hasExactKeys(visit, VISIT_KEYS)) return null;
-  if (!isEventId(visit.eventId) || !HANDOFFS.has(visit.handoff)) return null;
+  if (
+    !isEventId(visit.eventId) ||
+    !isLocalDate(visit.visitDate) ||
+    !HANDOFFS.has(visit.handoff)
+  ) return null;
   if (!validPosition(visit.stageId, visit.contributionIndex)) return null;
   if (!isCanonicalIso(visit.recordedAt)) return null;
   const recordedTimestamp = Date.parse(visit.recordedAt);
@@ -159,7 +148,10 @@ export function validateSharedArtifact(candidate) {
   ) return null;
 
   let previousTimestamp = createdTimestamp;
+  const recordedVisits = new Set();
   for (const visit of candidate.visits) {
+    const visitKey = `${visit?.eventId ?? ""}\u0000${visit?.visitDate ?? ""}`;
+    if (recordedVisits.has(visitKey)) return null;
     const recordedTimestamp = validVisit(
       visit,
       createdTimestamp,
@@ -167,6 +159,7 @@ export function validateSharedArtifact(candidate) {
       previousTimestamp
     );
     if (recordedTimestamp === null) return null;
+    recordedVisits.add(visitKey);
     previousTimestamp = recordedTimestamp;
   }
   return structuredClone(candidate);
@@ -214,16 +207,23 @@ export function recordArtifactHandoff(artifact, options) {
     !hasExactKeys(options, HANDOFF_KEYS) ||
     !HANDOFFS.has(options.handoff) ||
     !isEventId(options.eventId) ||
+    !isLocalDate(options.visitDate) ||
     !isCanonicalIso(options.nowIso) ||
     Date.parse(options.nowIso) < Date.parse(admitted.updatedAt)
   ) {
     throw new TypeError("shared-artifact-handoff-invalid");
+  }
+  if (admitted.visits.some((visit) =>
+    visit.eventId === options.eventId && visit.visitDate === options.visitDate
+  )) {
+    throw new Error("shared-artifact-visit-already-recorded");
   }
 
   const workedStageId = admitted.stageId;
   const workedContributionIndex = admitted.contributionIndex;
   admitted.visits.push({
     eventId: options.eventId,
+    visitDate: options.visitDate,
     handoff: options.handoff,
     stageId: workedStageId,
     contributionIndex: workedContributionIndex,
