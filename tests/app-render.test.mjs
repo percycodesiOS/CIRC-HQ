@@ -285,7 +285,7 @@ test("a device without a plan starts on the CIRC HQ welcome route", async () => 
     assert.equal(setup.length, 1);
     setup[0].click();
     assert.match(textOf(root), /Teacher Setup/);
-    assert.equal(controller.previewOnly, false);
+    assert.equal(controller.previewOnly, true);
     const planPicker = findAll(root, (node) =>
       node.tagName === "input" && node.getAttribute("type") === "file"
     );
@@ -353,13 +353,15 @@ test("welcome preview opens Today without saving or creating progress", async ()
   }
 });
 
-test("no-plan Welcome to Playbooks remains read-only and cannot complete a project", async () => {
+test("setup unlocks only plan import until a validated plan is applied", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   const root = new FakeNode("main");
   const state = stateWithoutPlan();
   const original = structuredClone(state);
+  const imported = stateWithActiveEvent("teach");
   let saveCount = 0;
+  let importCount = 0;
   globalThis.document = fakeDocument();
   globalThis.window = {
     location: { hostname: "example.test" },
@@ -371,6 +373,10 @@ test("no-plan Welcome to Playbooks remains read-only and cannot complete a proje
     const controller = renderApp(root, {
       store: {
         load: () => ({ state, error: null }),
+        importPlan: () => {
+          importCount += 1;
+          return { ok: true, state: structuredClone(imported) };
+        },
         save: (nextState) => {
           saveCount += 1;
           return structuredClone(nextState);
@@ -382,9 +388,17 @@ test("no-plan Welcome to Playbooks remains read-only and cannot complete a proje
     });
     await controller.ready;
 
+    findAll(root, (node) =>
+      node.tagName === "button" && node.textContent === "Set up this device"
+    )[0].click();
+    const setupPicker = findAll(root, (node) =>
+      node.tagName === "input" && node.getAttribute("type") === "file"
+    )[0];
+    assert.equal(setupPicker.hasAttribute("disabled"), false);
+
     controller.navigate("projects");
     const currentProject = findAll(root, (node) =>
-      node.tagName === "button" && /^Open Experience 1:/.test(node.getAttribute("aria-label") ?? "")
+      node.tagName === "button" && /^Open Experience 2:/.test(node.getAttribute("aria-label") ?? "")
     );
     assert.equal(currentProject.length, 1);
     currentProject[0].click();
@@ -393,12 +407,42 @@ test("no-plan Welcome to Playbooks remains read-only and cannot complete a proje
     );
     complete[0]?.click();
 
+    assert.deepEqual({
+      completeButtonCount: complete.length,
+      saveCount
+    }, {
+      completeButtonCount: 0,
+      saveCount: 0
+    });
     assert.equal(controller.previewOnly, true);
-    assert.equal(complete.length, 0);
-    assert.equal(saveCount, 0);
+    assert.equal(findAll(root, (node) =>
+      node.tagName === "button" && /Run (today's )?experience/.test(textOf(node))
+    ).length, 0);
     assert.deepEqual(state, original);
     assert.deepEqual(state.teacherProgress, {});
     assert.deepEqual(state.experienceRunners, {});
+
+    controller.navigate("settings");
+    const picker = findAll(root, (node) =>
+      node.tagName === "input" && node.getAttribute("type") === "file"
+    )[0];
+    assert.equal(picker.hasAttribute("disabled"), false);
+    picker.files = [{ text: async () => JSON.stringify(imported.plan) }];
+    await picker.listeners.get("change")?.();
+    findAll(root, (node) => node.tagName === "button" && node.textContent === "Apply")[0].click();
+
+    assert.equal(importCount, 1);
+    assert.equal(controller.previewOnly, false);
+    controller.navigate("projects");
+    findAll(root, (node) =>
+      node.tagName === "button" && /^Open Experience 2:/.test(node.getAttribute("aria-label") ?? "")
+    )[0].click();
+    const enabledComplete = findAll(root, (node) =>
+      node.tagName === "button" && textOf(node) === "Complete experience and move to next"
+    );
+    assert.equal(enabledComplete.length, 1);
+    enabledComplete[0].click();
+    assert.equal(saveCount, 1);
     controller.destroy();
   } finally {
     globalThis.document = previousDocument;

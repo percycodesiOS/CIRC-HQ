@@ -941,7 +941,7 @@ function scheduleRoute(state, navigate) {
 }
 
 function settingsRoute(context) {
-  const readOnly = context.readOnly === true;
+  const readOnly = context.importAllowed !== true;
   const importMessage = element("p", {
     className: "import-message",
     text: readOnly
@@ -1127,6 +1127,7 @@ export function renderApp(root, services = {}) {
   let weather = { status: "unavailable", label: "Weather unavailable" };
   let previewToken = null;
   let previewOnly = !state.plan;
+  let setupImportAllowed = false;
   let privateSeedMessage = "";
   let timelineExpanded = false;
   let lastBoundaryKey = "";
@@ -1382,7 +1383,8 @@ export function renderApp(root, services = {}) {
   function replaceState(nextState) {
     lastCompletion = null;
     state = nextState;
-    previewOnly = false;
+    previewOnly = !state.plan;
+    if (state.plan) setupImportAllowed = false;
     if (state.plan) route = "today";
     selectedTeacherId = state.plan?.teachers?.[0]?.id ?? null;
     selectedProjectNumber = buildProjectHomeView(
@@ -1399,12 +1401,13 @@ export function renderApp(root, services = {}) {
   }
 
   function openPreview() {
+    setupImportAllowed = false;
     previewOnly = true;
     navigate("today");
   }
 
   function openSetup() {
-    previewOnly = false;
+    setupImportAllowed = true;
     navigate("settings");
   }
 
@@ -1483,8 +1486,8 @@ export function renderApp(root, services = {}) {
         },
         migrationOptions: services.migrationOptions,
         privateSeedMessage,
-        get readOnly() {
-          return previewOnly;
+        get importAllowed() {
+          return Boolean(state.plan) || setupImportAllowed;
         },
         navigate,
         replaceState
@@ -1518,6 +1521,7 @@ export function renderApp(root, services = {}) {
         if (result.status === "applied") {
           state = result.state;
           previewOnly = false;
+          setupImportAllowed = false;
           route = "today";
           selectedTeacherId = state.plan?.teachers?.[0]?.id ?? null;
           selectedProjectNumber = buildProjectHomeView(
