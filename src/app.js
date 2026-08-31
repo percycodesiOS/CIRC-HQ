@@ -175,7 +175,7 @@ function welcomeRoute(actions) {
     text: presentation.setupAction,
     attributes: { type: "button" }
   });
-  setup.addEventListener("click", () => actions.navigate("settings"));
+  setup.addEventListener("click", actions.openSetup);
   const preview = element("button", {
     className: "secondary-action welcome-secondary",
     text: presentation.previewAction,
@@ -941,9 +941,12 @@ function scheduleRoute(state, navigate) {
 }
 
 function settingsRoute(context) {
+  const readOnly = context.readOnly === true;
   const importMessage = element("p", {
     className: "import-message",
-    text: context.privateSeedMessage || "Choose a supported teacher-plan JSON file to preview changes.",
+    text: readOnly
+      ? "Read-only preview. Set up this device before importing or applying changes."
+      : context.privateSeedMessage || "Choose a supported teacher-plan JSON file to preview changes.",
     attributes: { role: "status", "aria-live": "polite" }
   });
   const applyButton = element("button", {
@@ -952,10 +955,15 @@ function settingsRoute(context) {
     attributes: { type: "button", disabled: "" }
   });
   const picker = element("input", {
-    attributes: { type: "file", accept: "application/json,.json" }
+    attributes: {
+      type: "file",
+      accept: "application/json,.json",
+      ...(readOnly ? { disabled: "" } : {})
+    }
   });
 
   picker.addEventListener("change", async () => {
+    if (readOnly) return;
     context.previewToken = null;
     applyButton.setAttribute("disabled", "");
     const file = picker.files?.[0];
@@ -977,6 +985,7 @@ function settingsRoute(context) {
   });
 
   applyButton.addEventListener("click", () => {
+    if (readOnly) return;
     if (!context.previewToken) return;
     const result = applyPlanImport(context.store, context.previewToken);
     if (!result.ok) {
@@ -1117,7 +1126,7 @@ export function renderApp(root, services = {}) {
   let lastCompletion = null;
   let weather = { status: "unavailable", label: "Weather unavailable" };
   let previewToken = null;
-  let previewOnly = false;
+  let previewOnly = !state.plan;
   let privateSeedMessage = "";
   let timelineExpanded = false;
   let lastBoundaryKey = "";
@@ -1171,6 +1180,7 @@ export function renderApp(root, services = {}) {
   }
 
   function saveRunner(runner) {
+    if (previewOnly) return selectedRunner();
     setRunnerInMemory(runner);
     state.updatedAt = now().toISOString();
     state = typeof store.save === "function" ? store.save(state) : state;
@@ -1207,6 +1217,7 @@ export function renderApp(root, services = {}) {
 
   function reconcileRunner() {
     const runner = selectedRunner();
+    if (previewOnly) return { runner, changed: false };
     if (!runner || (runner.timer.status !== "running" && runner.timer.status !== "step-expired")) {
       return { runner, changed: false };
     }
@@ -1242,6 +1253,7 @@ export function renderApp(root, services = {}) {
   }
 
   function applyRunnerAction(action) {
+    if (previewOnly) return;
     const { runner } = reconcileRunner();
     if (!runner) return;
     if (action === "finish") {
@@ -1345,6 +1357,7 @@ export function renderApp(root, services = {}) {
   }
 
   function undoCompletion() {
+    if (previewOnly) return;
     if (!lastCompletion) return;
     const completion = lastCompletion;
     lastCompletion = null;
@@ -1390,6 +1403,11 @@ export function renderApp(root, services = {}) {
     navigate("today");
   }
 
+  function openSetup() {
+    previewOnly = false;
+    navigate("settings");
+  }
+
   function render() {
     const model = todayModel();
     const projectView = buildProjectHomeView(state, {
@@ -1403,6 +1421,7 @@ export function renderApp(root, services = {}) {
       openStudent,
       openRunner,
       openPreview,
+      openSetup,
       applyRunnerAction,
       completeProject,
       undoCompletion,
@@ -1464,6 +1483,9 @@ export function renderApp(root, services = {}) {
         },
         migrationOptions: services.migrationOptions,
         privateSeedMessage,
+        get readOnly() {
+          return previewOnly;
+        },
         navigate,
         replaceState
       };

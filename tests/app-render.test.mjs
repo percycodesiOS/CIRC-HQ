@@ -285,6 +285,12 @@ test("a device without a plan starts on the CIRC HQ welcome route", async () => 
     assert.equal(setup.length, 1);
     setup[0].click();
     assert.match(textOf(root), /Teacher Setup/);
+    assert.equal(controller.previewOnly, false);
+    const planPicker = findAll(root, (node) =>
+      node.tagName === "input" && node.getAttribute("type") === "file"
+    );
+    assert.equal(planPicker.length, 1);
+    assert.equal(planPicker[0].hasAttribute("disabled"), false);
     controller.destroy();
   } finally {
     globalThis.document = previousDocument;
@@ -340,6 +346,119 @@ test("welcome preview opens Today without saving or creating progress", async ()
     assert.equal(state.plan, null);
     assert.deepEqual(state.experienceRunners, {});
     assert.deepEqual(state.teacherProgress, {});
+    controller.destroy();
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("no-plan Welcome to Playbooks remains read-only and cannot complete a project", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithoutPlan();
+  const original = structuredClone(state);
+  let saveCount = 0;
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({ state, error: null }),
+        save: (nextState) => {
+          saveCount += 1;
+          return structuredClone(nextState);
+        }
+      },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-29T12:00:00.000Z") }
+    });
+    await controller.ready;
+
+    controller.navigate("projects");
+    const currentProject = findAll(root, (node) =>
+      node.tagName === "button" && /^Open Experience 1:/.test(node.getAttribute("aria-label") ?? "")
+    );
+    assert.equal(currentProject.length, 1);
+    currentProject[0].click();
+    const complete = findAll(root, (node) =>
+      node.tagName === "button" && textOf(node) === "Complete experience and move to next"
+    );
+    complete[0]?.click();
+
+    assert.equal(controller.previewOnly, true);
+    assert.equal(complete.length, 0);
+    assert.equal(saveCount, 0);
+    assert.deepEqual(state, original);
+    assert.deepEqual(state.teacherProgress, {});
+    assert.deepEqual(state.experienceRunners, {});
+    controller.destroy();
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("Preview to Teacher Setup remains read-only and cannot Apply an import", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithoutPlan();
+  const original = structuredClone(state);
+  const imported = stateWithActiveEvent("teach");
+  let importCount = 0;
+  let saveCount = 0;
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({ state, error: null }),
+        importPlan: () => {
+          importCount += 1;
+          return { ok: true, state: structuredClone(imported) };
+        },
+        save: () => {
+          saveCount += 1;
+          throw new Error("preview must not save");
+        }
+      },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-29T12:00:00.000Z") }
+    });
+    await controller.ready;
+
+    findAll(root, (node) =>
+      node.tagName === "button" && node.textContent === "Preview without saving"
+    )[0].click();
+    controller.navigate("settings");
+    const picker = findAll(root, (node) =>
+      node.tagName === "input" && node.getAttribute("type") === "file"
+    )[0];
+    picker.files = [{ text: async () => JSON.stringify(imported.plan) }];
+    await picker.listeners.get("change")?.();
+    findAll(root, (node) => node.tagName === "button" && node.textContent === "Apply")[0].click();
+
+    assert.equal(controller.previewOnly, true);
+    assert.equal(importCount, 0);
+    assert.equal(saveCount, 0);
+    assert.deepEqual(state, original);
+    assert.equal(state.plan, null);
+    assert.deepEqual(state.teacherProgress, {});
+    assert.deepEqual(state.experienceRunners, {});
     controller.destroy();
   } finally {
     globalThis.document = previousDocument;

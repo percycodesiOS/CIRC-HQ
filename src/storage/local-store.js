@@ -1,5 +1,5 @@
 import { admitResourceState } from "../model/access.js";
-import { createInitialState, migrateLegacyState, STATE_FORMAT } from "../model/state.js";
+import { createInitialState, STATE_FORMAT } from "../model/state.js";
 import { validateTeacherPlan } from "../model/teacher-plan.js";
 
 export const STATE_KEY = "circHQ.k6.state.v1";
@@ -31,7 +31,7 @@ export class LocalStore {
 
   load() {
     const raw = this.storage.getItem(STATE_KEY);
-    if (raw === null) return { state: migrateLegacyState(this.storage, this.clock.now()).state, error: null };
+    if (raw === null) return { state: createInitialState(this.clock.now()), error: null };
     try {
       return { state: parseAdmittedState(raw), error: null };
     } catch {

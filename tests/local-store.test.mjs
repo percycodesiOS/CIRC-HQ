@@ -40,6 +40,24 @@ test("uses the isolated CIRC HQ storage namespace", () => {
   assert.doesNotMatch(JSON.stringify(storage), /circHQ\.playbook\.state\.v1/);
 });
 
+test("an empty CIRC HQ namespace never reads old-product storage", () => {
+  const storage = memoryStorage({
+    "missionControl.teacherPlan.v1": JSON.stringify({ format: "playbook.teacherPlan.v1" }),
+    circBuyList: JSON.stringify([{ name: "legacy" }]),
+    circNotes: JSON.stringify([{ text: "legacy" }]),
+    "circHQ.playbook.state.v1": JSON.stringify({ format: "playbook.state.v1" })
+  });
+  const store = makeStore(storage);
+
+  const result = store.load();
+
+  assert.deepEqual(storage.accesses, [["get", STATE_KEY]]);
+  assert.equal(result.error, null);
+  assert.equal(result.state.plan, null);
+  assert.deepEqual(result.state.notes, []);
+  assert.deepEqual(result.state.resources, []);
+});
+
 test("recovers from malformed saved JSON with a visible error", () => {
   const store = makeStore(memoryStorage({ [STATE_KEY]: "{not json" }));
 
