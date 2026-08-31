@@ -112,7 +112,7 @@ export function advanceProjectProgress(
   return nextState;
 }
 
-export function buildProjectHomeView(state = {}, { teacherId = null } = {}) {
+export function buildProjectHomeView(state = {}, { teacherId = null, previewOnly = false } = {}) {
   const currentNumber = resolveCurrentProjectNumber(state, teacherId);
   const currentProject = getProjectByNumber(currentNumber) ?? getProjectByNumber(DEFAULT_PROJECT_NUMBER);
   const activeStage = getIndependencePath(currentNumber);
@@ -121,6 +121,7 @@ export function buildProjectHomeView(state = {}, { teacherId = null } = {}) {
     currentNumber === PROJECTS.length && progressRecord(state, teacherId).complete === true;
 
   return {
+    previewOnly: previewOnly === true,
     currentProject,
     progressComplete,
     projectLabel: progressComplete

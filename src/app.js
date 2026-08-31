@@ -24,7 +24,7 @@ import {
   previewPlanImport,
   previewSpecialEvent
 } from "./ui/settings.js";
-import { buildTodayPresentation } from "./ui/today-ui.js";
+import { buildTodayPresentation, buildWelcomePresentation } from "./ui/today-ui.js";
 import { buildTodayViewModel } from "./ui/view-model.js";
 
 function localhostName(hostname) {
@@ -165,6 +165,42 @@ function buildHeading(model, onBoard) {
       ])
     ]),
     boardButton
+  ]);
+}
+
+function welcomeRoute(actions) {
+  const presentation = buildWelcomePresentation();
+  const setup = element("button", {
+    className: "primary-action welcome-primary",
+    text: presentation.setupAction,
+    attributes: { type: "button" }
+  });
+  setup.addEventListener("click", () => actions.navigate("settings"));
+  const preview = element("button", {
+    className: "secondary-action welcome-secondary",
+    text: presentation.previewAction,
+    attributes: { type: "button" }
+  });
+  preview.addEventListener("click", actions.openPreview);
+  return element("section", {
+    className: "welcome-view",
+    attributes: { "data-view": "welcome" }
+  }, [
+    element("img", {
+      className: "welcome-maker",
+      attributes: {
+        src: "assets/circ-hq-maker.webp",
+        alt: "An open playbook growing into colorful maker tools, nature, water, circuitry, and a friendly gear",
+        width: "1254",
+        height: "1254"
+      }
+    }),
+    element("div", { className: "welcome-copy" }, [
+      element("p", { className: "eyebrow", text: presentation.eyebrow }),
+      element("h1", { text: presentation.title }),
+      element("p", { className: "welcome-description", text: presentation.description }),
+      element("div", { className: "welcome-actions" }, [setup, preview])
+    ])
   ]);
 }
 
@@ -356,7 +392,12 @@ function buildProjectHero(view, actions) {
       element("p", { className: "project-kicker", text: view.projectLabel }),
       element("h2", { className: "project-title", text: project.title }),
       element("p", { className: "project-strapline", text: project.strapline }),
-      actionButton(view.actions.run, "project-run-button", () => actions.openRunner(project.number), "arrow-right")
+      view.previewOnly
+        ? element("p", {
+            className: "preview-only-note",
+            text: "Read-only preview. Set up this device to run an experience."
+          })
+        : actionButton(view.actions.run, "project-run-button", () => actions.openRunner(project.number), "arrow-right")
     ]),
     element("div", { className: "project-quick-actions" }, [
       actionButton(view.actions.teacher, "project-quick-button", () => actions.openTeacher(project.number), "presentation-chart"),
@@ -413,7 +454,7 @@ function buildProjectTrail(view, actions) {
     element("p", { className: "section-kicker", text: "The 36-experience year map" }),
     element("div", { className: "trail-heading" }, [
       element("h2", { text: "Your 36-experience year map" }),
-      actionButton("Open Year Map", "trail-link", () => actions.navigate("projects"))
+      actionButton("Open Playbooks", "trail-link", () => actions.navigate("projects"))
     ]),
     element("ol", {
       className: "project-trail",
@@ -727,7 +768,7 @@ function teacherProjectRoute(project, actions) {
     "student"
   );
   const isCurrentProject = project.number === actions.projectView.currentProject.number;
-  const complete = isCurrentProject && !actions.projectView.progressComplete
+  const complete = isCurrentProject && !actions.projectView.progressComplete && !actions.previewOnly
     ? actionButton(
         project.number < PROJECTS.length
           ? "Complete experience and move to next"
@@ -1002,11 +1043,18 @@ function settingsRoute(context) {
     URL.revokeObjectURL(href);
   });
 
+  const scheduleButton = element("button", {
+    className: "secondary-action",
+    text: "Open Schedule",
+    attributes: { type: "button" }
+  });
+  scheduleButton.addEventListener("click", () => context.navigate("schedule"));
+
   return element("section", {}, [
     element("div", { className: "page-heading" }, [
       element("div", {}, [
-        element("p", { className: "eyebrow", text: "The Playbook" }),
-        element("h1", { text: "Settings" }),
+        element("p", { className: "eyebrow", text: "The K-6 Playbook" }),
+        element("h1", { text: "Teacher Setup" }),
         element("p", { className: "date-line", text: "Local setup and compatibility" })
       ])
     ]),
@@ -1016,6 +1064,11 @@ function settingsRoute(context) {
         importMessage,
         picker,
         applyButton
+      ]),
+      element("section", {}, [
+        element("h2", { text: "Schedule" }),
+        element("p", { text: "Review the currently loaded schedule without adding it to primary navigation." }),
+        scheduleButton
       ]),
       element("section", {}, [
         element("h2", { text: "Calendar overrides" }),
@@ -1051,7 +1104,7 @@ export function renderApp(root, services = {}) {
   const weatherService = services.weatherService ?? createWeatherService();
   const loaded = store.load();
   let state = loaded.state;
-  let route = "today";
+  let route = state.plan ? "today" : "welcome";
   let selectedTeacherId =
     services.teacherId ??
     state.preferences?.teacherId ??
@@ -1064,6 +1117,7 @@ export function renderApp(root, services = {}) {
   let lastCompletion = null;
   let weather = { status: "unavailable", label: "Weather unavailable" };
   let previewToken = null;
+  let previewOnly = false;
   let privateSeedMessage = "";
   let timelineExpanded = false;
   let lastBoundaryKey = "";
@@ -1167,6 +1221,7 @@ export function renderApp(root, services = {}) {
   }
 
   function openRunner(projectNumber) {
+    if (previewOnly) return;
     const project = getProjectByNumber(projectNumber);
     if (!project) return;
     const current = selectedRunner();
@@ -1249,6 +1304,7 @@ export function renderApp(root, services = {}) {
 
   function navigate(nextRoute) {
     reconcileRunner();
+    if (nextRoute === "today" && !state.plan) previewOnly = true;
     route = nextRoute;
     if (nextRoute !== "today") timelineExpanded = false;
     render();
@@ -1269,6 +1325,7 @@ export function renderApp(root, services = {}) {
   }
 
   function completeProject(projectNumber) {
+    if (previewOnly) return;
     if (!getProjectByNumber(projectNumber)) return;
     const timestamp = now().toISOString();
     const previousState = structuredClone(state);
@@ -1312,6 +1369,8 @@ export function renderApp(root, services = {}) {
   function replaceState(nextState) {
     lastCompletion = null;
     state = nextState;
+    previewOnly = false;
+    if (state.plan) route = "today";
     selectedTeacherId = state.plan?.teachers?.[0]?.id ?? null;
     selectedProjectNumber = buildProjectHomeView(
       state,
@@ -1326,15 +1385,24 @@ export function renderApp(root, services = {}) {
     render();
   }
 
+  function openPreview() {
+    previewOnly = true;
+    navigate("today");
+  }
+
   function render() {
     const model = todayModel();
-    const projectView = buildProjectHomeView(state, { teacherId: selectedTeacherId });
+    const projectView = buildProjectHomeView(state, {
+      teacherId: selectedTeacherId,
+      previewOnly
+    });
     const runner = selectedRunner();
     const actions = {
       navigate,
       openTeacher,
       openStudent,
       openRunner,
+      openPreview,
       applyRunnerAction,
       completeProject,
       undoCompletion,
@@ -1343,10 +1411,12 @@ export function renderApp(root, services = {}) {
       privateSeedMessage,
       projectView,
       lastCompletion,
-      teacherKey: runnerOwnerKey()
+      teacherKey: runnerOwnerKey(),
+      previewOnly
     };
     let view;
-    if (route === "today") view = buildToday(model, actions, { timelineExpanded });
+    if (route === "welcome") view = welcomeRoute(actions);
+    else if (route === "today") view = buildToday(model, actions, { timelineExpanded });
     else if (route === "board") {
       const liveCountdown = model.current?.id && model.countdown
         ? {
@@ -1394,6 +1464,7 @@ export function renderApp(root, services = {}) {
         },
         migrationOptions: services.migrationOptions,
         privateSeedMessage,
+        navigate,
         replaceState
       };
       view = settingsRoute(context);
@@ -1424,6 +1495,8 @@ export function renderApp(root, services = {}) {
       }).then((result) => {
         if (result.status === "applied") {
           state = result.state;
+          previewOnly = false;
+          route = "today";
           selectedTeacherId = state.plan?.teachers?.[0]?.id ?? null;
           selectedProjectNumber = buildProjectHomeView(
             state,
@@ -1478,6 +1551,9 @@ export function renderApp(root, services = {}) {
   return {
     navigate,
     selectTeacher,
+    get previewOnly() {
+      return previewOnly;
+    },
     ready: privateSeedPromise,
     destroy() {
       window.clearInterval(timer);

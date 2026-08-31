@@ -6,22 +6,39 @@ const NOW = "2026-08-28T12:00:00.000Z";
 
 function memoryStorage(entries = {}) {
   const values = new Map(Object.entries(entries));
-  return {
+  const storage = {
+    accesses: [],
     getItem(key) {
+      this.accesses.push(["get", key]);
       return values.has(key) ? values.get(key) : null;
     },
     setItem(key, value) {
+      this.accesses.push(["set", key]);
       values.set(key, String(value));
     },
     removeItem(key) {
+      this.accesses.push(["remove", key]);
       values.delete(key);
     }
   };
+  return storage;
 }
 
 function makeStore(storage) {
   return new LocalStore(storage, { now: () => NOW });
 }
+
+test("uses the isolated CIRC HQ storage namespace", () => {
+  const storage = memoryStorage();
+  const store = makeStore(storage);
+
+  store.load();
+  store.save({ format: "playbook.state.v1", schemaVersion: 1, updatedAt: NOW });
+
+  assert.equal(LocalStore.primaryKey, "circHQ.k6.state.v1");
+  assert.equal(LocalStore.backupKey, "circHQ.k6.backup.v1");
+  assert.doesNotMatch(JSON.stringify(storage), /circHQ\.playbook\.state\.v1/);
+});
 
 test("recovers from malformed saved JSON with a visible error", () => {
   const store = makeStore(memoryStorage({ [STATE_KEY]: "{not json" }));

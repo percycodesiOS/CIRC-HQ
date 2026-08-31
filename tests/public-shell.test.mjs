@@ -46,11 +46,15 @@ test("public entrypoints are byte-identical ordinary local shells", async () => 
 
 test("public shell exposes the approved name and exact navigation", async () => {
   const html = await readPublicSource("index.html");
+  assert.match(html, /<title>CIRC HQ \| The K-6 Playbook<\/title>/);
   assert.match(html, />\s*CIRC HQ\s*</);
-  assert.match(html, />\s*The Playbook\s*</);
+  assert.match(html, />\s*The K-6 Playbook\s*</);
   assert.doesNotMatch(html, /class="brand-mark"/);
   assert.doesNotMatch(html, /<span[^>]*>\s*CIRC\s*<\/span>/);
   assert.doesNotMatch(html, /Mission Control|Teaching Zone/i);
+  assert.match(html, /<img[^>]+src="assets\/circ-hq-maker\.webp"/);
+  assert.doesNotMatch(html, /data-route="schedule"/);
+  assert.match(html, /data-route="settings"[^>]*aria-label="Teacher Setup"/);
 
   const nav = html.match(/<nav[\s\S]*?<\/nav>/i)?.[0] ?? "";
   const labels = [...nav.matchAll(/<button[^>]+aria-label="([^"]+)"[^>]*>/gi)].map(
@@ -58,13 +62,12 @@ test("public shell exposes the approved name and exact navigation", async () => 
   );
   assert.deepEqual(labels, [
     "Today",
-    "Year Map",
-    "Schedule",
+    "Playbooks",
     "Room",
-    "Settings"
+    "Teacher Setup"
   ]);
-  assert.equal((nav.match(/<img\b/gi) ?? []).length, 5);
-  for (const icon of ["house", "books", "calendar-dots", "chalkboard-teacher", "gear-six"]) {
+  assert.equal((nav.match(/<img\b/gi) ?? []).length, 4);
+  for (const icon of ["house", "books", "chalkboard-teacher", "gear-six"]) {
     assert.match(nav, new RegExp(`assets/icons/${icon}\\.svg`));
   }
   assert.doesNotMatch(nav, /<svg\b/i);

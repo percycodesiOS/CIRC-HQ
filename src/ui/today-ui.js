@@ -46,6 +46,16 @@ const ICONS = {
   }
 };
 
+export function buildWelcomePresentation() {
+  return {
+    eyebrow: "CIRC HQ",
+    title: "The K-6 Playbook",
+    description: "A calm home base for today's plan, hands-on playbooks, and teacher setup.",
+    setupAction: "Set up this device",
+    previewAction: "Preview without saving"
+  };
+}
+
 function weatherKind(code) {
   if (code === 0 || code === 1) return "sun";
   if (code === 2) return "partly-cloudy";

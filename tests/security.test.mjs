@@ -341,6 +341,7 @@ test("public server manifest is an exact reviewed allowlist", () => {
   assert.equal(typeof devServer.getPublicStaticManifest, "function");
   assert.deepEqual(devServer.getPublicStaticManifest(), [
     "app.css",
+    "assets/circ-hq-maker.webp",
     "assets/designers-challenge-sketch.webp",
     "assets/icons/arrow-right.svg",
     "assets/icons/books.svg",
@@ -431,19 +432,19 @@ test("public verifier has a recursive-safe sanitized gate contract", () => {
 
 test("reviewed visual assets are exact and opaque files fail closed", async (context) => {
   assert.equal(typeof verifier.inspectAssetLocks, "function");
-  assert.deepEqual(await verifier.inspectAssetLocks(ROOT), { ok: true, count: 2 });
+  assert.deepEqual(await verifier.inspectAssetLocks(ROOT), { ok: true, count: 3 });
 
   const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-asset-lock-"));
   context.after(() => rm(repository, { recursive: true, force: true }));
   await mkdir(path.join(repository, "assets"), { recursive: true });
-  await writeFile(path.join(repository, "assets", "tech-terrarium-hero.webp"), "TAMPERED");
-  assert.deepEqual(await verifier.inspectAssetLocks(repository), { ok: false, count: 2 });
+  await writeFile(path.join(repository, "assets", "circ-hq-maker.webp"), "TAMPERED");
+  assert.deepEqual(await verifier.inspectAssetLocks(repository), { ok: false, count: 3 });
 
   const counts = verifier.classifyCandidatePaths([
-    "assets/tech-terrarium-hero.webp",
+    "assets/circ-hq-maker.webp",
     "unexpected.webp"
   ], [
-    "assets/tech-terrarium-hero.webp",
+    "assets/circ-hq-maker.webp",
     "unexpected.webp"
   ]);
   assert.equal(counts.unreviewedCandidateCount, 1);

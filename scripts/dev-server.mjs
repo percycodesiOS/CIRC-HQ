@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const DEV_SERVER_HOST = "127.0.0.1";
+export const DEFAULT_PORT = 4273;
 
 const CONTENT_TYPES = new Map([
   [".css", "text/css; charset=utf-8"],
@@ -18,6 +19,7 @@ const PUBLIC_STATIC_FILES = new Set([
   "index.html",
   "mission-control.html",
   "app.css",
+  "assets/circ-hq-maker.webp",
   "assets/designers-challenge-sketch.webp",
   "assets/tech-terrarium-hero.webp",
   "assets/icons/arrow-right.svg",
@@ -226,7 +228,7 @@ export function createDevServer({
 
 export function startDevServer(options = {}) {
   const server = createDevServer(options);
-  const port = Number(process.env.PORT) || 4173;
+  const port = Number(process.env.PORT) || DEFAULT_PORT;
   server.listen(port, DEV_SERVER_HOST, () => {
     process.stdout.write(`CIRC HQ local server: http://${DEV_SERVER_HOST}:${port}\n`);
   });

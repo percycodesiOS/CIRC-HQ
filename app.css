@@ -143,9 +143,22 @@ h2 { font-size: 1.15rem; }
 .brand-lockup {
   display: flex;
   min-width: max-content;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   justify-content: center;
-  gap: 0;
+  gap: 9px;
+}
+
+.brand-lockup > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-maker {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  object-fit: cover;
 }
 
 .brand-lockup strong {
@@ -202,6 +215,65 @@ h2 { font-size: 1.15rem; }
 .setup-card {
   max-width: 680px;
   padding: 24px;
+}
+
+.welcome-view {
+  display: grid;
+  max-width: 980px;
+  min-height: 560px;
+  margin: 20px auto 0;
+  overflow: hidden;
+  align-items: center;
+  grid-template-columns: minmax(280px, 1fr) minmax(300px, 0.9fr);
+  border: 2px solid var(--heading);
+  border-radius: 26px;
+  background: var(--surface);
+  box-shadow: 9px 10px 0 var(--heading);
+}
+
+.welcome-maker {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 560px;
+  object-fit: cover;
+}
+
+.welcome-copy { padding: 42px; }
+
+.welcome-copy h1 {
+  margin-bottom: 14px;
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  font-weight: 950;
+  line-height: 0.92;
+  letter-spacing: -0.055em;
+}
+
+.welcome-description {
+  max-width: 34ch;
+  margin-bottom: 24px;
+  color: var(--secondary);
+  font-size: 1.08rem;
+}
+
+.welcome-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.welcome-actions button { padding: 10px 18px; }
+
+.preview-only-note {
+  max-width: 36ch;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--blue-dark);
+  border-radius: 12px;
+  background: var(--pale-blue);
+  color: var(--heading);
+  font-weight: 800;
 }
 
 .setup-card h2 {
@@ -676,7 +748,7 @@ h2 { font-size: 1.15rem; }
     display: grid;
     width: 100%;
     margin-left: 0;
-    grid-template-columns: repeat(5, minmax(44px, 1fr));
+    grid-template-columns: repeat(4, minmax(44px, 1fr));
   }
 
   .primary-nav button {
@@ -1443,11 +1515,17 @@ h2 { font-size: 1.15rem; }
 
   .brand-lockup strong { font-size: 1rem; }
 
+  .brand-maker {
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+  }
+
   .primary-nav {
     display: grid;
     width: 100%;
     margin: 0;
-    grid-template-columns: repeat(5, minmax(44px, 1fr));
+    grid-template-columns: repeat(4, minmax(44px, 1fr));
   }
 
   .primary-nav button {
@@ -1603,6 +1681,23 @@ h2 { font-size: 1.15rem; }
   .project-detail-heading { padding: 19px; }
   .project-detail-heading h1 { font-size: clamp(2.35rem, 14vw, 4rem); }
   .project-student-view { grid-template-columns: minmax(0, 1fr); }
+
+  .welcome-view {
+    min-height: 0;
+    margin-top: 6px;
+    grid-template-columns: minmax(0, 1fr);
+    box-shadow: 6px 7px 0 var(--heading);
+  }
+
+  .welcome-maker {
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 1;
+  }
+
+  .welcome-copy { padding: 26px 22px 30px; }
+  .welcome-actions { align-items: stretch; flex-direction: column; }
+  .welcome-actions button { width: 100%; }
 }
 
 @media (max-width: 390px) {

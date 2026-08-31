@@ -241,6 +241,191 @@ async function renderRoom(state) {
   return renderRoute(state, "room");
 }
 
+function stateWithoutPlan() {
+  const state = stateWithActiveEvent("teach");
+  state.plan = null;
+  state.teacherProgress = {};
+  state.experienceRunners = {};
+  return state;
+}
+
+test("a device without a plan starts on the CIRC HQ welcome route", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: memoryStore(stateWithoutPlan()),
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+    });
+    await controller.ready;
+
+    const rendered = textOf(root);
+    assert.match(rendered, /CIRC HQ/);
+    assert.match(rendered, /The K-6 Playbook/);
+    assert.match(rendered, /Set up this device/);
+    assert.match(rendered, /Preview without saving/);
+    const makerImages = findAll(root, (node) =>
+      node.tagName === "img" && node.getAttribute("src") === "assets/circ-hq-maker.webp"
+    );
+    assert.equal(makerImages.length, 1);
+
+    const setup = findAll(root, (node) =>
+      node.tagName === "button" && node.textContent === "Set up this device"
+    );
+    assert.equal(setup.length, 1);
+    setup[0].click();
+    assert.match(textOf(root), /Teacher Setup/);
+    controller.destroy();
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("welcome preview opens Today without saving or creating progress", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithoutPlan();
+  const original = structuredClone(state);
+  let saveCount = 0;
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({ state, error: null }),
+        importPlan: () => {
+          throw new Error("preview must not import a plan");
+        },
+        save: () => {
+          saveCount += 1;
+          throw new Error("preview must remain read-only");
+        }
+      },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+    });
+    await controller.ready;
+
+    const preview = findAll(root, (node) =>
+      node.tagName === "button" && node.textContent === "Preview without saving"
+    );
+    assert.equal(preview.length, 1);
+    preview[0].click();
+
+    assert.equal(controller.previewOnly, true);
+    assert.match(textOf(root), /Today/);
+    assert.equal(findAll(root, (node) =>
+      node.tagName === "button" && node.textContent === "Run today's experience"
+    ).length, 0);
+    assert.equal(saveCount, 0);
+    assert.deepEqual(state, original);
+    assert.equal(state.plan, null);
+    assert.deepEqual(state.experienceRunners, {});
+    assert.deepEqual(state.teacherProgress, {});
+    controller.destroy();
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("Teacher Setup retains access to the Schedule route", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: memoryStore(stateWithoutPlan()),
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+    });
+    await controller.ready;
+    controller.navigate("settings");
+
+    assert.match(textOf(root), /Teacher Setup/);
+    const schedule = findAll(root, (node) =>
+      node.tagName === "button" && node.textContent === "Open Schedule"
+    );
+    assert.equal(schedule.length, 1);
+    schedule[0].click();
+    assert.match(textOf(root), /Schedule/);
+    controller.destroy();
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("a validated stored plan starts on Today instead of Welcome", async () => {
+  const root = await renderRoute(stateWithActiveEvent("teach"), "today");
+  assert.match(textOf(root), /Today/);
+  assert.doesNotMatch(textOf(root), /Set up this device|Preview without saving/);
+});
+
+test("a validated localhost plan import leaves Welcome for Today", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const empty = stateWithoutPlan();
+  const imported = stateWithActiveEvent("teach");
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "localhost" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({ state: empty, error: null }),
+        importPlan: () => ({ ok: true, state: structuredClone(imported) })
+      },
+      hostname: "localhost",
+      fetchImpl: async (url) => url === "/__private__/plan.json"
+        ? { ok: true, text: async () => JSON.stringify(imported.plan) }
+        : { ok: false },
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+    });
+
+    assert.match(textOf(root), /The K-6 Playbook/);
+    await controller.ready;
+    assert.match(textOf(root), /Today/);
+    assert.doesNotMatch(textOf(root), /Set up this device|Preview without saving/);
+    controller.destroy();
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
 test("rendered Board never leaks teacher-only active event fields", async () => {
   for (const type of ["duty", "support", "prep", "lunch", "special"]) {
     const rendered = await renderBoard(stateWithActiveEvent(type));
@@ -376,6 +561,7 @@ test("Option 2 Today keeps the live day and the complete project launcher togeth
   assert.match(rendered, /Student directions/);
   assert.match(rendered, /Designer's Challenge/);
   assert.match(rendered, /36-experience year map/i);
+  assert.match(rendered, /Open Playbooks/);
   assert.match(rendered, /PRIVATE_TEACH_LABEL/);
   assert.equal(findAll(root, (node) => /\bproject-trail-step\b/.test(node.className)).length, 36);
 });
@@ -487,7 +673,7 @@ test("Run today's experience opens one live runner and Student directions keeps 
   }
 });
 
-test("no-plan Today starts a locally owned runner instead of requiring a teacher schedule", async () => {
+test("no-plan Today remains read-only instead of starting a local runner", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   const root = new FakeNode("main");
@@ -527,12 +713,12 @@ test("no-plan Today starts a locally owned runner instead of requiring a teacher
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
+    controller.navigate("today");
 
     const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Run today's experience");
-    assert.equal(run.length, 1);
-    assert.doesNotThrow(() => run[0].click());
-    assert.match(textOf(root), /Class timer/);
-    assert.equal(saved.experienceRunners["local:default"].teacherKey, "local:default");
+    assert.equal(run.length, 0);
+    assert.doesNotMatch(textOf(root), /Class timer/);
+    assert.equal(saved, null);
   } finally {
     globalThis.document = previousDocument;
     globalThis.window = previousWindow;

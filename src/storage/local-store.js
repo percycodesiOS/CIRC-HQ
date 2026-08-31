@@ -2,9 +2,9 @@ import { admitResourceState } from "../model/access.js";
 import { createInitialState, migrateLegacyState, STATE_FORMAT } from "../model/state.js";
 import { validateTeacherPlan } from "../model/teacher-plan.js";
 
-export const STATE_KEY = "circHQ.playbook.state.v1";
-export const BACKUP_KEY = "circHQ.playbook.state.v1.backup";
-export const DEVICE_KEY = "circHQ.playbook.device.v1";
+export const STATE_KEY = "circHQ.k6.state.v1";
+export const BACKUP_KEY = "circHQ.k6.backup.v1";
+export const DEVICE_KEY = "circHQ.k6.device.v1";
 
 function clone(value) {
   return structuredClone(value);
@@ -21,6 +21,9 @@ function parseAdmittedState(raw) {
 }
 
 export class LocalStore {
+  static primaryKey = STATE_KEY;
+  static backupKey = BACKUP_KEY;
+
   constructor(storage, clock = { now: () => new Date().toISOString() }) {
     this.storage = storage;
     this.clock = clock;

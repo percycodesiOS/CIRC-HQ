@@ -5,7 +5,13 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { createDevServer, DEV_SERVER_HOST } from "../scripts/dev-server.mjs";
+import * as devServer from "../scripts/dev-server.mjs";
+
+const { createDevServer, DEV_SERVER_HOST } = devServer;
+
+test("uses the dedicated CIRC HQ development port", () => {
+  assert.equal(devServer.DEFAULT_PORT, 4273);
+});
 
 async function writeFixture(root, relativePath, contents) {
   const target = path.join(root, ...relativePath.split("/"));
@@ -32,6 +38,7 @@ async function withServer(context) {
     writeFixture(root, "src/model/project-catalog.js", "GENERIC_PROJECT_CATALOG"),
     writeFixture(root, "src/model/step-timer.js", "GENERIC_STEP_TIMER"),
     writeFixture(root, "src/ui/project-home.js", "GENERIC_PROJECT_HOME"),
+    writeFixture(root, "assets/circ-hq-maker.webp", "GENERIC_MAKER_IMAGE"),
     writeFixture(root, "assets/tech-terrarium-hero.webp", "GENERIC_HERO_IMAGE"),
     writeFixture(root, "assets/icons/house.svg", "GENERIC_HOUSE_ICON"),
     writeFixture(root, ".superpowers/private/generic.json", "GENERIC_IGNORED_PRIVATE"),
@@ -107,6 +114,7 @@ test("the real dev server serves only the explicit public runtime allowlist", as
     ["/src/model/project-catalog.js", "GENERIC_PROJECT_CATALOG"],
     ["/src/model/step-timer.js", "GENERIC_STEP_TIMER"],
     ["/src/ui/project-home.js", "GENERIC_PROJECT_HOME"],
+    ["/assets/circ-hq-maker.webp", "GENERIC_MAKER_IMAGE"],
     ["/assets/tech-terrarium-hero.webp", "GENERIC_HERO_IMAGE"],
     ["/assets/icons/house.svg", "GENERIC_HOUSE_ICON"]
   ]) {
@@ -115,6 +123,7 @@ test("the real dev server serves only the explicit public runtime allowlist", as
     assert.equal(response.body, expectedBody, pathname);
   }
 
+  assert.equal((await request("/assets/circ-hq-maker.webp")).contentType, "image/webp");
   assert.equal((await request("/assets/tech-terrarium-hero.webp")).contentType, "image/webp");
   assert.equal((await request("/assets/icons/house.svg")).contentType, "image/svg+xml; charset=utf-8");
 

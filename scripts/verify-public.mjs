@@ -13,6 +13,7 @@ const EXPECTED_ROOT_GITIGNORE = "/.superpowers/\n";
 const ALLOWED_UNTRACKED = new Set([
   "_config.yml",
   "design-qa.md",
+  "assets/circ-hq-maker.webp",
   "assets/designers-challenge-sketch.webp",
   "assets/icons/LICENSE-phosphor.txt",
   "assets/icons/arrow-right.svg",
@@ -76,6 +77,7 @@ const GATE_NAMES = Object.freeze([
 ]);
 const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "app.css",
+  "assets/circ-hq-maker.webp",
   "assets/designers-challenge-sketch.webp",
   "assets/icons/arrow-right.svg",
   "assets/icons/books.svg",
@@ -195,6 +197,10 @@ const TEXT_EXTENSIONS = new Set([
   ".txt"
 ]);
 const REVIEWED_BINARY_ASSETS = new Map([
+  [
+    "assets/circ-hq-maker.webp",
+    "5F725CE9D91E94BD753435F493892CAC0B3FB63C73E48F5A45608348118204A3"
+  ],
   [
     "assets/designers-challenge-sketch.webp",
     "207704BEEF933454EE3BEFF35C345F940605E946E60FD786409E5A1A3AA5F17F"
