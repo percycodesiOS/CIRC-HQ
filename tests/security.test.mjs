@@ -623,7 +623,8 @@ test("local path gate scans tracked text including excluded docs, ignores binari
 
 test("Jekyll exclusions cover every nonruntime release path and expose every public runtime path", async () => {
   const config = await readFile(path.join(ROOT, "_config.yml"));
-  const exclusions = verifier.parseJekyllExcludes(config);
+  const publication = verifier.parseJekyllPublicationConfig(config);
+  const exclusions = publication?.exclusions;
   const requiredExclusions = [
     "README.md",
     "BUILDLOG.md",
@@ -642,7 +643,38 @@ test("Jekyll exclusions cover every nonruntime release path and expose every pub
     "tests"
   ];
 
-  assert.notEqual(exclusions, null);
+  assert.notEqual(publication, null);
+  assert.deepEqual(publication.includes, ["firebase-config.js"]);
+  assert.equal(
+    verifier.parseJekyllPublicationConfig(
+      config.toString("utf8").replace("include:\n  - firebase-config.js\n\n", "")
+    ),
+    null
+  );
+  const wrongInclude = verifier.parseJekyllPublicationConfig(
+    config.toString("utf8").replace("  - firebase-config.js", "  - other-config.js")
+  );
+  assert.equal(
+    verifier.pagesPublicationBoundaryResult(
+      devServer.getPublicStaticManifest(),
+      wrongInclude
+    ).ok,
+    false
+  );
+  assert.equal(
+    verifier.pagesPublicationBoundaryResult(
+      ["firebase-config.js"],
+      { includes: [], exclusions: ["firebase"] }
+    ).ok,
+    false
+  );
+  assert.deepEqual(
+    verifier.pagesPublicationBoundaryResult(
+      ["firebase-config.js"],
+      { includes: ["firebase-config.js"], exclusions: ["firebase"] }
+    ),
+    { ok: true, count: 1 }
+  );
   for (const relativePath of requiredExclusions) {
     assert.equal(exclusions.includes(relativePath), true, relativePath);
   }
@@ -660,7 +692,7 @@ test("Jekyll exclusions cover every nonruntime release path and expose every pub
     assert.equal(exclusions.includes(relativePath), false, relativePath);
   }
   const publicManifest = devServer.getPublicStaticManifest();
-  assert.deepEqual(verifier.pagesPublicationBoundaryResult(publicManifest, exclusions), {
+  assert.deepEqual(verifier.pagesPublicationBoundaryResult(publicManifest, publication), {
     ok: true,
     count: publicManifest.length
   });
@@ -719,6 +751,9 @@ test("Pages boundary fails closed for an unexcluded file and an excluded runtime
   await Promise.all([
     writeFile(path.join(repository, ".gitignore"), ROOT_GITIGNORE),
     writeFile(path.join(repository, "_config.yml"), [
+      "include:",
+      "  - firebase-config.js",
+      "",
       "exclude:",
       "  - classroom-legacy.html",
       "  - index.html",

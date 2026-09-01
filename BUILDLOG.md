@@ -1,5 +1,12 @@
 # CIRC HQ - BUILDLOG
 
+## 2026-09-01 GitHub Pages Firebase config publication hotfix
+
+- The first exact-SHA Pages deployment succeeded, but the live byte gate found `firebase-config.js` missing while the other 53 reviewed public files matched their committed Git blobs and all 15 excluded paths returned 404.
+- Root cause was Jekyll 3 path-prefix exclusion behavior: the intended `firebase` directory exclusion also matched the root `firebase-config.js` name. The public verifier did not model that implicit prefix collision.
+- `_config.yml` now force-includes only `firebase-config.js` before applying exclusions. The verifier parses both exact include and exclude lists, models Jekyll include precedence, and fails closed if the required root config include is missing or changed.
+- A focused RED first proved the publication contract was absent. The corrected focused public-boundary suite passes 52 of 52 tests. This entry records the pre-push hotfix and does not claim that the corrected Pages deployment or Firebase Console activation has completed.
+
 ## 2026-09-01 Task 8 reviewed cloud-boundary activation
 
 - Activated the reviewed public runtime boundary from Task 7 base `c2d3853`, including the exact six-field root Firebase web configuration and the actual static import closure. The closure includes `src/model/setup-flow.js` because `src/runtime/cloud-runtime.js` reaches it; all server, verifier, and Jekyll manifests agree on the resulting 54 public runtime paths.

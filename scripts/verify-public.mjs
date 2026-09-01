@@ -454,50 +454,75 @@ function isAutomaticallyJekyllHidden(relativePath) {
   );
 }
 
-export function parseJekyllExcludes(value) {
+export function parseJekyllPublicationConfig(value) {
   const text = normalizedText(value);
   if (text === null) return null;
-  let insideExcludeList = false;
-  const excludes = [];
+  let section = null;
+  let sawIncludes = false;
+  let sawExclusions = false;
+  const includes = [];
+  const exclusions = [];
   for (const line of text.split("\n")) {
     if (line === "" || line.startsWith("#")) continue;
-    if (!insideExcludeList) {
-      if (line !== "exclude:") return null;
-      insideExcludeList = true;
+    if (line === "include:") {
+      if (sawIncludes) return null;
+      sawIncludes = true;
+      section = includes;
+      continue;
+    }
+    if (line === "exclude:") {
+      if (sawExclusions) return null;
+      sawExclusions = true;
+      section = exclusions;
       continue;
     }
     const match = line.match(/^  - (\.?[A-Za-z0-9][A-Za-z0-9._/-]*)$/);
-    if (!match) return null;
-    const exclusion = normalizedPath(match[1]);
+    if (!section || !match) return null;
+    const entry = normalizedPath(match[1]);
     if (
-      exclusion.endsWith("/") ||
-      isForbiddenCandidatePath(exclusion) ||
-      excludes.includes(exclusion)
+      entry.endsWith("/") ||
+      isForbiddenCandidatePath(entry) ||
+      section.includes(entry)
     ) return null;
-    excludes.push(exclusion);
+    section.push(entry);
   }
-  return insideExcludeList ? excludes : null;
+  return sawIncludes && sawExclusions
+    ? { includes, exclusions }
+    : null;
 }
 
-function isExactlyExcluded(relativePath, exclusions) {
+export function parseJekyllExcludes(value) {
+  return parseJekyllPublicationConfig(value)?.exclusions ?? null;
+}
+
+function matchesConfiguredPath(relativePath, configuredPaths) {
   const candidate = normalizedPath(relativePath);
-  return exclusions.some((exclusion) =>
-    candidate === exclusion || candidate.startsWith(`${exclusion}/`)
+  return configuredPaths.some((configuredPath) =>
+    candidate === configuredPath || candidate.startsWith(configuredPath)
   );
 }
 
-export function pagesPublicationBoundaryResult(candidatePaths, exclusions) {
-  if (!Array.isArray(exclusions)) return { ok: false, count: 1 };
+export function pagesPublicationBoundaryResult(candidatePaths, publication) {
+  if (
+    !publication ||
+    !Array.isArray(publication.includes) ||
+    !Array.isArray(publication.exclusions)
+  ) return { ok: false, count: 1 };
+  const { includes, exclusions } = publication;
   const runtime = new Set(EXPECTED_PUBLIC_MANIFEST);
-  let violations = 0;
+  let violations = Number(
+    JSON.stringify(includes) !== JSON.stringify([FIREBASE_CONFIG_RELATIVE_PATH])
+  );
   for (const rawPath of candidatePaths) {
     const candidate = normalizedPath(rawPath);
     const hidden = isAutomaticallyJekyllHidden(candidate);
-    const excluded = isExactlyExcluded(candidate, exclusions);
+    const included = matchesConfiguredPath(candidate, includes);
+    const excluded = matchesConfiguredPath(candidate, exclusions);
+    const published = included || (!hidden && !excluded);
     if (runtime.has(candidate)) {
-      violations += Number(hidden || excluded);
+      violations += Number(!published);
     } else {
-      violations += Number(!hidden && !excluded);
+      violations += Number(published);
     }
   }
   return violations === 0
@@ -509,7 +534,7 @@ export async function inspectPagesPublicationBoundary(root = ROOT) {
   const candidates = gitListAt(root, ["ls-files", "-co", "--exclude-standard", "-z"]);
   try {
     const config = await readFile(path.join(root, "_config.yml"));
-    return pagesPublicationBoundaryResult(candidates, parseJekyllExcludes(config));
+    return pagesPublicationBoundaryResult(candidates, parseJekyllPublicationConfig(config));
   } catch {
     return { ok: false, count: 1 };
   }
@@ -724,7 +749,10 @@ async function candidateBoundaryGate(context) {
 async function pagesBoundaryGate(context) {
   try {
     const config = await readFile(path.join(context.root, "_config.yml"));
-    return pagesPublicationBoundaryResult(context.candidates, parseJekyllExcludes(config));
+    return pagesPublicationBoundaryResult(
+      context.candidates,
+      parseJekyllPublicationConfig(config)
+    );
   } catch {
     return { ok: false, count: 1 };
   }
