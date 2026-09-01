@@ -442,6 +442,23 @@ test("membership loading fails closed for malformed exact-schema documents", asy
   assert.equal(malformedReference.membership, null);
 });
 
+test("membership loading rejects nontrimmed and blank stored room names", async () => {
+  const { backend, result } = await bootstrapRoom();
+  const roomPath = `playbookTenants/${result.tenantId}/rooms/${result.roomId}`;
+  const validRoom = backend.records.get(roomPath);
+  const client = requiredExport("createRoomSyncClient")({
+    firebase: backend.view(OWNER_UID),
+    crypto: sequentialCrypto()
+  });
+
+  for (const name of [" Shared Makerspace ", "   "]) {
+    backend.records.set(roomPath, { ...validRoom, name });
+    const loaded = await client.loadRoomMembership(OWNER_UID);
+    assert.equal(loaded.status, "not-member", JSON.stringify(name));
+    assert.equal(loaded.membership, null);
+  }
+});
+
 test("invite redemption atomically advances revision 1 to 2 and creates only the joining membership/root", async () => {
   const { backend, result } = await bootstrapRoom();
   const invitePath = [...backend.records.keys()].find((path) => path.startsWith("playbookInvites/"));
@@ -495,13 +512,10 @@ test("invite redemption atomically advances revision 1 to 2 and creates only the
 
 test("expired invites and invalid invite codes perform zero writes", async () => {
   const { backend, result } = await bootstrapRoom();
-  const invitePath = [...backend.records.keys()].find((path) => path.startsWith("playbookInvites/"));
-  backend.records.set(invitePath, {
-    ...backend.records.get(invitePath),
-    expiresAt: timestampFromMillis(NOW_MS - 1)
-  });
+  const firebase = backend.view(JOINING_UID);
+  firebase.nowMillis = () => NOW_MS + SEVEN_DAYS_MS + 1;
   const client = requiredExport("createRoomSyncClient")({
-    firebase: backend.view(JOINING_UID),
+    firebase,
     crypto: sequentialCrypto()
   });
   backend.stats.transactionWrites.length = 0;
@@ -513,6 +527,27 @@ test("expired invites and invalid invite codes perform zero writes", async () =>
   const invalid = await client.redeemRoomInvite("not-an-invite");
   assert.equal(invalid.status, "denied");
   assert.equal(backend.stats.transactionCalls, transactionsBeforeInvalid);
+});
+
+test("an invite whose lifetime exceeds seven days cannot redeem or write", async () => {
+  const { backend, result } = await bootstrapRoom();
+  const invitePath = [...backend.records.keys()].find((path) => path.startsWith("playbookInvites/"));
+  backend.records.set(invitePath, {
+    ...backend.records.get(invitePath),
+    expiresAt: timestampFromMillis(NOW_MS + SEVEN_DAYS_MS + 1)
+  });
+  backend.stats.transactionWrites.length = 0;
+  const client = requiredExport("createRoomSyncClient")({
+    firebase: backend.view(JOINING_UID),
+    crypto: sequentialCrypto()
+  });
+
+  const redemption = await client.redeemRoomInvite(result.inviteCode);
+
+  assert.equal(redemption.status, "not-found");
+  assert.equal(backend.stats.transactionWrites.length, 0);
+  assert.equal(backend.records.has(`playbookTenants/${result.tenantId}/members/${JOINING_UID}`), false);
+  assert.equal(backend.records.get(invitePath).revision, 1);
 });
 
 test("redemption rejects a malformed target tenant before writing membership state", async () => {
@@ -604,6 +639,41 @@ test("shared-artifact handoff writes matching revisioned artifact/progress envel
   assert.equal(artifact.updatedBy, OWNER_UID);
   assert.equal(progress.updatedBy, OWNER_UID);
   assert.deepEqual(progress.value, progressFor(artifact.value));
+});
+
+test("artifact save rechecks membership inside its transaction after preflight state disappears", async () => {
+  const { backend, result } = await bootstrapRoom();
+  const firebase = backend.view(OWNER_UID);
+  const originalGetDocument = firebase.getDocument.bind(firebase);
+  const roomPath = `playbookTenants/${result.tenantId}/rooms/${result.roomId}`;
+  const teacherPath = `playbookTeachers/${OWNER_UID}`;
+  const artifactPath = `${roomPath}/artifacts/${TECH_TERRARIUM_ARTIFACT_ID}`;
+  const progressPath = `${roomPath}/projectProgress/${TECH_TERRARIUM_ARTIFACT_ID}`;
+  firebase.getDocument = async (path) => {
+    const document = await originalGetDocument(path);
+    if (path === roomPath) backend.records.delete(teacherPath);
+    return document;
+  };
+  const client = requiredExport("createRoomSyncClient")({
+    firebase,
+    crypto: sequentialCrypto()
+  });
+  backend.stats.transactionWrites.length = 0;
+
+  const saved = await client.saveSharedArtifact({
+    tenantId: result.tenantId,
+    roomId: result.roomId,
+    expectedRevision: 1,
+    handoff: "ready",
+    eventId: EVENT_ID,
+    visitDate: "2026-09-01",
+    nowIso: NEXT_ISO
+  });
+
+  assert.equal(saved.status, "not-member");
+  assert.equal(backend.stats.transactionWrites.length, 0);
+  assert.equal(backend.records.get(artifactPath).revision, 1);
+  assert.equal(backend.records.get(progressPath).revision, 1);
 });
 
 test("artifact conflicts and membership rejection perform zero writes and return only admitted safe data", async () => {

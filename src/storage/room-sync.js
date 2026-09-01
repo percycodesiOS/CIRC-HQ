@@ -56,6 +56,7 @@ function isSafeSegment(value) {
 
 function isDisplayName(value) {
   return typeof value === "string" &&
+    value === value.trim() &&
     value.length >= 1 &&
     value.length <= 80 &&
     !/[\u0000-\u001f\u007f]/.test(value);
@@ -218,6 +219,8 @@ function membershipView(membership) {
 }
 
 function admittedInvite(candidate) {
+  const createdAt = timestampMillis(candidate?.createdAt);
+  const expiresAt = timestampMillis(candidate?.expiresAt);
   if (
     !hasExactKeys(candidate, INVITE_KEYS) ||
     candidate.schemaVersion !== 1 ||
@@ -226,8 +229,10 @@ function admittedInvite(candidate) {
     !isSafeSegment(candidate.roomId) ||
     !isSafeSegment(candidate.createdBy) ||
     !isSafeSegment(candidate.updatedBy) ||
-    timestampMillis(candidate.createdAt) === null ||
-    timestampMillis(candidate.expiresAt) === null ||
+    createdAt === null ||
+    expiresAt === null ||
+    expiresAt <= createdAt ||
+    expiresAt - createdAt > INVITE_LIFETIME_MS ||
     timestampMillis(candidate.updatedAt) === null
   ) return null;
   if (candidate.revision === 1) {
@@ -632,6 +637,26 @@ export function createRoomSyncClient({ firebase, crypto } = {}) {
     const sharedProgressPath = progressPath(input.tenantId, input.roomId);
     try {
       const transactionResult = await firebase.runTransaction(async (transaction) => {
+        const teacherRoot = admittedTeacherRoot(
+          await transaction.get(teacherPath(uid)),
+          uid
+        );
+        if (
+          !teacherRoot ||
+          teacherRoot.tenantId !== input.tenantId ||
+          teacherRoot.roomId !== input.roomId
+        ) return { status: "not-member" };
+        const membership = admittedMembership(
+          await transaction.get(membershipPath(input.tenantId, uid)),
+          { uid, tenantId: input.tenantId, roomId: input.roomId }
+        );
+        if (!membership) return { status: "not-member" };
+        const room = admittedRoom(
+          await transaction.get(roomPath(input.tenantId, input.roomId)),
+          input.tenantId,
+          input.roomId
+        );
+        if (!room) return { status: "not-member" };
         const current = admittedEnvelope(await transaction.get(sharedArtifactPath));
         if (!current) return { status: "denied" };
         if (current.revision !== input.expectedRevision) {
@@ -672,6 +697,7 @@ export function createRoomSyncClient({ firebase, crypto } = {}) {
         return { status: "written", revision };
       });
       if (transactionResult?.status === "conflict") return transactionResult;
+      if (transactionResult?.status === "not-member") return artifactUnavailable("not-member");
       if (transactionResult?.status !== "written") return artifactUnavailable("denied");
 
       const artifact = admittedEnvelope(await firebase.getDocument(sharedArtifactPath));
