@@ -228,6 +228,7 @@ test("room bootstrap atomically writes seven exact-schema documents without stor
   assert.ok(inviteEntry, "bootstrap must create one hashed invite document");
   const [invitePath, invite] = inviteEntry;
   assert.match(invitePath, /^playbookInvites\/[0-9a-f]{64}$/);
+  assert.equal(invitePath, `playbookInvites/${result.roomId}`);
   assert.deepEqual(new Set(backend.records.keys()), new Set([
     tenantPath, roomPath, memberPath, teacherPath, artifactPath, progressPath, invitePath
   ]));

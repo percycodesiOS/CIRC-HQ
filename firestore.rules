@@ -1,80 +1,538 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() { return request.auth != null; }
-    function sameUser(uid) { return signedIn() && request.auth.uid == uid; }
-    function exact(data, fields) { return data.keys().hasOnly(fields) && data.keys().hasAll(fields); }
-    function metadata(data, revision) { return data.schemaVersion == 1 && data.revision == revision && data.updatedBy == request.auth.uid && data.updatedAt == request.time; }
-    function nextRevision() { return request.resource.data.revision is int && request.resource.data.revision == resource.data.revision + 1; }
-    function membership(tenantId, uid) { return /databases/$(database)/documents/playbookTenants/$(tenantId)/members/$(uid); }
-    function member(tenantId) { return signedIn() && exists(membership(tenantId, request.auth.uid)); }
-    function owner(tenantId) { return member(tenantId) && get(membership(tenantId, request.auth.uid)).data.role == "owner"; }
-    function validName(value) { return value is string && value.size() >= 1 && value.size() <= 80 && value == value.trim() && !value.matches('.*[\\x00-\\x1F\\x7F].*'); }
-    function teacherRoot(uid) { return /databases/$(database)/documents/playbookTeachers/$(uid); }
-    function room(tenantId, roomId) { return /databases/$(database)/documents/playbookTenants/$(tenantId)/rooms/$(roomId); }
-    function validRoot(uid, data, revision) { return exact(data, ["schemaVersion", "revision", "tenantId", "roomId", "updatedAt", "updatedBy"]) && metadata(data, revision) && data.updatedBy == uid; }
-    function validPrivate(domain, data, revision) {
-      return metadata(data, revision) && (
-        domain == "plan" && exact(data, ["schemaVersion", "revision", "updatedAt", "updatedBy", "plan"]) ||
-        domain == "progress" && exact(data, ["schemaVersion", "revision", "updatedAt", "updatedBy", "teacherProgress"]) ||
-        domain == "preferences" && exact(data, ["schemaVersion", "revision", "updatedAt", "updatedBy", "preferences"]) ||
-        domain == "content" && exact(data, ["schemaVersion", "revision", "updatedAt", "updatedBy", "checklist", "classes", "lessonGuides", "specialEvents", "resources", "notes", "tombstones"])
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function sameUser(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function exact(data, fields) {
+      return data.keys().hasOnly(fields) && data.keys().hasAll(fields);
+    }
+
+    function metadata(data, revision) {
+      return signedIn() &&
+        data.schemaVersion == 1 &&
+        data.revision is int &&
+        data.revision == revision &&
+        data.updatedBy == request.auth.uid &&
+        data.updatedAt == request.time;
+    }
+
+    function nextRevision() {
+      return request.resource.data.revision is int &&
+        resource.data.revision is int &&
+        request.resource.data.revision == resource.data.revision + 1;
+    }
+
+    function tenantPath(tenantId) {
+      return /databases/$(database)/documents/playbookTenants/$(tenantId);
+    }
+
+    function membershipPath(tenantId, uid) {
+      return /databases/$(database)/documents/playbookTenants/$(tenantId)/members/$(uid);
+    }
+
+    function teacherPath(uid) {
+      return /databases/$(database)/documents/playbookTeachers/$(uid);
+    }
+
+    function roomPath(tenantId, roomId) {
+      return /databases/$(database)/documents/playbookTenants/$(tenantId)/rooms/$(roomId);
+    }
+
+    function artifactPath(tenantId, roomId) {
+      return /databases/$(database)/documents/playbookTenants/$(tenantId)/rooms/$(roomId)/artifacts/tech-terrarium-2026-27;
+    }
+
+    function progressPath(tenantId, roomId) {
+      return /databases/$(database)/documents/playbookTenants/$(tenantId)/rooms/$(roomId)/projectProgress/tech-terrarium-2026-27;
+    }
+
+    function invitePath(inviteHash) {
+      return /databases/$(database)/documents/playbookInvites/$(inviteHash);
+    }
+
+    function member(tenantId) {
+      return signedIn() && exists(membershipPath(tenantId, request.auth.uid));
+    }
+
+    function roomMember(tenantId, roomId) {
+      return member(tenantId) &&
+        get(membershipPath(tenantId, request.auth.uid)).data.tenantId == tenantId &&
+        get(membershipPath(tenantId, request.auth.uid)).data.roomId == roomId;
+    }
+
+    function owner(tenantId) {
+      return member(tenantId) &&
+        get(membershipPath(tenantId, request.auth.uid)).data.uid == request.auth.uid &&
+        get(membershipPath(tenantId, request.auth.uid)).data.role == "owner";
+    }
+
+    function ownerForRoom(tenantId, roomId) {
+      return owner(tenantId) &&
+        get(membershipPath(tenantId, request.auth.uid)).data.roomId == roomId;
+    }
+
+    function validName(value) {
+      return value is string &&
+        value.size() >= 1 &&
+        value.size() <= 80 &&
+        value == value.trim() &&
+        !value.matches('.*[\\x00-\\x1F\\x7F].*');
+    }
+
+    function validInviteHash(value) {
+      return value is string && value.matches('^[0-9a-f]{64}$');
+    }
+
+    function validIso(value) {
+      return value is string && value.matches(
+        '^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[0-1])T([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9][.][0-9]{3}Z$'
       );
     }
-    function validArtifact(value) { return exact(value, ["schemaVersion", "artifactId", "projectNumber", "stageId", "contributionIndex", "status", "createdAt", "updatedAt", "visits"]) && value.schemaVersion == 1 && value.artifactId == "tech-terrarium-2026-27" && value.projectNumber == 2 && value.stageId in ["define", "prepare", "base", "systems", "test"] && value.contributionIndex is int && value.contributionIndex >= 0 && value.contributionIndex <= 2 && value.status in ["active", "parked", "complete"] && value.createdAt is timestamp && value.updatedAt is timestamp && value.visits is list; }
-    function validProgress(value) { return exact(value, ["projectNumber", "stageId", "contributionIndex", "status", "updatedAt"]) && value.projectNumber == 2 && value.stageId in ["define", "prepare", "base", "systems", "test"] && value.contributionIndex is int && value.contributionIndex >= 0 && value.contributionIndex <= 2 && value.status in ["active", "parked", "complete"] && value.updatedAt is timestamp; }
-    function artifactEnvelope(data, revision) { return exact(data, ["schemaVersion", "revision", "updatedAt", "updatedBy", "value"]) && metadata(data, revision) && validArtifact(data.value); }
-    function progressEnvelope(data, revision) { return exact(data, ["schemaVersion", "revision", "updatedAt", "updatedBy", "value"]) && metadata(data, revision) && validProgress(data.value); }
-    function progressMatches(artifact, progress) { return artifact.projectNumber == progress.projectNumber && artifact.stageId == progress.stageId && artifact.contributionIndex == progress.contributionIndex && artifact.status == progress.status && artifact.updatedAt == progress.updatedAt; }
+
+    function validLocalDate(value) {
+      return value is string && value.matches(
+        '^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[0-1])$'
+      );
+    }
+
+    function validEventId(value) {
+      return value is string && value.matches('^event-h[0-9a-f]{32}$');
+    }
+
+    function validPosition(stageId, contributionIndex) {
+      return stageId in ["define", "prepare", "base", "systems", "test"] &&
+        contributionIndex is int &&
+        contributionIndex >= 0 &&
+        contributionIndex <= 2;
+    }
+
+    function validStatusPosition(stageId, contributionIndex, status) {
+      return validPosition(stageId, contributionIndex) &&
+        status in ["active", "parked", "complete"] &&
+        (status != "complete" || stageId == "test" && contributionIndex == 2);
+    }
+
+    function validRoot(uid, data, revision) {
+      return exact(data, [
+          "schemaVersion", "revision", "tenantId", "roomId", "updatedAt", "updatedBy"
+        ]) &&
+        metadata(data, revision) &&
+        data.updatedBy == uid;
+    }
+
+    function validPrivate(domain, data, revision) {
+      return metadata(data, revision) && (
+        domain == "plan" && exact(data, [
+          "schemaVersion", "revision", "updatedAt", "updatedBy", "plan"
+        ]) ||
+        domain == "progress" && exact(data, [
+          "schemaVersion", "revision", "updatedAt", "updatedBy", "teacherProgress"
+        ]) ||
+        domain == "preferences" && exact(data, [
+          "schemaVersion", "revision", "updatedAt", "updatedBy", "preferences"
+        ]) ||
+        domain == "content" && exact(data, [
+          "schemaVersion", "revision", "updatedAt", "updatedBy", "checklist", "classes",
+          "lessonGuides", "specialEvents", "resources", "notes", "tombstones"
+        ])
+      );
+    }
+
+    function validTenant(tenantId, data) {
+      return exact(data, [
+          "schemaVersion", "revision", "tenantId", "name", "ownerUid", "createdAt",
+          "updatedAt", "updatedBy"
+        ]) &&
+        metadata(data, 1) &&
+        data.tenantId == tenantId &&
+        data.ownerUid == request.auth.uid &&
+        data.createdAt == request.time &&
+        validName(data.name);
+    }
+
+    function validRoom(tenantId, roomId, data) {
+      return exact(data, [
+          "schemaVersion", "revision", "tenantId", "roomId", "name", "createdAt",
+          "updatedAt", "updatedBy"
+        ]) &&
+        metadata(data, 1) &&
+        data.tenantId == tenantId &&
+        data.roomId == roomId &&
+        data.createdAt == request.time &&
+        validName(data.name);
+    }
+
+    function validMembership(tenantId, uid, data) {
+      return exact(data, [
+          "schemaVersion", "revision", "uid", "tenantId", "roomId", "role", "createdAt",
+          "updatedAt", "updatedBy", "invitationRef"
+        ]) &&
+        metadata(data, 1) &&
+        data.uid == uid &&
+        data.tenantId == tenantId &&
+        data.createdAt == request.time &&
+        data.updatedBy == uid &&
+        data.role in ["owner", "teacher"];
+    }
+
+    function validVisit(visit) {
+      return exact(visit, [
+          "eventId", "visitDate", "handoff", "stageId", "contributionIndex", "recordedAt"
+        ]) &&
+        validEventId(visit.eventId) &&
+        validLocalDate(visit.visitDate) &&
+        visit.handoff in ["ready", "repeat", "park"] &&
+        validPosition(visit.stageId, visit.contributionIndex) &&
+        validIso(visit.recordedAt);
+    }
+
+    function validArtifact(value) {
+      return exact(value, [
+          "schemaVersion", "artifactId", "projectNumber", "stageId", "contributionIndex",
+          "status", "createdAt", "updatedAt", "visits"
+        ]) &&
+        value.schemaVersion == 1 &&
+        value.artifactId == "tech-terrarium-2026-27" &&
+        value.projectNumber == 2 &&
+        validStatusPosition(value.stageId, value.contributionIndex, value.status) &&
+        validIso(value.createdAt) &&
+        validIso(value.updatedAt) &&
+        value.visits is list;
+    }
+
+    function validInitialArtifact(value) {
+      return validArtifact(value) &&
+        value.stageId == "define" &&
+        value.contributionIndex == 0 &&
+        value.status == "active" &&
+        value.createdAt == value.updatedAt &&
+        value.visits.size() == 0;
+    }
+
+    function validProgress(value) {
+      return exact(value, [
+          "projectNumber", "stageId", "contributionIndex", "status", "updatedAt"
+        ]) &&
+        value.projectNumber == 2 &&
+        validStatusPosition(value.stageId, value.contributionIndex, value.status) &&
+        validIso(value.updatedAt);
+    }
+
+    function artifactEnvelope(data, revision) {
+      return exact(data, ["schemaVersion", "revision", "updatedAt", "updatedBy", "value"]) &&
+        metadata(data, revision) &&
+        validArtifact(data.value);
+    }
+
+    function initialArtifactEnvelope(data) {
+      return exact(data, ["schemaVersion", "revision", "updatedAt", "updatedBy", "value"]) &&
+        metadata(data, 1) &&
+        validInitialArtifact(data.value);
+    }
+
+    function progressEnvelope(data, revision) {
+      return exact(data, ["schemaVersion", "revision", "updatedAt", "updatedBy", "value"]) &&
+        metadata(data, revision) &&
+        validProgress(data.value);
+    }
+
+    function progressMatches(artifact, progress) {
+      return artifact.projectNumber == progress.projectNumber &&
+        artifact.stageId == progress.stageId &&
+        artifact.contributionIndex == progress.contributionIndex &&
+        artifact.status == progress.status &&
+        artifact.updatedAt == progress.updatedAt;
+    }
+
+    function readyTransition(before, after) {
+      return before.stageId == "define" && before.contributionIndex < 2 &&
+          after.stageId == "define" && after.contributionIndex == before.contributionIndex + 1 &&
+          after.status == "active" ||
+        before.stageId == "define" && before.contributionIndex == 2 &&
+          after.stageId == "prepare" && after.contributionIndex == 0 && after.status == "active" ||
+        before.stageId == "prepare" && before.contributionIndex < 2 &&
+          after.stageId == "prepare" && after.contributionIndex == before.contributionIndex + 1 &&
+          after.status == "active" ||
+        before.stageId == "prepare" && before.contributionIndex == 2 &&
+          after.stageId == "base" && after.contributionIndex == 0 && after.status == "active" ||
+        before.stageId == "base" && before.contributionIndex < 2 &&
+          after.stageId == "base" && after.contributionIndex == before.contributionIndex + 1 &&
+          after.status == "active" ||
+        before.stageId == "base" && before.contributionIndex == 2 &&
+          after.stageId == "systems" && after.contributionIndex == 0 && after.status == "active" ||
+        before.stageId == "systems" && before.contributionIndex < 2 &&
+          after.stageId == "systems" && after.contributionIndex == before.contributionIndex + 1 &&
+          after.status == "active" ||
+        before.stageId == "systems" && before.contributionIndex == 2 &&
+          after.stageId == "test" && after.contributionIndex == 0 && after.status == "active" ||
+        before.stageId == "test" && before.contributionIndex < 2 &&
+          after.stageId == "test" && after.contributionIndex == before.contributionIndex + 1 &&
+          after.status == "active" ||
+        before.stageId == "test" && before.contributionIndex == 2 &&
+          after.stageId == "test" && after.contributionIndex == 2 && after.status == "complete";
+    }
+
+    function handoffTransition(before, after, visit) {
+      return visit.handoff == "park" &&
+          after.stageId == before.stageId &&
+          after.contributionIndex == before.contributionIndex &&
+          after.status == "parked" ||
+        visit.handoff == "repeat" &&
+          after.stageId == before.stageId &&
+          after.contributionIndex == before.contributionIndex &&
+          after.status == "active" ||
+        visit.handoff == "ready" && readyTransition(before, after);
+    }
+
+    function validArtifactHandoff(before, after) {
+      let visit = after.visits[after.visits.size() - 1];
+      return validArtifact(after) &&
+        before.status != "complete" &&
+        after.createdAt == before.createdAt &&
+        after.visits.size() == before.visits.size() + 1 &&
+        after.visits == before.visits.concat([visit]) &&
+        !before.visits.hasAny([visit]) &&
+        validVisit(visit) &&
+        visit.stageId == before.stageId &&
+        visit.contributionIndex == before.contributionIndex &&
+        visit.recordedAt == after.updatedAt &&
+        before.updatedAt < after.updatedAt &&
+        handoffTransition(before, after, visit);
+    }
+
+    function validInviteCreate(inviteHash, data) {
+      return validInviteHash(inviteHash) &&
+        exact(data, [
+          "schemaVersion", "revision", "tenantId", "roomId", "createdBy", "createdAt",
+          "expiresAt", "usedBy", "usedAt", "updatedAt", "updatedBy"
+        ]) &&
+        metadata(data, 1) &&
+        data.createdBy == request.auth.uid &&
+        data.createdAt == request.time &&
+        data.updatedAt == request.time &&
+        data.expiresAt is timestamp &&
+        data.expiresAt > request.time &&
+        data.expiresAt <= request.time + duration.value(7, 'd') &&
+        data.usedBy == null &&
+        data.usedAt == null;
+    }
+
+    function validOwnerBootstrap(tenantId, roomId, uid) {
+      return sameUser(uid) &&
+        validInviteHash(roomId) &&
+        getAfter(tenantPath(tenantId)).data.tenantId == tenantId &&
+        getAfter(tenantPath(tenantId)).data.ownerUid == uid &&
+        getAfter(membershipPath(tenantId, uid)).data.uid == uid &&
+        getAfter(membershipPath(tenantId, uid)).data.tenantId == tenantId &&
+        getAfter(membershipPath(tenantId, uid)).data.roomId == roomId &&
+        getAfter(membershipPath(tenantId, uid)).data.role == "owner" &&
+        getAfter(membershipPath(tenantId, uid)).data.invitationRef == null &&
+        getAfter(teacherPath(uid)).data.tenantId == tenantId &&
+        getAfter(teacherPath(uid)).data.roomId == roomId &&
+        getAfter(roomPath(tenantId, roomId)).data.tenantId == tenantId &&
+        getAfter(roomPath(tenantId, roomId)).data.roomId == roomId &&
+        getAfter(artifactPath(tenantId, roomId)).data.revision == 1 &&
+        getAfter(progressPath(tenantId, roomId)).data.revision == 1 &&
+        progressMatches(
+          getAfter(artifactPath(tenantId, roomId)).data.value,
+          getAfter(progressPath(tenantId, roomId)).data.value
+        ) &&
+        getAfter(invitePath(roomId)).data.tenantId == tenantId &&
+        getAfter(invitePath(roomId)).data.roomId == roomId &&
+        getAfter(invitePath(roomId)).data.createdBy == uid &&
+        getAfter(invitePath(roomId)).data.revision == 1 &&
+        getAfter(invitePath(roomId)).data.usedBy == null;
+    }
+
+    function validTeacherRedemption(tenantId, roomId, uid, inviteHash) {
+      return sameUser(uid) &&
+        validInviteHash(inviteHash) &&
+        getAfter(membershipPath(tenantId, uid)).data.uid == uid &&
+        getAfter(membershipPath(tenantId, uid)).data.tenantId == tenantId &&
+        getAfter(membershipPath(tenantId, uid)).data.roomId == roomId &&
+        getAfter(membershipPath(tenantId, uid)).data.role == "teacher" &&
+        getAfter(membershipPath(tenantId, uid)).data.invitationRef == inviteHash &&
+        getAfter(teacherPath(uid)).data.tenantId == tenantId &&
+        getAfter(teacherPath(uid)).data.roomId == roomId &&
+        getAfter(invitePath(inviteHash)).data.tenantId == tenantId &&
+        getAfter(invitePath(inviteHash)).data.roomId == roomId &&
+        getAfter(invitePath(inviteHash)).data.revision == 2 &&
+        getAfter(invitePath(inviteHash)).data.usedBy == uid &&
+        getAfter(roomPath(tenantId, roomId)).data.tenantId == tenantId &&
+        getAfter(roomPath(tenantId, roomId)).data.roomId == roomId;
+    }
 
     match /playbookTeachers/{uid} {
       allow read: if sameUser(uid);
-      allow create: if sameUser(uid) && validRoot(uid, request.resource.data, 1) && getAfter(membership(request.resource.data.tenantId, uid)).data.roomId == request.resource.data.roomId;
-      allow update: if sameUser(uid) && nextRevision() && validRoot(uid, request.resource.data, resource.data.revision + 1) && request.resource.data.tenantId == resource.data.tenantId && request.resource.data.roomId == resource.data.roomId;
+      allow create: if sameUser(uid) &&
+        validRoot(uid, request.resource.data, 1) && (
+          getAfter(membershipPath(request.resource.data.tenantId, uid)).data.role == "owner" &&
+            validOwnerBootstrap(request.resource.data.tenantId, request.resource.data.roomId, uid) ||
+          getAfter(membershipPath(request.resource.data.tenantId, uid)).data.role == "teacher" &&
+            validTeacherRedemption(
+              request.resource.data.tenantId,
+              request.resource.data.roomId,
+              uid,
+              getAfter(membershipPath(request.resource.data.tenantId, uid)).data.invitationRef
+            )
+        );
+      allow update: if sameUser(uid) &&
+        nextRevision() &&
+        validRoot(uid, request.resource.data, resource.data.revision + 1) &&
+        request.resource.data.tenantId == resource.data.tenantId &&
+        request.resource.data.roomId == resource.data.roomId;
       allow delete: if false;
+
       match /private/{domain} {
         allow read: if sameUser(uid) && domain in ["plan", "progress", "preferences", "content"];
-        allow create: if sameUser(uid) && domain in ["plan", "progress", "preferences", "content"] && validPrivate(domain, request.resource.data, 1);
-        allow update: if sameUser(uid) && domain in ["plan", "progress", "preferences", "content"] && nextRevision() && validPrivate(domain, request.resource.data, resource.data.revision + 1);
+        allow create: if sameUser(uid) &&
+          domain in ["plan", "progress", "preferences", "content"] &&
+          validPrivate(domain, request.resource.data, 1);
+        allow update: if sameUser(uid) &&
+          domain in ["plan", "progress", "preferences", "content"] &&
+          nextRevision() &&
+          validPrivate(domain, request.resource.data, resource.data.revision + 1);
         allow delete: if false;
       }
     }
 
     match /playbookTenants/{tenantId} {
       allow read: if member(tenantId);
-      allow create: if signedIn() && exact(request.resource.data, ["schemaVersion", "revision", "tenantId", "name", "ownerUid", "createdAt", "updatedAt", "updatedBy"]) && metadata(request.resource.data, 1) && request.resource.data.tenantId == tenantId && request.resource.data.ownerUid == request.auth.uid && request.resource.data.createdAt == request.time && validName(request.resource.data.name);
+      allow create: if validTenant(tenantId, request.resource.data) &&
+        validOwnerBootstrap(
+          tenantId,
+          getAfter(membershipPath(tenantId, request.auth.uid)).data.roomId,
+          request.auth.uid
+        );
       allow update, delete: if false;
+
       match /members/{uid} {
         allow read: if sameUser(uid) || owner(tenantId);
-        allow create: if sameUser(uid) && exact(request.resource.data, ["schemaVersion", "revision", "uid", "tenantId", "roomId", "role", "createdAt", "updatedAt", "updatedBy", "invitationRef"]) && metadata(request.resource.data, 1) && request.resource.data.uid == uid && request.resource.data.tenantId == tenantId && request.resource.data.createdAt == request.time && (
-          request.resource.data.role == "owner" && request.resource.data.invitationRef == null && getAfter(/databases/$(database)/documents/playbookTenants/$(tenantId)).data.ownerUid == uid && getAfter(room(tenantId, request.resource.data.roomId)).data.tenantId == tenantId && getAfter(teacherRoot(uid)).data.tenantId == tenantId ||
-          request.resource.data.role == "teacher" && request.resource.data.invitationRef is string && request.resource.data.invitationRef.matches('^[0-9a-f]{64}$') && getAfter(/databases/$(database)/documents/playbookInvites/$(request.resource.data.invitationRef)).data.usedBy == uid && getAfter(teacherRoot(uid)).data.roomId == request.resource.data.roomId
-        );
+        allow create: if sameUser(uid) &&
+          validMembership(tenantId, uid, request.resource.data) && (
+            request.resource.data.role == "owner" &&
+              request.resource.data.invitationRef == null &&
+              validOwnerBootstrap(tenantId, request.resource.data.roomId, uid) ||
+            request.resource.data.role == "teacher" &&
+              validInviteHash(request.resource.data.invitationRef) &&
+              validTeacherRedemption(
+                tenantId,
+                request.resource.data.roomId,
+                uid,
+                request.resource.data.invitationRef
+              )
+          );
         allow update, delete: if false;
       }
+
       match /rooms/{roomId} {
-        allow read: if member(tenantId);
-        allow create: if signedIn() && exact(request.resource.data, ["schemaVersion", "revision", "tenantId", "roomId", "name", "createdAt", "updatedAt", "updatedBy"]) && metadata(request.resource.data, 1) && request.resource.data.tenantId == tenantId && request.resource.data.roomId == roomId && request.resource.data.createdAt == request.time && validName(request.resource.data.name);
+        allow read: if roomMember(tenantId, roomId);
+        allow create: if validRoom(tenantId, roomId, request.resource.data) &&
+          validOwnerBootstrap(tenantId, roomId, request.auth.uid);
         allow update, delete: if false;
+
         match /artifacts/{artifactId} {
-          allow read: if member(tenantId);
-          allow create: if signedIn() && artifactId == "tech-terrarium-2026-27" && artifactEnvelope(request.resource.data, 1) && getAfter(membership(tenantId, request.auth.uid)).data.role == "owner" && getAfter(/databases/$(database)/documents/playbookTenants/$(tenantId)/rooms/$(roomId)/projectProgress/$(artifactId)).data.revision == 1 && progressMatches(request.resource.data.value, getAfter(/databases/$(database)/documents/playbookTenants/$(tenantId)/rooms/$(roomId)/projectProgress/$(artifactId)).data.value);
-          allow update: if member(tenantId) && artifactId == "tech-terrarium-2026-27" && nextRevision() && artifactEnvelope(request.resource.data, resource.data.revision + 1) && request.resource.data.value.visits.size() == resource.data.value.visits.size() + 1 && getAfter(/databases/$(database)/documents/playbookTenants/$(tenantId)/rooms/$(roomId)/projectProgress/$(artifactId)).data.revision == request.resource.data.revision && progressMatches(request.resource.data.value, getAfter(/databases/$(database)/documents/playbookTenants/$(tenantId)/rooms/$(roomId)/projectProgress/$(artifactId)).data.value);
+          allow read: if roomMember(tenantId, roomId);
+          allow create: if artifactId == "tech-terrarium-2026-27" &&
+            initialArtifactEnvelope(request.resource.data) &&
+            validOwnerBootstrap(tenantId, roomId, request.auth.uid) &&
+            progressMatches(
+              request.resource.data.value,
+              getAfter(progressPath(tenantId, roomId)).data.value
+            );
+          allow update: if roomMember(tenantId, roomId) &&
+            artifactId == "tech-terrarium-2026-27" &&
+            nextRevision() &&
+            artifactEnvelope(request.resource.data, resource.data.revision + 1) &&
+            validArtifactHandoff(resource.data.value, request.resource.data.value) &&
+            getAfter(progressPath(tenantId, roomId)).data.revision == request.resource.data.revision &&
+            progressMatches(
+              request.resource.data.value,
+              getAfter(progressPath(tenantId, roomId)).data.value
+            );
           allow delete: if false;
         }
+
         match /projectProgress/{projectId} {
-          allow read: if member(tenantId);
-          allow create: if signedIn() && projectId == "tech-terrarium-2026-27" && progressEnvelope(request.resource.data, 1) && getAfter(membership(tenantId, request.auth.uid)).data.role == "owner" && getAfter(/databases/$(database)/documents/playbookTenants/$(tenantId)/rooms/$(roomId)/artifacts/$(projectId)).data.revision == 1 && progressMatches(getAfter(/databases/$(database)/documents/playbookTenants/$(tenantId)/rooms/$(roomId)/artifacts/$(projectId)).data.value, request.resource.data.value);
-          allow update: if member(tenantId) && projectId == "tech-terrarium-2026-27" && nextRevision() && progressEnvelope(request.resource.data, resource.data.revision + 1) && getAfter(/databases/$(database)/documents/playbookTenants/$(tenantId)/rooms/$(roomId)/artifacts/$(projectId)).data.revision == request.resource.data.revision && progressMatches(getAfter(/databases/$(database)/documents/playbookTenants/$(tenantId)/rooms/$(roomId)/artifacts/$(projectId)).data.value, request.resource.data.value);
+          allow read: if roomMember(tenantId, roomId);
+          allow create: if projectId == "tech-terrarium-2026-27" &&
+            progressEnvelope(request.resource.data, 1) &&
+            request.resource.data.value.stageId == "define" &&
+            request.resource.data.value.contributionIndex == 0 &&
+            request.resource.data.value.status == "active" &&
+            validOwnerBootstrap(tenantId, roomId, request.auth.uid) &&
+            progressMatches(
+              getAfter(artifactPath(tenantId, roomId)).data.value,
+              request.resource.data.value
+            );
+          allow update: if roomMember(tenantId, roomId) &&
+            projectId == "tech-terrarium-2026-27" &&
+            nextRevision() &&
+            progressEnvelope(request.resource.data, resource.data.revision + 1) &&
+            getAfter(artifactPath(tenantId, roomId)).data.revision == request.resource.data.revision &&
+            progressMatches(
+              getAfter(artifactPath(tenantId, roomId)).data.value,
+              request.resource.data.value
+            );
           allow delete: if false;
         }
       }
     }
 
     match /playbookInvites/{inviteHash} {
-      allow read: if signedIn() && inviteHash.matches('^[0-9a-f]{64}$') && (resource.data.usedBy == null && resource.data.expiresAt > request.time || resource.data.createdBy == request.auth.uid || resource.data.usedBy == request.auth.uid || owner(resource.data.tenantId));
-      allow create: if signedIn() && inviteHash.matches('^[0-9a-f]{64}$') && exact(request.resource.data, ["schemaVersion", "revision", "tenantId", "roomId", "createdBy", "createdAt", "expiresAt", "usedBy", "usedAt", "updatedAt", "updatedBy"]) && metadata(request.resource.data, 1) && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time && request.resource.data.expiresAt == request.time + duration.value(7, 'd') && request.resource.data.usedBy == null && request.resource.data.usedAt == null && (owner(request.resource.data.tenantId) || getAfter(membership(request.resource.data.tenantId, request.auth.uid)).data.role == "owner");
-      allow update: if signedIn() && inviteHash.matches('^[0-9a-f]{64}$') && resource.data.revision == 1 && request.resource.data.revision == 2 && request.resource.data.diff(resource.data).unchangedKeys().hasAll(["schemaVersion", "tenantId", "roomId", "createdBy", "createdAt", "expiresAt"]) && request.resource.data.usedBy == request.auth.uid && request.resource.data.usedAt == request.time && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time && resource.data.usedBy == null && resource.data.expiresAt > request.time && getAfter(membership(resource.data.tenantId, request.auth.uid)).data.role == "teacher" && getAfter(teacherRoot(request.auth.uid)).data.tenantId == resource.data.tenantId;
+      allow read: if signedIn() &&
+        validInviteHash(inviteHash) && (
+          resource.data.usedBy == null && resource.data.expiresAt > request.time ||
+          resource.data.createdBy == request.auth.uid ||
+          resource.data.usedBy == request.auth.uid ||
+          owner(resource.data.tenantId)
+        );
+      allow create: if validInviteCreate(inviteHash, request.resource.data) && (
+        ownerForRoom(request.resource.data.tenantId, request.resource.data.roomId) &&
+          exists(roomPath(request.resource.data.tenantId, request.resource.data.roomId)) ||
+        inviteHash == request.resource.data.roomId &&
+          validOwnerBootstrap(
+            request.resource.data.tenantId,
+            request.resource.data.roomId,
+            request.auth.uid
+          )
+      );
+      allow update: if signedIn() &&
+        validInviteHash(inviteHash) &&
+        exact(request.resource.data, [
+          "schemaVersion", "revision", "tenantId", "roomId", "createdBy", "createdAt",
+          "expiresAt", "usedBy", "usedAt", "updatedAt", "updatedBy"
+        ]) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "revision", "usedBy", "usedAt", "updatedAt", "updatedBy"
+        ]) &&
+        resource.data.revision == 1 &&
+        resource.data.usedBy == null &&
+        resource.data.usedAt == null &&
+        resource.data.expiresAt > request.time &&
+        request.resource.data.revision == 2 &&
+        request.resource.data.schemaVersion == resource.data.schemaVersion &&
+        request.resource.data.tenantId == resource.data.tenantId &&
+        request.resource.data.roomId == resource.data.roomId &&
+        request.resource.data.createdBy == resource.data.createdBy &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.expiresAt == resource.data.expiresAt &&
+        request.resource.data.usedBy == request.auth.uid &&
+        request.resource.data.usedAt == request.time &&
+        request.resource.data.updatedBy == request.auth.uid &&
+        request.resource.data.updatedAt == request.time &&
+        validTeacherRedemption(
+          resource.data.tenantId,
+          resource.data.roomId,
+          request.auth.uid,
+          inviteHash
+        );
       allow delete: if false;
     }
   }

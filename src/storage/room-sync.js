@@ -385,9 +385,9 @@ export function createRoomSyncClient({ firebase, crypto } = {}) {
     let artifact;
     try {
       tenantId = randomPathId("tenant", crypto);
-      roomId = randomPathId("room", crypto);
       rawInvite = generateRoomInvite({ crypto });
       inviteHash = await hashInviteCode(rawInvite, { crypto });
+      roomId = inviteHash;
       if (!isSafeSegment(tenantId) || !isSafeSegment(roomId) || !INVITE_HASH_PATTERN.test(inviteHash)) {
         return { status: "denied" };
       }
