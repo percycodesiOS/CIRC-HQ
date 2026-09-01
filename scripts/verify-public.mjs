@@ -34,6 +34,7 @@ const ALLOWED_UNTRACKED = new Set([
   "assets/icons/sun.svg",
   "assets/icons/warning-circle.svg",
   "assets/tech-terrarium-hero.webp",
+  "firebase-config.js",
   "src/model/admin-plan.js",
   "src/model/experience-runner.js",
   "src/model/experience-timing-plans.js",
@@ -104,6 +105,7 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "assets/icons/sun.svg",
   "assets/icons/warning-circle.svg",
   "assets/tech-terrarium-hero.webp",
+  "firebase-config.js",
   "index.html",
   "mission-control.html",
   "src/app.js",
@@ -115,18 +117,25 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "src/model/project-catalog.js",
   "src/model/schedule.js",
   "src/model/schema-admission.js",
+  "src/model/setup-flow.js",
   "src/model/shared-artifact.js",
   "src/model/state.js",
-  "src/model/setup-flow.js",
   "src/model/step-timer.js",
   "src/model/teacher-plan-v1.js",
   "src/model/teacher-plan.js",
+  "src/runtime/cloud-runtime.js",
   "src/services/weather.js",
+  "src/storage/cloud-domains.js",
+  "src/storage/cloud-sync.js",
+  "src/storage/firebase-adapter.js",
   "src/storage/local-store.js",
+  "src/storage/room-sync.js",
+  "src/storage/sync-engine.js",
   "src/ui/board.js",
   "src/ui/project-home.js",
   "src/ui/room.js",
   "src/ui/settings.js",
+  "src/ui/setup.js",
   "src/ui/today-ui.js",
   "src/ui/view-model.js"
 ]);
@@ -155,6 +164,7 @@ const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "src/storage/firebase-adapter.js",
   "src/storage/room-sync.js",
   "src/storage/sync-engine.js",
+  "src/model/setup-flow.js",
   "src/ui/setup.js",
   "src/model/experience-runner.js",
   "src/model/experience-timing-plans.js",
@@ -165,6 +175,7 @@ const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "tests/app-render.test.mjs",
   "tests/board-view.test.mjs",
   "tests/cloud-domains.test.mjs",
+  "tests/cloud-runtime.test.mjs",
   "tests/cloud-sync.test.mjs",
   "tests/dev-server.test.mjs",
   "tests/firestore-rules.test.mjs",
@@ -203,6 +214,18 @@ const EXPECTED_FIREBASE_EXAMPLE = `export const firebaseConfig = {
   appId: "YOUR_APP_ID"
 };
 `;
+const FIREBASE_CONFIG_NORMALIZED_SHA256 =
+  "515124045D47491930A1023CA7C2EA33A1B06F7DCA8F757E6EAEEEAEA6BF6B61";
+const FIREBASE_CONFIG_RELATIVE_PATH = "firebase-config.js";
+const FIREBASE_CONFIG_SOURCE = /^export const firebaseConfig = Object\.freeze\(\{\n  apiKey: "([^"\r\n]+)",\n  authDomain: "([^"\r\n]+)",\n  projectId: "([^"\r\n]+)",\n  storageBucket: "([^"\r\n]+)",\n  messagingSenderId: "([^"\r\n]+)",\n  appId: "([^"\r\n]+)"\n\}\);\n$/;
+const FIREBASE_API_KEY = /^AIza[0-9A-Za-z_-]{30,}$/;
+const EXPECTED_FIREBASE_CONFIG = Object.freeze({
+  authDomain: "circ-hq-k6-2026.firebaseapp.com",
+  projectId: "circ-hq-k6-2026",
+  storageBucket: "circ-hq-k6-2026.firebasestorage.app",
+  messagingSenderId: "632944747131",
+  appId: "1:632944747131:web:8c73a2a896c1940a25f8de"
+});
 const PRIVATE_TOKEN_HASHES = new Set([
   "8f1cd8978c4742dd88bbf2ff7e90d8400050a458d83b918f56df6155b5aa73db",
   "0589511a38b0471a42b27f17af23dce45a4d1391520d68cbef2423cc63926b06",
@@ -262,6 +285,10 @@ export function normalizedTextSha256(value) {
     : createHash("sha256").update(normalized, "utf8").digest("hex").toUpperCase();
 }
 
+export function getExpectedPublicManifest() {
+  return [...EXPECTED_PUBLIC_MANIFEST];
+}
+
 export async function inspectReleaseLocks(root = ROOT) {
   const [legacyBytes, firebaseBytes] = await Promise.all([
     readFile(path.join(root, "classroom-legacy.html")),
@@ -271,6 +298,26 @@ export async function inspectReleaseLocks(root = ROOT) {
     legacyOk: normalizedTextSha256(legacyBytes) === LEGACY_NORMALIZED_SHA256,
     firebaseOk: normalizedText(firebaseBytes) === EXPECTED_FIREBASE_EXAMPLE
   };
+}
+
+export async function inspectFirebaseConfigLock(root = ROOT) {
+  try {
+    const bytes = await readFile(path.join(root, FIREBASE_CONFIG_RELATIVE_PATH));
+    const source = normalizedText(bytes);
+    const match = source?.match(FIREBASE_CONFIG_SOURCE);
+    if (!match || !FIREBASE_API_KEY.test(match[1]) ||
+        match[2] !== EXPECTED_FIREBASE_CONFIG.authDomain ||
+        match[3] !== EXPECTED_FIREBASE_CONFIG.projectId ||
+        match[4] !== EXPECTED_FIREBASE_CONFIG.storageBucket ||
+        match[5] !== EXPECTED_FIREBASE_CONFIG.messagingSenderId ||
+        match[6] !== EXPECTED_FIREBASE_CONFIG.appId ||
+        normalizedTextSha256(bytes) !== FIREBASE_CONFIG_NORMALIZED_SHA256) {
+      return { ok: false, count: 1 };
+    }
+    return { ok: true, count: 1 };
+  } catch {
+    return { ok: false, count: 1 };
+  }
 }
 
 export async function inspectAssetLocks(root = ROOT) {
@@ -485,7 +532,12 @@ export async function inspectRuntimeImportBoundary(root = ROOT) {
   const runtime = new Set(EXPECTED_PUBLIC_MANIFEST);
   const pending = ["src/app.js"];
   const inspected = new Set();
-  let violations = 0;
+  let violations = Number(!runtime.has(FIREBASE_CONFIG_RELATIVE_PATH));
+  try {
+    await readFile(path.join(root, FIREBASE_CONFIG_RELATIVE_PATH));
+  } catch {
+    violations += 1;
+  }
 
   while (pending.length > 0) {
     const importer = pending.pop();
@@ -561,16 +613,20 @@ function resultFromViolations(checkedCount, violations) {
     : { ok: false, count: violations };
 }
 
-export function countCredentialViolations(text) {
+export function countCredentialViolations(text, { allowPublicFirebaseKey = false } = {}) {
+  const apiKeyPattern = /\bAIza[0-9A-Za-z_-]{30,}\b/;
   const patterns = [
     /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,
     /\bAKIA[0-9A-Z]{16}\b/,
-    /\bAIza[0-9A-Za-z_-]{30,}\b/,
+    apiKeyPattern,
     /\bgh[pousr]_[0-9A-Za-z]{20,}\b/,
     /\bxox[baprs]-[0-9A-Za-z-]{20,}\b/,
     /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.(?:edu|school|k12\.[A-Z]{2}|net)\b/i
   ];
-  return patterns.reduce((count, pattern) => count + Number(pattern.test(text)), 0);
+  return patterns.reduce((count, pattern) => {
+    if (allowPublicFirebaseKey && pattern === apiKeyPattern) return count;
+    return count + Number(pattern.test(text));
+  }, 0);
 }
 
 export function countLocalPathViolations(text) {
@@ -696,8 +752,11 @@ async function assetLockGate(context) {
 }
 
 async function firebasePlaceholdersGate(context) {
-  const locks = await inspectReleaseLocks(context.root);
-  return resultFromViolations(1, Number(!locks.firebaseOk));
+  const [locks, configLock] = await Promise.all([
+    inspectReleaseLocks(context.root),
+    inspectFirebaseConfigLock(context.root)
+  ]);
+  return resultFromViolations(2, Number(!locks.firebaseOk) + Number(!configLock.ok));
 }
 
 async function typographyGate(context) {
@@ -711,8 +770,11 @@ async function typographyGate(context) {
 
 async function credentialGate(context) {
   let violations = 0;
+  const configLock = await inspectFirebaseConfigLock(context.root);
   for (const entry of context.textEntries) {
-    violations += countCredentialViolations(entry.text);
+    violations += countCredentialViolations(entry.text, {
+      allowPublicFirebaseKey: configLock.ok && entry.relativePath === FIREBASE_CONFIG_RELATIVE_PATH
+    });
   }
   return resultFromViolations(context.textEntries.length, violations);
 }

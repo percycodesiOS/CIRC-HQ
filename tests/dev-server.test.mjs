@@ -31,15 +31,35 @@ async function withServer(context) {
     writeFixture(root, "mission-control.html", "GENERIC_MIRROR"),
     writeFixture(root, "classroom-legacy.html", "GENERIC_LEGACY"),
     writeFixture(root, "app.css", "GENERIC_CSS"),
+    writeFixture(root, "firebase-config.js", "GENERIC_FIREBASE_CONFIG"),
     writeFixture(root, "src/app.js", "GENERIC_APP"),
+    writeFixture(root, "src/runtime/cloud-runtime.js", "GENERIC_CLOUD_RUNTIME"),
+    writeFixture(root, "src/model/access.js", "GENERIC_ACCESS"),
     writeFixture(root, "src/model/admin-plan.js", "GENERIC_ADMIN_PLAN"),
     writeFixture(root, "src/model/experience-runner.js", "GENERIC_EXPERIENCE_RUNNER"),
     writeFixture(root, "src/model/experience-timing-plans.js", "GENERIC_EXPERIENCE_TIMING"),
     writeFixture(root, "src/model/project-catalog.js", "GENERIC_PROJECT_CATALOG"),
     writeFixture(root, "src/model/schema-admission.js", "GENERIC_SCHEMA_ADMISSION"),
     writeFixture(root, "src/model/shared-artifact.js", "GENERIC_SHARED_ARTIFACT"),
+    writeFixture(root, "src/model/schedule.js", "GENERIC_SCHEDULE"),
+    writeFixture(root, "src/model/state.js", "GENERIC_STATE"),
     writeFixture(root, "src/model/step-timer.js", "GENERIC_STEP_TIMER"),
+    writeFixture(root, "src/model/teacher-plan.js", "GENERIC_TEACHER_PLAN"),
+    writeFixture(root, "src/model/teacher-plan-v1.js", "GENERIC_TEACHER_PLAN_V1"),
+    writeFixture(root, "src/services/weather.js", "GENERIC_WEATHER"),
+    writeFixture(root, "src/storage/cloud-domains.js", "GENERIC_CLOUD_DOMAINS"),
+    writeFixture(root, "src/storage/cloud-sync.js", "GENERIC_CLOUD_SYNC"),
     writeFixture(root, "src/ui/project-home.js", "GENERIC_PROJECT_HOME"),
+    writeFixture(root, "src/storage/firebase-adapter.js", "GENERIC_FIREBASE_ADAPTER"),
+    writeFixture(root, "src/storage/local-store.js", "GENERIC_LOCAL_STORE"),
+    writeFixture(root, "src/storage/room-sync.js", "GENERIC_ROOM_SYNC"),
+    writeFixture(root, "src/storage/sync-engine.js", "GENERIC_SYNC_ENGINE"),
+    writeFixture(root, "src/ui/board.js", "GENERIC_BOARD"),
+    writeFixture(root, "src/ui/room.js", "GENERIC_ROOM"),
+    writeFixture(root, "src/ui/settings.js", "GENERIC_SETTINGS"),
+    writeFixture(root, "src/ui/setup.js", "GENERIC_SETUP"),
+    writeFixture(root, "src/ui/today-ui.js", "GENERIC_TODAY_UI"),
+    writeFixture(root, "src/ui/view-model.js", "GENERIC_VIEW_MODEL"),
     writeFixture(root, "assets/circ-hq-maker.webp", "GENERIC_MAKER_IMAGE"),
     writeFixture(root, "assets/tech-terrarium-hero.webp", "GENERIC_HERO_IMAGE"),
     writeFixture(root, "assets/icons/house.svg", "GENERIC_HOUSE_ICON"),
@@ -49,8 +69,8 @@ async function withServer(context) {
     writeFixture(root, "tests/generic.test.mjs", "GENERIC_TEST"),
     writeFixture(root, "scripts/dev-server.mjs", "GENERIC_SERVER_SOURCE"),
     writeFixture(root, "package.json", "GENERIC_PACKAGE"),
-    writeFixture(root, "src/storage/firebase-adapter.js", "GENERIC_UNUSED_FIREBASE"),
-    writeFixture(root, "src/storage/sync-engine.js", "GENERIC_UNUSED_SYNC")
+    writeFixture(root, "src/model/setup-flow.js", "GENERIC_UNREVIEWED_SETUP_FLOW"),
+    writeFixture(root, "src/ui/curriculum.js", "GENERIC_UNREVIEWED_CURRICULUM")
   ]);
 
   const server = createDevServer({ root, privatePlanPath, privateOptionsPath });
@@ -109,15 +129,36 @@ test("the real dev server serves only the explicit public runtime allowlist", as
     ["/index.html", "GENERIC_INDEX"],
     ["/mission-control.html", "GENERIC_MIRROR"],
     ["/app.css", "GENERIC_CSS"],
+    ["/firebase-config.js", "GENERIC_FIREBASE_CONFIG"],
     ["/src/app.js", "GENERIC_APP"],
+    ["/src/runtime/cloud-runtime.js", "GENERIC_CLOUD_RUNTIME"],
+    ["/src/model/access.js", "GENERIC_ACCESS"],
     ["/src/model/admin-plan.js", "GENERIC_ADMIN_PLAN"],
     ["/src/model/experience-runner.js", "GENERIC_EXPERIENCE_RUNNER"],
     ["/src/model/experience-timing-plans.js", "GENERIC_EXPERIENCE_TIMING"],
     ["/src/model/project-catalog.js", "GENERIC_PROJECT_CATALOG"],
     ["/src/model/schema-admission.js", "GENERIC_SCHEMA_ADMISSION"],
+    ["/src/model/setup-flow.js", "GENERIC_UNREVIEWED_SETUP_FLOW"],
     ["/src/model/shared-artifact.js", "GENERIC_SHARED_ARTIFACT"],
+    ["/src/model/schedule.js", "GENERIC_SCHEDULE"],
+    ["/src/model/state.js", "GENERIC_STATE"],
     ["/src/model/step-timer.js", "GENERIC_STEP_TIMER"],
+    ["/src/model/teacher-plan.js", "GENERIC_TEACHER_PLAN"],
+    ["/src/model/teacher-plan-v1.js", "GENERIC_TEACHER_PLAN_V1"],
+    ["/src/services/weather.js", "GENERIC_WEATHER"],
+    ["/src/storage/cloud-domains.js", "GENERIC_CLOUD_DOMAINS"],
+    ["/src/storage/cloud-sync.js", "GENERIC_CLOUD_SYNC"],
+    ["/src/storage/firebase-adapter.js", "GENERIC_FIREBASE_ADAPTER"],
+    ["/src/storage/local-store.js", "GENERIC_LOCAL_STORE"],
+    ["/src/storage/room-sync.js", "GENERIC_ROOM_SYNC"],
+    ["/src/storage/sync-engine.js", "GENERIC_SYNC_ENGINE"],
+    ["/src/ui/board.js", "GENERIC_BOARD"],
     ["/src/ui/project-home.js", "GENERIC_PROJECT_HOME"],
+    ["/src/ui/room.js", "GENERIC_ROOM"],
+    ["/src/ui/settings.js", "GENERIC_SETTINGS"],
+    ["/src/ui/setup.js", "GENERIC_SETUP"],
+    ["/src/ui/today-ui.js", "GENERIC_TODAY_UI"],
+    ["/src/ui/view-model.js", "GENERIC_VIEW_MODEL"],
     ["/assets/circ-hq-maker.webp", "GENERIC_MAKER_IMAGE"],
     ["/assets/tech-terrarium-hero.webp", "GENERIC_HERO_IMAGE"],
     ["/assets/icons/house.svg", "GENERIC_HOUSE_ICON"]
@@ -143,12 +184,14 @@ test("the real dev server serves only the explicit public runtime allowlist", as
     "/scripts/dev-server.mjs",
     "/package.json",
     "/classroom-legacy.html",
-    "/src/storage/firebase-adapter.js",
-    "/src/storage/sync-engine.js"
+    "/src/model/lesson-guide.js",
+    "/src/ui/curriculum.js",
+    "/src/storage/unknown.js",
+    "/src/storage/firebase-config.js"
   ]) {
     const response = await request(pathname);
     assert.equal(response.status, 404, pathname);
-    assert.doesNotMatch(response.body, /GENERIC_(?:IGNORED_PRIVATE|INTERNAL_REPORT|GIT_METADATA|TEST|SERVER_SOURCE|PACKAGE|LEGACY|UNUSED_FIREBASE|UNUSED_SYNC)/, pathname);
+      assert.doesNotMatch(response.body, /GENERIC_(?:IGNORED_PRIVATE|INTERNAL_REPORT|GIT_METADATA|TEST|SERVER_SOURCE|PACKAGE|LEGACY|UNUSED_FIREBASE|UNUSED_SYNC|UNKNOWN)/, pathname);
   }
 });
 

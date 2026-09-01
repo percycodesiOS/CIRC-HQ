@@ -369,6 +369,7 @@ test("public server manifest is an exact reviewed allowlist", () => {
     "assets/icons/sun.svg",
     "assets/icons/warning-circle.svg",
     "assets/tech-terrarium-hero.webp",
+    "firebase-config.js",
     "index.html",
     "mission-control.html",
     "src/app.js",
@@ -380,20 +381,54 @@ test("public server manifest is an exact reviewed allowlist", () => {
     "src/model/project-catalog.js",
     "src/model/schedule.js",
     "src/model/schema-admission.js",
+    "src/model/setup-flow.js",
     "src/model/shared-artifact.js",
     "src/model/state.js",
     "src/model/step-timer.js",
     "src/model/teacher-plan-v1.js",
     "src/model/teacher-plan.js",
+    "src/runtime/cloud-runtime.js",
     "src/services/weather.js",
+    "src/storage/cloud-domains.js",
+    "src/storage/cloud-sync.js",
+    "src/storage/firebase-adapter.js",
     "src/storage/local-store.js",
+    "src/storage/room-sync.js",
+    "src/storage/sync-engine.js",
     "src/ui/board.js",
     "src/ui/project-home.js",
     "src/ui/room.js",
     "src/ui/settings.js",
+    "src/ui/setup.js",
     "src/ui/today-ui.js",
     "src/ui/view-model.js"
   ]);
+});
+
+test("the reviewed public Firebase config has a closed lock and narrow credential exception", async (context) => {
+  assert.equal(typeof verifier.inspectFirebaseConfigLock, "function");
+  assert.deepEqual(await verifier.inspectFirebaseConfigLock(ROOT), { ok: true, count: 1 });
+
+  const configSource = await readFile(path.join(ROOT, "firebase-config.js"), "utf8");
+  assert.doesNotMatch(configSource, /measurementId|serviceAccount|export default|PRIVATE KEY/i);
+  assert.equal((configSource.match(/apiKey:/g) ?? []).length, 1);
+
+  const fixtureRoot = await mkdtemp(path.join(os.tmpdir(), "circ-hq-firebase-config-lock-"));
+  context.after(() => rm(fixtureRoot, { recursive: true, force: true }));
+  for (const [name, mutation] of [
+    ["extra-field", (source) => source.replace("  appId:", "  measurementId: \"not-used\",\n  appId:")],
+    ["changed-project", (source) => source.replace("circ-hq-k6-2026", "different-project")],
+    ["second-export", (source) => `${source}export const extra = true;\n`],
+    ["service-account", (source) => `${source}\nexport const serviceAccount = {};\n`]
+  ]) {
+    const file = path.join(fixtureRoot, "firebase-config.js");
+    await writeFile(file, mutation(configSource));
+    assert.deepEqual(await verifier.inspectFirebaseConfigLock(fixtureRoot), { ok: false, count: 1 }, name);
+  }
+
+  const syntheticGoogleKey = `AIza${"0".repeat(32)}`;
+  assert.equal(verifier.countCredentialViolations(`README fixture ${syntheticGoogleKey}`), 1);
+  assert.equal(verifier.countCredentialViolations(`README fixture ${syntheticGoogleKey}`, { allowPublicFirebaseKey: true }), 0);
 });
 
 test("public verifier has a recursive-safe sanitized gate contract", () => {
@@ -419,6 +454,8 @@ test("public verifier has a recursive-safe sanitized gate contract", () => {
     "javascript-syntax",
     "node-tests"
   ]);
+  assert.equal(typeof verifier.getExpectedPublicManifest, "function");
+  assert.deepEqual(verifier.getExpectedPublicManifest(), devServer.getPublicStaticManifest());
 
   assert.deepEqual(
     verifier.parseNulList(Buffer.from("index.html\0src/app.js\0", "utf8")),
@@ -601,11 +638,6 @@ test("Jekyll exclusions cover every nonruntime release path and expose every pub
     "package-lock.json",
     "package.json",
     "scripts",
-    "src/storage/cloud-domains.js",
-    "src/storage/cloud-sync.js",
-    "src/storage/firebase-adapter.js",
-    "src/storage/room-sync.js",
-    "src/storage/sync-engine.js",
     "src/ui/curriculum.js",
     "tests"
   ];
@@ -613,6 +645,19 @@ test("Jekyll exclusions cover every nonruntime release path and expose every pub
   assert.notEqual(exclusions, null);
   for (const relativePath of requiredExclusions) {
     assert.equal(exclusions.includes(relativePath), true, relativePath);
+  }
+  for (const relativePath of [
+    "firebase-config.js",
+    "src/runtime/cloud-runtime.js",
+    "src/storage/cloud-domains.js",
+    "src/storage/cloud-sync.js",
+    "src/storage/firebase-adapter.js",
+    "src/storage/local-store.js",
+    "src/storage/room-sync.js",
+    "src/storage/sync-engine.js",
+    "src/ui/setup.js"
+  ]) {
+    assert.equal(exclusions.includes(relativePath), false, relativePath);
   }
   const publicManifest = devServer.getPublicStaticManifest();
   assert.deepEqual(verifier.pagesPublicationBoundaryResult(publicManifest, exclusions), {
@@ -659,10 +704,11 @@ test("release documentation cannot activate Firebase accounts or shared data", a
     readFile(path.join(ROOT, "docs", "FIREBASE-ACTIVATION-GATE.md"), "utf8")
   ]);
 
-  assert.match(readme, /Firebase is inactive in CIRC HQ v1/i);
-  assert.match(firebaseGate, /Firebase is inactive in CIRC HQ v1/i);
-  assert.match(firebaseGate, /no real configuration, account, provider, data upload, rules or hosting deployment, billing, or shared synchronization/i);
-  assert.match(firebaseGate, /future access model, not current production access/i);
+  assert.match(readme, /configured Firebase project/i);
+  assert.match(firebaseGate, /configured Firebase project/i);
+  assert.match(readme, /not proof that Google Auth is enabled/i);
+  assert.match(firebaseGate, /not proof that Google Auth is enabled/i);
+  assert.match(firebaseGate, /required access model, not current production access/i);
 });
 
 test("Pages boundary fails closed for an unexcluded file and an excluded runtime file", async (context) => {
@@ -700,6 +746,7 @@ test("runtime import boundary rejects an imported module absent from the public 
   context.after(() => rm(repository, { recursive: true, force: true }));
   await mkdir(path.join(repository, "src", "model"), { recursive: true });
   await Promise.all([
+    writeFile(path.join(repository, "firebase-config.js"), "export const firebaseConfig = {};\n"),
     writeFile(path.join(repository, "src", "app.js"), [
       'import "./model/unreviewed-runtime.js";',
       "export const genericApp = true;",

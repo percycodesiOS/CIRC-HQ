@@ -13,9 +13,9 @@ The URL above is the intended release URL. It is not described as live until a s
 
 ## First use and the class runner
 
-On a browser with no validated teacher plan, CIRC HQ shows **Set up this device** and **Preview without saving**.
+On a browser with no validated teacher plan, CIRC HQ opens the guided setup at **Get CIRC HQ ready**. Setup connects one private teacher account, loads that teacher's schedule, and joins one shared CIRC room. **Continue with Google** uses the Google popup flow when the release's Firebase Console and authorized-domain gates are complete. **Explore a temporary demo** is memory-only and says clearly that nothing in the demo is saved or synced.
 
-Preview is read-only. It does not import or save a plan, create a runner, start a timer, or change playbook or artifact progress. After setup, **Preview lesson** keeps that same read-only boundary.
+Choose a private teacher-plan JSON file to preview it on this device. Selecting a file does not upload it. The teacher reviews the admitted summary and confirms it before the separate **Upload and verify** action can write cloud data. Setup Help provides safe status, **Sync now**, local-backup export, replacement-plan preview, sign-out, and recovery guidance without identifiers or raw error text.
 
 The live path is deliberate:
 
@@ -41,8 +41,8 @@ For hosted static use:
 
 1. Open Teacher Setup on the intended hosted site.
 2. Choose that teacher's supported private plan file.
-3. Review the validation preview.
-4. Select Apply only when the preview is correct.
+3. Review the local validation preview.
+4. Confirm the preview, then choose **Upload and verify** only when the private and shared boundaries are correct.
 5. Confirm the displayed Cycle Day before relying on the schedule.
 
 The validated plan is stored only in that browser origin. Tammy's calendar reuse is an explicit same-district assumption, so the displayed Cycle Day must be checked after her import.
@@ -60,7 +60,7 @@ Browser origins are isolated. The hosted site, `http://127.0.0.1:4273/`, and `ht
 
 ## Shared Tech Terrarium authority
 
-Choose and retain one designated room browser for the shared Tech Terrarium. That one designated room browser is the artifact source of truth until synchronization is separately designed, approved, and activated. There is no synchronization or login in CIRC HQ v1, so a second browser cannot safely share artifact writes.
+Each authenticated teacher has a UID-scoped private cloud namespace. Shared Tech Terrarium artifacts and room progress are available only to trusted members of the selected room. Room invitation redemption is one-time and transactional. Board and Student remain account-free and have no direct cloud-write path.
 
 Playbook progress, artifact progress, and the current class visit are separate. **Ready**, **Repeat**, and **Park** each require **Confirm** before the artifact is saved. The first choice and Cancel write nothing. Timer expiry, Question Detour, Safe Landing, lesson completion, and project completion never advance the physical artifact automatically.
 
@@ -70,16 +70,17 @@ Ready, Repeat, and Park each require Confirm.
 
 CIRC HQ has no grades, gradebook, student accounts, rosters, or performance records. It also stores no aliases, scores, percentages, or individual student data. Grades 5-6 means grade levels only.
 
-Firebase is inactive in CIRC HQ v1. No Firebase project, real configuration, provider, account, data upload, rules deployment, hosting deployment, billing, cloud synchronization, or shared multi-device write is active. The separate Firebase document is a future activation gate, not launch functionality.
+The repository contains the public client configuration for the separate configured Firebase project used by CIRC HQ. That configuration is only public client identification. It is not proof that Google Auth is enabled, Firestore exists in `nam5` production mode, rules are deployed, `percycodesios.github.io` is an authorized domain, Pages is live, or a private plan has been uploaded. Those remain Task 9 evidence gates.
 
-The dormant adapter and synchronization modules remain excluded from the public runtime and from GitHub Pages. Their tests do not authorize activation. CyberGrader is not reused and remains a separate product with separate data and security boundaries.
+Offline, signed-out, popup-blocked, denied, partial, and conflict states preserve usable local teaching and show safe recovery guidance. Local storage remains the offline cache and recovery layer. The live runner stays on the device that starts the class and displays **This device is running the class**; it never becomes a shared cloud timer.
+
+CIRC HQ includes no grades, rosters, student accounts, student submissions, analytics, advertising, Firebase Hosting cutover, billing change, or CyberGrader reuse. CyberGrader remains a separate product with separate data and security boundaries.
 
 ## Known limits
 
-- State is static and browser-local, with no automatic cross-device synchronization.
-- Kenny and Tammy perform separate one-time private imports in their own browsers.
-- One manually selected room browser owns shared-artifact truth.
-- There is no login, account system, Firebase service, or shared write path.
+- Cloud setup depends on the remaining Console, authorized-domain, rules, Pages, and live smoke-test gates.
+- Kenny and Tammy authenticate separately and each retains a private UID-scoped plan and progress namespace.
+- Local teaching remains usable when sign-in, network, rules, or cloud reads and writes fail.
 - There is no student performance system.
 - Current reviewed content is Grades 5-6, Playbook A only, not complete K-6 content.
 - The old Mission Control repository and site remain separate, unchanged, and outside this release.
@@ -95,9 +96,9 @@ node scripts/dev-server.mjs
 
 3. Open `http://127.0.0.1:4273/`.
 
-The server binds only to `127.0.0.1` and exposes the exact reviewed public runtime manifest. It does not expose tests, docs, internal files, Firebase code, the locked legacy classroom file, or private source files.
+The server binds only to `127.0.0.1` and exposes the exact reviewed public runtime manifest, including the browser Firebase client and its reviewed cloud modules. It does not expose tests, docs, internal files, rules, package metadata, the locked legacy classroom file, or private source files.
 
-The root `_config.yml` separately excludes nonruntime documentation, tests, scripts, Firebase files, the locked legacy file, and inactive source modules from the GitHub Pages artifact. `_config.yml` and `.superpowers` are Jekyll-hidden. Publication remains fail-closed if a candidate is private, hidden, unsupported, or outside the reviewed manifest.
+The root `_config.yml` separately excludes nonruntime documentation, tests, scripts, Firebase metadata and rules, the locked legacy file, and inactive source modules from the GitHub Pages artifact. `_config.yml` and `.superpowers` are Jekyll-hidden. Publication remains fail-closed if a candidate is private, hidden, unsupported, or outside the reviewed manifest.
 
 ## Verify a public candidate
 
@@ -106,8 +107,8 @@ npm test
 npm run verify
 ```
 
-The verifier runs 16 fail-closed gates. It checks the recursive Git candidate set, Jekyll publication boundary, runtime imports, entrypoint identity, locked legacy and asset bytes, inert Firebase placeholders, typography, credentials, local path disclosures in every tracked text candidate, privacy sentinels, runtime policy, DOM sinks, server allowlist, JavaScript syntax, and the complete Node test suite. It prints gate names and counts without printing matched private content.
+The verifier runs 16 fail-closed gates. It checks the recursive Git candidate set, Jekyll publication boundary, runtime imports, entrypoint identity, locked legacy and asset bytes, the sanitized Firebase example and exact public Firebase config lock, typography, credentials, local path disclosures in every tracked text candidate, privacy sentinels, runtime policy, DOM sinks, server allowlist, JavaScript syntax, and the complete Node test suite. It prints gate names and counts without printing matched private content.
 
 ## Publication status
 
-Repository creation, remote configuration, push, GitHub Pages activation, and live-site confirmation are separate external actions. Local verification does not make the intended URL live. Firebase remains inactive regardless of documentation or Pages status.
+Repository creation, remote configuration, push, GitHub Pages activation, Firebase Console provider and rules work, and live-site confirmation are separate external actions. Local verification and a committed public config do not make the intended URL live or prove that cloud setup has succeeded. No private data is uploaded by this repository change.

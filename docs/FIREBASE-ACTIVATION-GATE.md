@@ -1,10 +1,14 @@
 # Firebase activation gate
 
-Firebase is inactive in CIRC HQ v1. There is no real configuration, account, provider, data upload, rules or hosting deployment, billing, or shared synchronization.
+CIRC HQ has a separate configured Firebase project, `circ-hq-k6-2026`, and uses Google popup sign-in when the release's Console and authorized-domain gates are complete. The public web configuration is client identification, not an administrator credential. It must not be reused by CyberGrader.
 
-CIRC HQ must use a separate Firebase project. It must not reuse CyberGrader. This repository tracks only an exact placeholder configuration. Documentation, dormant adapters, tests, and GitHub Pages publication do not activate Firebase or authorize any external service change.
+Configuration in Git is not proof that Google Auth is enabled, Firestore exists in `nam5` production mode, rules are deployed, `percycodesios.github.io` is an authorized domain, Pages is live, or a private plan has been uploaded. Those remain Task 9 evidence gates. No Console action, rules deployment, hosting deployment, billing change, or private-data upload is claimed by this document.
 
-Before any future activation, emulator tests must cover Kenny, Tammy, an unrelated authenticated user, and an unauthenticated user. The table below is a future access model, not current production access.
+Each authenticated teacher has a UID-scoped private cloud namespace. Shared room artifacts and room progress are available only to trusted members. Board and Student use no accounts and have no direct cloud-write path. A teacher previews a local private plan before confirmation. No private cloud write occurs until **Upload and verify**; every admitted private domain is read back and verified, and a local backup remains preserved.
+
+Offline, signed-out, popup-blocked, denied, partial, and conflict states preserve usable local teaching and show safe recovery guidance. Setup Help includes safe status, Sync now, local-backup export, replacement-plan preview, and sign-out guidance without identifiers or raw error text. The live runner is local to the device that starts it and displays **This device is running the class**. It never becomes a shared cloud timer.
+
+Before any production activation, emulator tests must cover Kenny, Tammy, an unrelated authenticated user, and an unauthenticated user. The table below is the required access model, not current production access.
 
 | Emulator persona | Expected private-teacher result | Expected tenant result |
 | --- | --- | --- |
@@ -13,6 +17,6 @@ Before any future activation, emulator tests must cover Kenny, Tammy, an unrelat
 | Unrelated authenticated user | Deny other teachers' private documents | Deny unless their own trusted membership grants the requested tenant access |
 | Unauthenticated user | Deny | Deny |
 
-Each of the following remains a separate explicit-approval gate: creating the project, supplying real configuration, enabling a provider, creating an account, uploading teacher data, deploying rules, deploying Firebase Hosting, changing billing, or enabling shared synchronization.
+The following remain separate evidence and approval gates: enabling Google Auth, creating Firestore in production mode, deploying the reviewed rules, admitting the GitHub Pages domain, verifying Kenny and Tammy sign-in, completing the live room transaction matrix, publishing Pages, and confirming live browser behavior. The release includes no grades, rosters, student accounts, student submissions, analytics, advertising, Firebase Hosting cutover, billing change, or CyberGrader reuse.
 
 Board and Student directions use no student accounts and write no student data.

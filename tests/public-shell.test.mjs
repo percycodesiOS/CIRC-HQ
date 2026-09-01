@@ -90,10 +90,10 @@ test("release documentation names the CIRC HQ repository URL and current content
 test("release documentation preserves preview ready and start boundaries", async () => {
   const readme = await readPublicSource("README.md");
 
-  assert.match(readme, /Set up this device/);
-  assert.match(readme, /Preview without saving/);
-  assert.match(readme, /Preview is read-only/i);
-  assert.match(readme, /does not import or save a plan, create a runner, start a timer, or change playbook or artifact progress/i);
+  assert.match(readme, /Get CIRC HQ ready/);
+  assert.match(readme, /Choose a private teacher-plan JSON file/i);
+  assert.match(readme, /preview/i);
+  assert.match(readme, /does not upload/i);
   assert.match(readme, /Open class runner creates a Ready runner/i);
   assert.match(readme, /Ready clocks are stationary/i);
   assert.match(readme, /Start Class is the only action that starts the clocks/i);
@@ -105,8 +105,8 @@ test("release documentation describes private local schedules and artifact autho
   assert.match(readme, /Teacher-plan files are local and private/i);
   assert.match(readme, /Kenny and Tammy each import their own one-teacher private file/i);
   assert.match(readme, /Schedules remain outside Git and the Pages artifact/i);
-  assert.match(readme, /one designated room browser is the artifact source of truth/i);
-  assert.match(readme, /no synchronization or login/i);
+  assert.match(readme, /UID-scoped private cloud namespace/i);
+  assert.match(readme, /trusted members/i);
   assert.match(readme, /Ready, Repeat, and Park each require Confirm/i);
 });
 
@@ -122,8 +122,10 @@ test("release documentation states classroom behavior and excluded data truthful
   assert.match(readme, /compact cues/i);
   assert.match(readme, /early-finish guidance/i);
   assert.match(readme, /no grades, gradebook, student accounts, rosters, or performance records/i);
-  assert.match(readme, /Firebase is inactive in CIRC HQ v1/i);
-  assert.match(firebaseGate, /Firebase is inactive in CIRC HQ v1/i);
+  assert.match(readme, /configured Firebase project/i);
+  assert.match(firebaseGate, /configured Firebase project/i);
+  assert.match(readme, /not proof that Google Auth is enabled/i);
+  assert.match(firebaseGate, /not proof that Google Auth is enabled/i);
   assert.match(readme, /old Mission Control repository and site remain separate/i);
 });
 

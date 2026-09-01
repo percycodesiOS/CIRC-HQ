@@ -1,5 +1,13 @@
 # CIRC HQ - BUILDLOG
 
+## 2026-09-01 Task 8 reviewed cloud-boundary activation
+
+- Activated the reviewed public runtime boundary from Task 7 base `c2d3853`, including the exact six-field root Firebase web configuration and the actual static import closure. The closure includes `src/model/setup-flow.js` because `src/runtime/cloud-runtime.js` reaches it; all server, verifier, and Jekyll manifests agree on the resulting 54 public runtime paths.
+- Added a fail-closed normalized configuration lock and a path-scoped credential-scan exception. The real config matches the approved lock and exact shape without recording or repeating its raw API key; `firebase-config.example.js` remains the unchanged sanitized placeholder and is not public.
+- Focused Task 8 tests passed 52/52. Full `npm test` passed 441 of 443 tests with 2 intentional private-environment skips and 0 failures. `npm run verify` passed all 16 public gates, including candidate, Pages, runtime-import, config, credential, local-path, privacy, runtime-policy, server-allowlist, syntax, and Node-test boundaries.
+- Release copy now describes a configured but not externally activated Firebase boundary, local-first setup, explicit upload and read-back verification, trusted-room limits, offline recovery, and excluded student, roster, grade, analytics, advertising, Hosting, billing, and private-plan data. No Firebase Console change, rules deployment, browser action, live release, integration, push, or private-data upload occurred.
+- The Task 8 commit SHA is recorded in the ignored task report after commit creation; this entry records the verified pre-commit activation boundary and does not claim a live release.
+
 ## 2026-08-31 final recovery and event-identity hardening
 
 - Closed the final release blockers with strict TDD. The focused RED run reported 173 tests: 156 passed, 16 failed, and 1 intentional private-package skip. The same focused matrix is GREEN at 173 tests: 172 passed, 0 failed, and 1 skip.
