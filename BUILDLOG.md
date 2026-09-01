@@ -1,5 +1,14 @@
 # CIRC HQ - BUILDLOG
 
+## 2026-09-01 transient room invitation handoff fix
+
+- Final first-use review found that room creation advanced and rerendered the setup walkthrough before the UI could place the returned one-time invitation code into the old status node. The room existed, but the owner could lose the only raw code needed by the second teacher.
+- A focused RED reproduced the boundary in both the cloud runtime and rendered upload step. The runtime now retains the generated code only in memory, exposes it on the next setup step, and clears it with the rest of the in-memory cloud session. It is never written to browser storage, teacher documents, room documents, logs, or the repository.
+- The upload step now gives the owner one clear instruction to copy the code before continuing, refreshing, or signing out. The code uses a bounded, wrapping presentation that remains readable on the mobile setup layout.
+- Independent review found and blocked two weak acceptance checks before release. The final boundary now admits only an owner result with the exact production invitation grammar, rejects missing, empty, malformed, oversized, and non-owner results before local room state changes, inspects real storage entries instead of vacuous `Map` serialization, and proves clearance through disconnect, sign-out, identity replacement, and destroy.
+- Focused cloud-runtime and setup-UI verification passes 48 of 48 tests. Full `npm test` passes 445 of 447 tests with 2 intentional private-environment skips and 0 failures. `npm run verify` passes all 16 release gates, and the Firestore emulator passes all 22 rules tests.
+- Local visual acceptance at 1440 by 900 and true CDP-emulated 390 by 844 shows the transient invitation card clearly, with no clipped controls, no horizontal overflow, and no browser exceptions. Live deployment and exact-byte verification remain required after commit and push.
+
 ## 2026-09-01 GitHub Pages Firebase config publication hotfix
 
 - The first exact-SHA Pages deployment succeeded, but the live byte gate found `firebase-config.js` missing while the other 53 reviewed public files matched their committed Git blobs and all 15 excluded paths returned 404.

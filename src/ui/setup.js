@@ -1,3 +1,5 @@
+import { isRoomInviteDisplayCode } from "../storage/room-sync.js";
+
 const SETUP_STEPS = Object.freeze([
   ["account", "Connect account"],
   ["teacher", "Confirm teacher"],
@@ -127,7 +129,10 @@ function validateModel(model) {
     invalidModel();
   }
   if (!isRecord(model.room) || !ROOM_STATUSES.has(model.room.status) ||
-      !nullableString(model.room.name) || !ROOM_ROLES.has(model.room.role)) {
+      !nullableString(model.room.name) || !ROOM_ROLES.has(model.room.role) ||
+      model.room.inviteCode !== undefined &&
+        (!isRoomInviteDisplayCode(model.room.inviteCode) ||
+          model.room.status !== "owner" || model.room.role !== "owner")) {
     invalidModel();
   }
   if (!isRecord(model.sync) || !SYNC_STATUSES.has(model.sync.status) ||
@@ -448,17 +453,30 @@ function boundaryCard(documentRef, title, items, className) {
   ]);
 }
 
-function uploadStep(documentRef, actions) {
-  return [
+function uploadStep(documentRef, model, actions) {
+  const children = [
     element(documentRef, "h1", { text: "Confirm cloud upload" }),
     element(documentRef, "p", { text: "Review exactly what will remain private, what will be shared with the selected room, and what stays on this device." }),
+  ];
+  if (model.room.inviteCode) {
+    children.push(element(documentRef, "section", { className: "setup-invite-card" }, [
+      element(documentRef, "h2", { text: "Give this code directly to the other teacher" }),
+      element(documentRef, "code", {
+        className: "setup-invite-code",
+        text: model.room.inviteCode
+      }),
+      element(documentRef, "p", { text: "Copy it now before continuing, refreshing, or signing out. CIRC HQ does not save raw invitation codes." })
+    ]));
+  }
+  children.push(
     element(documentRef, "div", { className: "setup-boundaries" }, [
       boundaryCard(documentRef, "Private to the signed-in teacher", PRIVATE_BOUNDARY, "setup-boundary-private"),
       boundaryCard(documentRef, "Shared with the selected room", SHARED_BOUNDARY, "setup-boundary-shared"),
       boundaryCard(documentRef, "Not uploaded in this release", NOT_UPLOADED_BOUNDARY, "setup-boundary-excluded")
     ]),
     button(documentRef, "Upload and verify", "primary-action setup-primary-action", actions.uploadAndVerify)
-  ];
+  );
+  return children;
 }
 
 function verifyStep(documentRef, model) {
@@ -576,7 +594,7 @@ export function buildSetupView(model, actions, options = {}) {
   else if (model.current === "teacher") content = teacherStep(documentRef, model, actions);
   else if (model.current === "plan") content = planStep(documentRef, model, actions);
   else if (model.current === "room") content = roomStep(documentRef, model, actions);
-  else if (model.current === "upload") content = uploadStep(documentRef, actions);
+  else if (model.current === "upload") content = uploadStep(documentRef, model, actions);
   else if (model.current === "verify") content = verifyStep(documentRef, model);
   else content = completeStep(documentRef, model, actions);
   content.push(button(documentRef, "Setup help", "setup-help-action secondary-action", actions.openSetupHelp));

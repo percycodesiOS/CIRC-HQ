@@ -15,6 +15,7 @@ const runtimeModule = await import("../src/runtime/cloud-runtime.js").catch(() =
 const NOW = "2026-09-01T13:00:00.000Z";
 const EVENT_ID = "event-h0123456789abcdef0123456789abcdef";
 const SECOND_EVENT_ID = "event-hfedcba9876543210fedcba9876543210";
+const VALID_INVITE_CODE = "ABCDEFGHJ-KMNPQRSTV-WXYZ23456";
 
 function deferred() {
   let resolve;
@@ -81,6 +82,10 @@ function memoryStorage(entries = {}) {
       values.delete(key);
     }
   };
+}
+
+function serializedStorage(storage) {
+  return JSON.stringify([...storage.values.entries()]);
 }
 
 function emptyRemote() {
@@ -203,8 +208,10 @@ function fakeCloudClient(options = {}) {
     },
     async createTenantRoom(input) {
       calls.push({ kind: "create-room", input: structuredClone(input) });
-      roomMembership = {
-        status: "member",
+      const defaultResult = {
+        status: "created",
+        tenantId: "tenant-safe",
+        roomId: "room-safe",
         membership: {
           uid: "teacher-uid",
           tenantId: "tenant-safe",
@@ -212,18 +219,21 @@ function fakeCloudClient(options = {}) {
           role: "owner",
           trusted: true
         },
-        room: { tenantId: "tenant-safe", roomId: "room-safe", name: "Shared CIRC Room" }
-      };
-      return {
-        status: "created",
-        tenantId: "tenant-safe",
-        roomId: "room-safe",
-        membership: structuredClone(roomMembership.membership),
-        inviteCode: "ABCD-EFGH-JKMN-PQRS-TUVW",
+        inviteCode: VALID_INVITE_CODE,
         revision: 1,
         artifact: structuredClone(artifact),
         projectProgress: structuredClone(projectProgress)
       };
+      const configured = typeof options.createRoomResult === "function"
+        ? await options.createRoomResult(structuredClone(defaultResult))
+        : options.createRoomResult;
+      const result = configured ?? defaultResult;
+      roomMembership = {
+        status: "member",
+        membership: structuredClone(result.membership),
+        room: { tenantId: "tenant-safe", roomId: "room-safe", name: "Shared CIRC Room" }
+      };
+      return structuredClone(result);
     },
     async loadRoomMembership(uid) {
       calls.push({ kind: "load-room", uid });
@@ -408,8 +418,14 @@ test("explicit upload backs up locally and verifies four private domains in fixe
   await actions.confirmPlanPreview();
   const invitation = await actions.createRoom();
 
-  assert.deepEqual(invitation, { inviteCode: "ABCD-EFGH-JKMN-PQRS-TUVW" });
-  assert.equal(JSON.stringify(app.storage.values).includes(invitation.inviteCode), false);
+  assert.deepEqual(invitation, { inviteCode: VALID_INVITE_CODE });
+  assert.equal(app.controller.getSetupModel().current, "upload");
+  assert.equal(app.controller.getSetupModel().room.inviteCode, invitation.inviteCode);
+  assert.equal(serializedStorage(app.storage).includes(invitation.inviteCode), false);
+  assert.equal(serializedStorage(app.storage).includes(invitation.inviteCode.replaceAll("-", "")), false);
+  assert.doesNotMatch(JSON.stringify(app.store.loadDeviceMetadata()), new RegExp(invitation.inviteCode));
+  assert.doesNotMatch(JSON.stringify(app.state), new RegExp(invitation.inviteCode));
+  assert.doesNotMatch(JSON.stringify(app.cloud.calls), new RegExp(invitation.inviteCode));
   await actions.uploadAndVerify();
 
   assert.deepEqual(app.cloud.calls.filter(({ kind }) => kind === "save-private").map(({ domain }) => domain), [
@@ -420,7 +436,87 @@ test("explicit upload backs up locally and verifies four private domains in fixe
   assert.equal(app.store.loadDeviceMetadata().uploadAuthorized, true);
   assert.equal(app.store.loadDeviceMetadata().lastVerifiedAt, NOW);
   assert.ok(app.storage.getItem("circHQ.k6.backup.v1"));
+  assert.equal(serializedStorage(app.storage).includes(invitation.inviteCode), false);
+  assert.equal(serializedStorage(app.storage).includes(invitation.inviteCode.replaceAll("-", "")), false);
   assert.doesNotMatch(JSON.stringify(app.cloud.calls), /experienceRunners|sharedArtifacts/);
+});
+
+test("the generated room invitation is cleared when the cloud session is destroyed", async () => {
+  const app = harness();
+  const actions = app.controller.getSetupActions();
+  app.cloud.emitAuth({ uid: "teacher-uid", displayName: "Teacher Example", email: "teacher@example.invalid" });
+  await actions.useAccount();
+  await actions.choosePlanFile({ text: JSON.stringify(planFixture()) });
+  await actions.confirmPlanPreview();
+  const invitation = await actions.createRoom();
+
+  assert.equal(app.controller.getSetupModel().room.inviteCode, invitation.inviteCode);
+  app.controller.destroy();
+  assert.equal(app.controller.getSetupModel().room.inviteCode, undefined);
+  assert.equal(serializedStorage(app.storage).includes(invitation.inviteCode), false);
+  assert.equal(serializedStorage(app.storage).includes(invitation.inviteCode.replaceAll("-", "")), false);
+});
+
+test("malformed room-creation results fail closed before local room state is committed", async () => {
+  const cases = [
+    ["missing invitation", (result) => { delete result.inviteCode; return result; }],
+    ["empty invitation", (result) => ({ ...result, inviteCode: "" })],
+    ["wrong alphabet", (result) => ({ ...result, inviteCode: "ABCDEFGHI-JKLMNOPQR-STUVWXYI2" })],
+    ["wrong length", (result) => ({ ...result, inviteCode: "ABCDEFGHJ-KMNPQRSTV" })],
+    ["oversized invitation", (result) => ({ ...result, inviteCode: VALID_INVITE_CODE.repeat(20) })],
+    ["non-owner membership", (result) => ({ ...result, membership: { ...result.membership, role: "teacher" } })]
+  ];
+
+  for (const [label, createRoomResult] of cases) {
+    const app = harness({ cloud: fakeCloudClient({ createRoomResult }) });
+    const actions = app.controller.getSetupActions();
+    app.cloud.emitAuth({ uid: "teacher-uid", displayName: "Teacher Example", email: "teacher@example.invalid" });
+    await actions.useAccount();
+    await actions.choosePlanFile({ text: JSON.stringify(planFixture()) });
+    await actions.confirmPlanPreview();
+    const beforeState = structuredClone(app.state);
+    const beforeMetadata = app.store.loadDeviceMetadata();
+
+    assert.deepEqual(await actions.createRoom(), { status: "denied" }, label);
+    assert.equal(app.controller.getSetupModel().current, "room", label);
+    assert.equal(app.controller.getSetupModel().room.inviteCode, undefined, label);
+    assert.deepEqual(app.state, beforeState, label);
+    assert.deepEqual(app.store.loadDeviceMetadata(), beforeMetadata, label);
+    assert.equal(serializedStorage(app.storage).includes(VALID_INVITE_CODE), false, label);
+  }
+});
+
+test("room invitations clear through disconnect, sign-out, and identity replacement", async () => {
+  async function invitedApp() {
+    const app = harness();
+    const actions = app.controller.getSetupActions();
+    app.cloud.emitAuth({ uid: "teacher-uid", displayName: "Teacher Example", email: "teacher@example.invalid" });
+    await actions.useAccount();
+    await actions.choosePlanFile({ text: JSON.stringify(planFixture()) });
+    await actions.confirmPlanPreview();
+    await actions.createRoom();
+    return { app, actions };
+  }
+
+  const disconnected = await invitedApp();
+  disconnected.app.controller.disconnect();
+  assert.equal(disconnected.app.controller.getSetupModel().room.inviteCode, undefined);
+
+  const signedOut = await invitedApp();
+  const signOutResult = signedOut.actions.signOut();
+  signedOut.app.cloud.emitAuth(null);
+  assert.deepEqual(await signOutResult, { status: "signed-out" });
+  assert.equal(signedOut.app.controller.getSetupModel().room.inviteCode, undefined);
+
+  const replaced = await invitedApp();
+  replaced.app.cloud.emitAuth({ uid: "other-teacher", displayName: "Other Teacher", email: "other@example.invalid" });
+  await settle();
+  assert.equal(replaced.app.controller.getSetupModel().room.inviteCode, undefined);
+
+  for (const { app } of [disconnected, signedOut, replaced]) {
+    assert.equal(serializedStorage(app.storage).includes(VALID_INVITE_CODE), false);
+    assert.equal(serializedStorage(app.storage).includes(VALID_INVITE_CODE.replaceAll("-", "")), false);
+  }
 });
 
 test("cloud plan is summarized without application until explicit confirmation", async () => {

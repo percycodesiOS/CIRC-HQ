@@ -9,6 +9,7 @@ import {
   partitionPrivateDomains
 } from "../storage/cloud-domains.js";
 import { mergeStates } from "../storage/sync-engine.js";
+import { isRoomInviteDisplayCode } from "../storage/room-sync.js";
 import { applyPlanImport, previewPlanImport } from "../ui/settings.js";
 
 const PRIVATE_DOMAINS = Object.freeze(["plan", "progress", "preferences", "content"]);
@@ -178,6 +179,7 @@ export function createCloudRuntimeController({
   let planStatus = "missing";
   let planSummary = null;
   let roomPresentation = { status: "missing", name: null, role: null };
+  let transientInviteCode = null;
   let roomMembership = null;
   let preview = null;
   let cloudBundle = null;
@@ -311,7 +313,10 @@ export function createCloudRuntimeController({
       completed: completedSteps(),
       account,
       plan: currentPlanSummary(),
-      room: clone(roomPresentation),
+      room: {
+        ...clone(roomPresentation),
+        ...(transientInviteCode ? { inviteCode: transientInviteCode } : {})
+      },
       sync: {
         status: effectiveSyncStatus(metadata),
         lastVerifiedAt: metadata.lastVerifiedAt,
@@ -361,6 +366,7 @@ export function createCloudRuntimeController({
     planConflict = null;
     conflictCandidates = new Map();
     preview = null;
+    transientInviteCode = null;
     roomMembership = null;
     roomPresentation = { status: "missing", name: null, role: null };
   }
@@ -700,6 +706,7 @@ export function createCloudRuntimeController({
     client = null;
     suspendedClient = null;
     observedUser = null;
+    resetInMemoryCloud();
     resetAsyncQueues();
     signOutWaiter?.({ status: "cancelled" });
     signOutWaiter = null;
@@ -871,15 +878,17 @@ export function createCloudRuntimeController({
     });
     if (!validCompletion(tokenGeneration, uid)) return { status: "cancelled" };
     if (result?.status !== "created" || !safeSegment(result.tenantId) || !safeSegment(result.roomId) ||
-        result.membership?.uid !== uid || !["owner", "teacher"].includes(result.membership?.role) ||
+        result.membership?.uid !== uid || result.membership?.role !== "owner" ||
+        !isRoomInviteDisplayCode(result.inviteCode) ||
         !Number.isSafeInteger(result.revision) || result.revision < 1) {
       setAttention(result?.status === "offline"
         ? "You appear to be offline. Keep teaching locally and create the room when connected."
         : "Room creation needs attention. Keep the local plan and try again from Setup help.");
-      return { status: result?.status ?? "denied" };
+      return { status: result?.status === "offline" ? "offline" : "denied" };
     }
     roomMembership = clone(result.membership);
     roomPresentation = { status: "owner", name: "Shared CIRC Room", role: result.membership.role };
+    transientInviteCode = result.inviteCode;
     const nextMetadata = readMetadata();
     nextMetadata.tenantId = result.tenantId;
     nextMetadata.roomId = result.roomId;
@@ -895,7 +904,7 @@ export function createCloudRuntimeController({
     current = "upload";
     setNotice("status", "CIRC room created. Share the one-time invitation directly with the other teacher.");
     render();
-    return typeof result.inviteCode === "string" ? { inviteCode: result.inviteCode } : { status: "created" };
+    return { inviteCode: result.inviteCode };
   }
 
   async function redeemInvite(inputCode) {

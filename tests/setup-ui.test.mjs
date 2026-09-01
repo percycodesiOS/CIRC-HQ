@@ -3,6 +3,8 @@ import test from "node:test";
 
 import { buildSetupHelpView, buildSetupView } from "../src/ui/setup.js";
 
+const VALID_INVITE_CODE = "ABCDEFGHJ-KMNPQRSTV-WXYZ23456";
+
 class FakeNode {
   constructor(tagName) {
     this.tagName = tagName;
@@ -301,6 +303,26 @@ test("empty invitation submission gives an explicit safe status", () => {
   assert.match(textOf(view), /Enter the one-time invitation code/);
 });
 
+test("room owner sees the transient invitation after the room step rerenders", () => {
+  const { actions } = actionsDouble();
+  const view = buildSetupView(model({
+    current: "upload",
+    completed: ["account", "teacher", "plan", "room"],
+    room: {
+      status: "owner",
+      name: "Shared CIRC Room",
+      role: "owner",
+      inviteCode: VALID_INVITE_CODE
+    }
+  }), actions, { document: documentDouble });
+
+  assert.match(textOf(view), new RegExp(VALID_INVITE_CODE));
+  const code = findAll(view, (node) => node.tagName === "code")[0];
+  assert.equal(code?.textContent, VALID_INVITE_CODE);
+  assert.match(textOf(view), /other teacher/i);
+  assert.match(textOf(view), /does not save raw invitation codes/i);
+});
+
 test("upload and verification steps expose only their own current mutation", () => {
   const { actions, calls } = actionsDouble();
   const upload = buildSetupView(model({ current: "upload", completed: ["account", "teacher", "plan", "room"] }), actions, { document: documentDouble });
@@ -396,6 +418,11 @@ test("invalid setup model and missing callbacks fail closed", () => {
   assert.throws(() => buildSetupView(model({ notice: { kind: "error", text: "safe", raw: "unsafe" } }), actions, { document: documentDouble }), /setup-model-invalid/);
   assert.throws(() => buildSetupView(model({ sync: { status: "pending", lastVerifiedAt: null, pendingDomains: ["plan", "plan"], conflictDomains: [] } }), actions, { document: documentDouble }), /setup-model-invalid/);
   assert.throws(() => buildSetupView(model({ sync: { status: "pending", lastVerifiedAt: null, pendingDomains: ["uid"], conflictDomains: [] } }), actions, { document: documentDouble }), /setup-model-invalid/);
+  assert.throws(() => buildSetupView(model({ room: { status: "missing", name: null, role: null, inviteCode: { raw: "unsafe" } } }), actions, { document: documentDouble }), /setup-model-invalid/);
+  for (const inviteCode of [null, "", " ", "ABCDEFGHI-JKLMNOPQR-STUVWXYI2", "ABCDEFGHJ-KMNPQRSTV", VALID_INVITE_CODE.repeat(20)]) {
+    assert.throws(() => buildSetupView(model({ room: { status: "owner", name: "Shared CIRC Room", role: "owner", inviteCode } }), actions, { document: documentDouble }), /setup-model-invalid/);
+  }
+  assert.throws(() => buildSetupView(model({ room: { status: "ready", name: "Shared CIRC Room", role: "teacher", inviteCode: VALID_INVITE_CODE } }), actions, { document: documentDouble }), /setup-model-invalid/);
 });
 
 test("error notice is semantic and product copy has no forbidden dashes", () => {

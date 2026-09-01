@@ -15,6 +15,9 @@ import { safeCloudFailureStatus } from "./cloud-sync.js";
 const INVITE_ALPHABET = "ABCDEFGHJKMNPQRSTVWXYZ23456789";
 const INVITE_LENGTH = 27;
 const INVITE_GROUP_LENGTH = 9;
+const INVITE_DISPLAY_PATTERN = new RegExp(
+  `^[${INVITE_ALPHABET}]{${INVITE_GROUP_LENGTH}}(?:-[${INVITE_ALPHABET}]{${INVITE_GROUP_LENGTH}}){2}$`
+);
 const INVITE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
 const INVITE_HASH_PATTERN = /^[0-9a-f]{64}$/;
 const SAFE_SEGMENT_PATTERN = /^[^/\\\u0000-\u001f\u007f]+$/;
@@ -352,6 +355,10 @@ export function generateRoomInvite({ crypto } = {}) {
     }
   }
   return canonical.match(new RegExp(`.{1,${INVITE_GROUP_LENGTH}}`, "g")).join("-");
+}
+
+export function isRoomInviteDisplayCode(code) {
+  return typeof code === "string" && INVITE_DISPLAY_PATTERN.test(code);
 }
 
 export function normalizeInviteCode(code) {

@@ -16,6 +16,7 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const OWNER_UID = "owner-user";
 const JOINING_UID = "joining-user";
 const EVENT_ID = "event-h0123456789abcdef0123456789abcdef";
+const VALID_INVITE_CODE = "ABCDEFGHJ-KMNPQRSTV-WXYZ23456";
 
 const TENANT_KEYS = [
   "createdAt", "name", "ownerUid", "revision", "schemaVersion", "tenantId", "updatedAt", "updatedBy"
@@ -179,6 +180,7 @@ async function bootstrapRoom({ uid = OWNER_UID, crypto = sequentialCrypto() } = 
 
 test("invites use the exact alphabet, rejection sampling, and a 27-character canonical value", () => {
   const generateRoomInvite = requiredExport("generateRoomInvite");
+  const isRoomInviteDisplayCode = requiredExport("isRoomInviteDisplayCode");
   const normalizeInviteCode = requiredExport("normalizeInviteCode");
   const crypto = rejectionCrypto();
   const displayCode = generateRoomInvite({ crypto });
@@ -187,6 +189,11 @@ test("invites use the exact alphabet, rejection sampling, and a 27-character can
   assert.match(displayCode, /^[ABCDEFGHJKMNPQRSTVWXYZ23456789-]+$/);
   assert.match(canonical, /^[ABCDEFGHJKMNPQRSTVWXYZ23456789]{27}$/);
   assert.ok(displayCode.includes("-"), "display code should be grouped");
+  assert.equal(isRoomInviteDisplayCode(displayCode), true);
+  assert.equal(isRoomInviteDisplayCode(VALID_INVITE_CODE), true);
+  for (const invalid of [null, "", " ", "ABCDEFGHI-JKLMNOPQR-STUVWXYI2", "ABCDEFGHJ-KMNPQRSTV", `${VALID_INVITE_CODE}A`, VALID_INVITE_CODE.toLowerCase()]) {
+    assert.equal(isRoomInviteDisplayCode(invalid), false);
+  }
   assert.ok(crypto.calls >= 2, "a rejected byte must be replaced with fresh entropy");
   assert.throws(() => normalizeInviteCode(`${canonical.slice(0, -1)}I`), /room-invite-invalid/);
   assert.throws(() => normalizeInviteCode(canonical.slice(1)), /room-invite-invalid/);

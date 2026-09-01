@@ -470,6 +470,32 @@ h2 { font-size: 1.15rem; }
 .setup-boundary-list li + li { margin-top: 4px; }
 .setup-boundary-excluded { border-color: var(--warning-border); background: #fffdf7; }
 
+.setup-invite-card {
+  margin: 18px 0;
+  padding: 16px;
+  border: 2px solid var(--heading);
+  border-radius: var(--radius);
+  background: var(--pale-blue);
+}
+
+.setup-invite-card h2 { margin-bottom: 8px; }
+
+.setup-invite-code {
+  display: block;
+  max-width: 100%;
+  margin: 8px 0;
+  padding: 12px;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--blue-dark);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--heading);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 1rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+}
+
 .setup-sync-status,
 .setup-status,
 .setup-notice {
