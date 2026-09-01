@@ -185,7 +185,24 @@ export function createCloudRuntimeController({
   let conflictCandidates = new Map();
   let metadataMemory = defaultMetadata();
   let signOutWaiter = null;
+  let suspendedClient = null;
+  let previewRequestId = 0;
+  let sharedWriteQueue = Promise.resolve();
   const writeQueues = new Map();
+  const domainChangeVersions = new Map(PRIVATE_DOMAINS.map((domain) => [domain, 0]));
+
+  function resetAsyncQueues() {
+    writeQueues.clear();
+    sharedWriteQueue = Promise.resolve();
+    previewRequestId += 1;
+    for (const domain of PRIVATE_DOMAINS) domainChangeVersions.set(domain, 0);
+  }
+
+  function markDomainChanged(domain) {
+    const next = (domainChangeVersions.get(domain) ?? 0) + 1;
+    domainChangeVersions.set(domain, next);
+    return next;
+  }
 
   function readMetadata() {
     if (typeof store.loadDeviceMetadata === "function") {
@@ -225,6 +242,10 @@ export function createCloudRuntimeController({
 
   function validCompletion(tokenGeneration, uid) {
     return !destroyed && generation === tokenGeneration && observedUser?.uid === uid;
+  }
+
+  function sameIdentityContext(tokenGeneration, uid) {
+    return !destroyed && generation === tokenGeneration && (observedUser?.uid ?? null) === uid;
   }
 
   function render() {
@@ -423,7 +444,7 @@ export function createCloudRuntimeController({
     if (!validCompletion(tokenGeneration, uid)) return false;
     if (!applySharedResult(shared)) {
       if (shared?.status === "offline") syncStatus = "offline";
-      else if (shared?.status !== "not-member") syncStatus = "attention";
+      else syncStatus = "attention";
       return false;
     }
     roomPresentation.status = "ready";
@@ -525,15 +546,13 @@ export function createCloudRuntimeController({
       }
     } else if (local.plan) {
       planSummary = safePlanSummary(local.plan, nowDate());
-      planStatus = "confirmed";
-      metadata.planConfirmed = true;
-      saveMetadata(metadata);
+      planStatus = metadata.planConfirmed ? "confirmed" : "preview";
     }
-    await loadRoom(tokenGeneration, uid);
+    const roomReady = await loadRoom(tokenGeneration, uid);
     if (!validCompletion(tokenGeneration, uid)) return;
     const fresh = readMetadata();
     if (remote.classification === "empty") {
-      if (local.plan) current = roomMembership ? "upload" : "room";
+      if (local.plan && fresh.planConfirmed) current = roomMembership ? "upload" : "room";
       else current = "plan";
       if (fresh.pendingDomains.length) {
         if (syncStatus !== "offline") syncStatus = "pending";
@@ -545,19 +564,20 @@ export function createCloudRuntimeController({
     } else if (fresh.conflictDomains.length) {
       syncStatus = "attention";
       setNotice("warning", "CIRC Cloud found changes that need a teacher decision. Local teaching remains available.");
-    } else if (fresh.uploadAuthorized && roomMembership) {
+    } else if (fresh.uploadAuthorized && roomReady) {
       syncStatus = "verified";
       current = "complete";
     } else {
       current = fresh.planConfirmed ? (roomMembership ? "upload" : "room") : "plan";
-      syncStatus = "idle";
+      if (!new Set(["offline", "attention"]).has(syncStatus)) syncStatus = "idle";
     }
     render();
   }
 
-  function observeIdentity(rawUser) {
+  async function observeIdentity(rawUser) {
     if (destroyed) return;
     generation += 1;
+    resetAsyncQueues();
     const user = normalizedUser(rawUser);
     if (!user) {
       observedUser = null;
@@ -592,7 +612,7 @@ export function createCloudRuntimeController({
     if (metadata.teacherConfirmed) {
       accountStatus = "confirmed";
       current = metadata.planConfirmed ? (metadata.tenantId ? "upload" : "room") : "plan";
-      void loadCloudForObservedUser();
+      await loadCloudForObservedUser();
     } else {
       current = "teacher";
       syncStatus = "idle";
@@ -601,24 +621,59 @@ export function createCloudRuntimeController({
   }
 
   function connect(nextClient) {
+    if (mode === "demo") {
+      disconnect();
+      suspendedClient = nextClient ?? null;
+      const suspended = () => {};
+      suspended.ready = Promise.resolve();
+      return suspended;
+    }
     disconnect();
     if (destroyed) return () => {};
     client = nextClient ?? null;
     if (!client || typeof client.observeAuth !== "function") {
       syncStatus = client?.status === "cloud-blocked" ? "attention" : "idle";
       render();
-      return () => {};
+      const inactive = () => {};
+      inactive.ready = Promise.resolve();
+      return inactive;
     }
     const activeConnection = ++connectionId;
-    const rawUnsubscribe = client.observeAuth((user) => {
-      if (!destroyed && connectionId === activeConnection) observeIdentity(user);
+    let settleInitial;
+    let initialStarted = false;
+    const initialReady = new Promise((resolve) => {
+      settleInitial = resolve;
     });
+    let rawUnsubscribe;
+    try {
+      rawUnsubscribe = client.observeAuth((user) => {
+        if (destroyed || connectionId !== activeConnection) return;
+        const isInitial = !initialStarted;
+        if (isInitial) initialStarted = true;
+        Promise.resolve(observeIdentity(user)).catch(() => {
+          if (!destroyed && connectionId === activeConnection) {
+            setAttention("CIRC Cloud could not safely finish its first account check. Keep teaching locally.");
+          }
+        }).finally(() => {
+          if (isInitial) settleInitial();
+        });
+      });
+    } catch {
+      syncStatus = "attention";
+      settleInitial();
+      render();
+      const failed = () => {};
+      failed.ready = initialReady;
+      return failed;
+    }
     let called = false;
     unsubscribe = () => {
       if (called) return;
       called = true;
       rawUnsubscribe?.();
+      settleInitial();
     };
+    unsubscribe.ready = initialReady;
     return unsubscribe;
   }
 
@@ -628,9 +683,11 @@ export function createCloudRuntimeController({
     unsubscribe?.();
     unsubscribe = null;
     client = null;
+    suspendedClient = null;
     observedUser = null;
     accountStatus = "signed-out";
     resetInMemoryCloud();
+    resetAsyncQueues();
   }
 
   function destroy() {
@@ -641,7 +698,9 @@ export function createCloudRuntimeController({
     connectionId += 1;
     destroyed = true;
     client = null;
+    suspendedClient = null;
     observedUser = null;
+    resetAsyncQueues();
     signOutWaiter?.({ status: "cancelled" });
     signOutWaiter = null;
   }
@@ -652,17 +711,21 @@ export function createCloudRuntimeController({
       render();
       return Promise.resolve({ status: "not-ready" });
     }
+    const tokenGeneration = generation;
+    const tokenUid = observedUser?.uid ?? null;
     let result;
     try {
       result = client.signInWithGoogle();
     } catch {
       result = Promise.resolve({ status: "denied" });
     }
-    accountStatus = "pending";
-    setNotice("status", "Waiting for Google to confirm the signed-in account.");
-    render();
+    if (sameIdentityContext(tokenGeneration, tokenUid)) {
+      accountStatus = "pending";
+      setNotice("status", "Waiting for Google to confirm the signed-in account.");
+      render();
+    }
     return Promise.resolve(result).then((outcome) => {
-      if (destroyed) return outcome;
+      if (!sameIdentityContext(tokenGeneration, tokenUid)) return outcome;
       if (outcome?.status !== "pending") {
         accountStatus = observedUser ? "observed" : "signed-out";
         setNotice("error", authFailureCopy(outcome?.status));
@@ -670,7 +733,7 @@ export function createCloudRuntimeController({
       }
       return outcome;
     }, () => {
-      if (!destroyed) {
+      if (sameIdentityContext(tokenGeneration, tokenUid)) {
         accountStatus = observedUser ? "observed" : "signed-out";
         setNotice("error", authFailureCopy("denied"));
         render();
@@ -726,13 +789,22 @@ export function createCloudRuntimeController({
 
   async function choosePlanFile(file) {
     if (mode === "demo") return { status: "blocked" };
+    const tokenGeneration = generation;
+    const tokenUid = observedUser?.uid ?? null;
+    const requestId = ++previewRequestId;
     let text;
     try {
       text = await readFileText(file);
     } catch {
+      if (!sameIdentityContext(tokenGeneration, tokenUid) || requestId !== previewRequestId || mode === "demo") {
+        return { status: "cancelled" };
+      }
       setNotice("error", "That teacher plan file could not be read. Choose the JSON file again.");
       render();
       return { status: "invalid" };
+    }
+    if (!sameIdentityContext(tokenGeneration, tokenUid) || requestId !== previewRequestId || mode === "demo") {
+      return { status: "cancelled" };
     }
     const result = previewPlanImport(getState().plan, text, { migrationOptions });
     if (!result.ok) {
@@ -771,6 +843,8 @@ export function createCloudRuntimeController({
       }
       acceptPersistedState(result.state);
       nextState = result.state;
+    } else if (planStatus === "preview" && getState().plan) {
+      nextState = admitLocalState(getState());
     } else {
       return { status: "blocked" };
     }
@@ -826,7 +900,11 @@ export function createCloudRuntimeController({
 
   async function redeemInvite(inputCode) {
     const uid = observedUser?.uid;
-    if (!uid || !client) return { status: "blocked" };
+    const metadata = readMetadata();
+    if (!uid || !client || metadata.accountUid !== uid ||
+        !metadata.teacherConfirmed || !metadata.planConfirmed) {
+      return { status: "blocked" };
+    }
     const tokenGeneration = generation;
     let code = inputCode;
     inputCode = null;
@@ -858,8 +936,19 @@ export function createCloudRuntimeController({
     return { status: "joined" };
   }
 
-  function updateDomainResult(metadata, domain, outcome, expectedValue = null) {
-    if (outcome?.status === "verified" && Number.isSafeInteger(outcome.revision) && outcome.revision >= 0) {
+  function updateDomainResult(metadata, domain, outcome, {
+    expectedValue = null,
+    expectedRevision,
+    operation = "save",
+    changeVersion = null
+  } = {}) {
+    const requiredRevision = operation === "verify"
+      ? expectedRevision
+      : Number.isSafeInteger(expectedRevision)
+        ? expectedRevision + 1
+        : null;
+    if (outcome?.status === "verified" && Number.isSafeInteger(requiredRevision) &&
+        outcome.revision === requiredRevision) {
       let admittedValue;
       try {
         admittedValue = assertCloudDomainShape(domain, outcome.value);
@@ -874,13 +963,19 @@ export function createCloudRuntimeController({
         return false;
       }
       metadata.lastVerifiedRevisions[domain] = outcome.revision;
-      metadata.pendingDomains = metadata.pendingDomains.filter((entry) => entry !== domain);
-      metadata.conflictDomains = metadata.conflictDomains.filter((entry) => entry !== domain);
+      if (changeVersion === null || domainChangeVersions.get(domain) === changeVersion) {
+        metadata.pendingDomains = metadata.pendingDomains.filter((entry) => entry !== domain);
+        metadata.conflictDomains = metadata.conflictDomains.filter((entry) => entry !== domain);
+      }
       if (cloudBundle?.domains && cloudBundle?.revisions) {
         cloudBundle.domains[domain] = clone(admittedValue);
         cloudBundle.revisions[domain] = outcome.revision;
       }
       return true;
+    }
+    if (outcome?.status === "verified") {
+      syncStatus = "attention";
+      return false;
     }
     if (outcome?.status === "offline") syncStatus = "offline";
     else if (outcome?.status === "conflict") {
@@ -894,7 +989,7 @@ export function createCloudRuntimeController({
     const metadata = readMetadata();
     const uid = observedUser?.uid;
     if (!uid || metadata.accountUid !== uid || !metadata.teacherConfirmed || !metadata.planConfirmed ||
-        !roomMembership || metadata.conflictDomains.includes("plan") || !client) {
+        !roomMembership || metadata.conflictDomains.length > 0 || !client) {
       setAttention("Complete the account, plan, and room steps before uploading.");
       return { status: "blocked" };
     }
@@ -912,19 +1007,36 @@ export function createCloudRuntimeController({
     for (const domain of PRIVATE_DOMAINS) {
       const fresh = readMetadata();
       const expectedRevision = fresh.lastVerifiedRevisions[domain];
+      const changeVersion = domainChangeVersions.get(domain) ?? 0;
+      fresh.pendingDomains = orderedDomains([...fresh.pendingDomains, domain]);
+      saveMetadata(fresh);
       let outcome;
-      if (cloudBundle?.domains?.[domain] && deepEqual(cloudBundle.domains[domain], domains[domain])) {
-        outcome = await client.verifyPrivateDomain(uid, domain, expectedRevision);
-      } else {
-        outcome = await client.savePrivateDomain(uid, domain, domains[domain], expectedRevision);
+      let operation = "save";
+      try {
+        if (cloudBundle?.domains?.[domain] && deepEqual(cloudBundle.domains[domain], domains[domain])) {
+          operation = "verify";
+          outcome = await client.verifyPrivateDomain(uid, domain, expectedRevision);
+        } else {
+          outcome = await client.savePrivateDomain(uid, domain, domains[domain], expectedRevision);
+        }
+      } catch {
+        outcome = { status: "denied", revision: null, value: null };
       }
       if (!validCompletion(tokenGeneration, uid)) return { status: "cancelled" };
       const latest = readMetadata();
-      latest.pendingDomains = orderedDomains([...latest.pendingDomains, domain]);
-      if (!updateDomainResult(latest, domain, outcome, domains[domain])) {
+      if (!updateDomainResult(latest, domain, outcome, {
+        expectedValue: domains[domain],
+        expectedRevision,
+        operation,
+        changeVersion
+      })) {
         saveMetadata(latest);
         setAttention("Cloud verification stopped safely. Completed domains were preserved for a retry.");
-        return { status: outcome?.status ?? "denied" };
+        return {
+          status: outcome?.status === "offline" || outcome?.status === "conflict"
+            ? outcome.status
+            : "attention"
+        };
       }
       saveMetadata(latest);
     }
@@ -945,10 +1057,24 @@ export function createCloudRuntimeController({
     }
     const completeMetadata = readMetadata();
     completeMetadata.uploadAuthorized = true;
-    completeMetadata.pendingDomains = [];
-    completeMetadata.conflictDomains = [];
-    completeMetadata.lastVerifiedAt = nowDate().toISOString();
     saveMetadata(completeMetadata);
+    if (completeMetadata.conflictDomains.length > 0) {
+      setAttention("Cloud verification found a conflict. Local teaching remains available while it is resolved.");
+      return { status: "attention" };
+    }
+    if (completeMetadata.pendingDomains.some((domain) => PRIVATE_DOMAINS.includes(domain))) {
+      const resumed = await syncNow();
+      if (!validCompletion(tokenGeneration, uid)) return { status: "cancelled" };
+      if (resumed.status !== "verified") {
+        current = "verify";
+        setNotice("warning", "Newer local changes are still pending. Retry Sync now from Setup help.");
+        render();
+        return resumed;
+      }
+    }
+    const verifiedMetadata = readMetadata();
+    verifiedMetadata.lastVerifiedAt = nowDate().toISOString();
+    saveMetadata(verifiedMetadata);
     syncStatus = "verified";
     current = "complete";
     setNotice("status", "CIRC Cloud was written, read back, and verified.");
@@ -963,17 +1089,35 @@ export function createCloudRuntimeController({
       const metadata = readMetadata();
       if (!metadata.uploadAuthorized || metadata.conflictDomains.includes(domain)) return { status: "pending" };
       const value = partitionPrivateDomains(state)[domain];
-      const outcome = await client.savePrivateDomain(uid, domain, value, metadata.lastVerifiedRevisions[domain]);
+      const expectedRevision = metadata.lastVerifiedRevisions[domain];
+      const changeVersion = domainChangeVersions.get(domain) ?? 0;
+      let outcome;
+      try {
+        outcome = await client.savePrivateDomain(uid, domain, value, expectedRevision);
+      } catch {
+        outcome = { status: "denied", revision: null, value: null };
+      }
       if (!validCompletion(tokenGeneration, uid)) return { status: "cancelled" };
       const latest = readMetadata();
-      updateDomainResult(latest, domain, outcome, value);
+      const accepted = updateDomainResult(latest, domain, outcome, {
+        expectedValue: value,
+        expectedRevision,
+        operation: "save",
+        changeVersion
+      });
       if (latest.pendingDomains.length === 0 && latest.conflictDomains.length === 0 && outcome?.status === "verified") {
         latest.lastVerifiedAt = nowDate().toISOString();
         syncStatus = "verified";
       }
       saveMetadata(latest);
       render();
-      return outcome;
+      return accepted
+        ? outcome
+        : {
+            status: outcome?.status === "offline" || outcome?.status === "conflict"
+              ? outcome.status
+              : "attention"
+          };
     });
     writeQueues.set(domain, queued.catch(() => {}));
     return queued;
@@ -984,6 +1128,7 @@ export function createCloudRuntimeController({
     if (!admittedDomains.length || mode === "demo") return { status: "local-only" };
     const admittedState = admitLocalState(state ?? getState());
     const metadata = readMetadata();
+    for (const domain of admittedDomains) markDomainChanged(domain);
     metadata.pendingDomains = orderedDomains([...metadata.pendingDomains, ...admittedDomains]);
     saveMetadata(metadata);
     syncStatus = client && observedUser ? "pending" : "idle";
@@ -998,10 +1143,23 @@ export function createCloudRuntimeController({
     return { status: results.every((result) => result?.status === "verified") ? "verified" : results.at(-1)?.status ?? "pending" };
   }
 
-  async function afterSharedHandoff({ handoff } = {}) {
+  async function performSharedHandoff({ handoff } = {}, tokenGeneration, tokenUid) {
     if (mode === "demo") return { status: "local-only" };
+    if (!sameIdentityContext(tokenGeneration, tokenUid)) return { status: "cancelled" };
     const metadata = readMetadata();
     if (!metadata.tenantId || !metadata.roomId || !handoff || typeof handoff !== "object") return { status: "local-only" };
+    if (metadata.pendingSharedHandoff) {
+      const pending = metadata.pendingSharedHandoff;
+      const sameOperation = pending.handoff === handoff.handoff && pending.eventId === handoff.eventId &&
+        pending.visitDate === handoff.visitDate && pending.nowIso === handoff.nowIso;
+      if (!sameOperation) {
+        metadata.conflictDomains = orderedDomains([...metadata.conflictDomains, "sharedArtifact"]);
+        saveMetadata(metadata);
+        syncStatus = "attention";
+        render();
+      }
+      return { status: sameOperation ? "pending" : "conflict" };
+    }
     const operation = {
       artifactId: TECH_TERRARIUM_ARTIFACT_ID,
       expectedRevision: metadata.lastVerifiedRevisions.sharedArtifact,
@@ -1019,18 +1177,22 @@ export function createCloudRuntimeController({
       render();
       return { status: "pending" };
     }
-    const tokenGeneration = generation;
-    const outcome = await client.saveSharedArtifact({
-      tenantId: metadata.tenantId,
-      roomId: metadata.roomId,
-      expectedRevision: operation.expectedRevision,
-      handoff: operation.handoff,
-      eventId: operation.eventId,
-      visitDate: operation.visitDate,
-      nowIso: operation.nowIso
-    });
+    let outcome;
+    try {
+      outcome = await client.saveSharedArtifact({
+        tenantId: metadata.tenantId,
+        roomId: metadata.roomId,
+        expectedRevision: operation.expectedRevision,
+        handoff: operation.handoff,
+        eventId: operation.eventId,
+        visitDate: operation.visitDate,
+        nowIso: operation.nowIso
+      });
+    } catch {
+      outcome = { status: "denied", revision: null, value: null, projectProgress: null };
+    }
     if (!validCompletion(tokenGeneration, uid)) return { status: "cancelled" };
-    if (applySharedResult(outcome)) {
+    if (outcome?.revision === operation.expectedRevision + 1 && applySharedResult(outcome)) {
       const fresh = readMetadata();
       fresh.lastVerifiedAt = nowDate().toISOString();
       saveMetadata(fresh);
@@ -1045,6 +1207,14 @@ export function createCloudRuntimeController({
     }
     render();
     return { status: outcome?.status ?? "denied" };
+  }
+
+  function afterSharedHandoff(input = {}) {
+    const tokenGeneration = generation;
+    const tokenUid = observedUser?.uid ?? null;
+    const queued = sharedWriteQueue.then(() => performSharedHandoff(input, tokenGeneration, tokenUid));
+    sharedWriteQueue = queued.catch(() => {});
+    return queued;
   }
 
   async function syncPendingShared(uid, tokenGeneration) {
@@ -1076,7 +1246,17 @@ export function createCloudRuntimeController({
       nowIso: operation.nowIso
     });
     if (!validCompletion(tokenGeneration, uid)) return false;
-    return applySharedResult(result);
+    if (result?.status === "verified" &&
+        result.revision === operation.expectedRevision + 1 && applySharedResult(result)) return true;
+    if (result?.status === "offline") {
+      syncStatus = "offline";
+      return false;
+    }
+    const fresh = readMetadata();
+    fresh.conflictDomains = orderedDomains([...fresh.conflictDomains, "sharedArtifact"]);
+    saveMetadata(fresh);
+    syncStatus = "attention";
+    return false;
   }
 
   async function syncNow() {
@@ -1095,6 +1275,8 @@ export function createCloudRuntimeController({
     }
     if (!validCompletion(tokenGeneration, uid)) return { status: "cancelled" };
     if (readMetadata().pendingSharedHandoff && !readMetadata().conflictDomains.includes("sharedArtifact")) {
+      await sharedWriteQueue;
+      if (!validCompletion(tokenGeneration, uid)) return { status: "cancelled" };
       await syncPendingShared(uid, tokenGeneration);
     }
     if (!validCompletion(tokenGeneration, uid)) return { status: "cancelled" };
@@ -1158,12 +1340,18 @@ export function createCloudRuntimeController({
       previewExperience: () => routes.previewExperience?.(),
       openSetupHelp: () => routes.openSetupHelp?.(),
       exploreDemo: () => {
+        const resumeClient = client ?? suspendedClient;
+        disconnect();
+        suspendedClient = resumeClient;
         mode = "demo";
         routes.enterDemo?.();
         render();
       },
       exitDemo: () => {
+        const resumeClient = suspendedClient;
+        suspendedClient = null;
         mode = "setup";
+        if (resumeClient) connect(resumeClient);
         routes.exitDemo?.();
         render();
       },

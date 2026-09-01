@@ -115,6 +115,16 @@ function memoryStore(state) {
   };
 }
 
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
 const ACTIVE_EVENT_IDS = Object.freeze({
   teach: "event-hf0ba7c9dbc3990338af92b9dcfdb32e9",
   prep: "event-ha00b16a95f809d2adb4173f964e956e2",
@@ -701,6 +711,141 @@ test("a valid local plan renders Today before a deferred cloud client resolves",
     resolveClient(createFirebaseClient());
     await controller.ready;
     assert.match(textOf(root), /Today/);
+    controller.destroy();
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("app readiness waits for the first auth observation and its authorized cloud read", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithActiveEvent("teach");
+  const privateLoad = deferred();
+  let authListener = null;
+  let metadata = {
+    schemaVersion: 1,
+    accountUid: "teacher-uid",
+    teacherConfirmed: true,
+    planConfirmed: true,
+    uploadAuthorized: true,
+    pendingDomains: [],
+    conflictDomains: [],
+    lastVerifiedAt: "2026-08-20T13:00:00.000Z",
+    lastVerifiedRevisions: {
+      plan: 2,
+      progress: 2,
+      preferences: 2,
+      content: 2,
+      sharedArtifact: 0
+    },
+    tenantId: null,
+    roomId: null,
+    pendingSharedHandoff: null
+  };
+  const store = {
+    load: () => ({ state: structuredClone(state), error: null }),
+    save: (next) => structuredClone(next),
+    loadDeviceMetadata: () => structuredClone(metadata),
+    saveDeviceMetadata: (next) => {
+      metadata = structuredClone(next);
+      return structuredClone(metadata);
+    }
+  };
+  const cloudClient = {
+    status: "ready",
+    observeAuth(listener) {
+      authListener = listener;
+      return () => {};
+    },
+    loadPrivateDomains: () => privateLoad.promise,
+    loadRoomMembership: async () => ({ status: "not-member", membership: null, room: null })
+  };
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store,
+      cloudClient,
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+    });
+    let ready = false;
+    controller.ready.then(() => {
+      ready = true;
+    });
+
+    assert.match(textOf(root), /Today/);
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(typeof authListener, "function");
+    assert.equal(ready, false);
+
+    authListener({ uid: "teacher-uid", displayName: "Teacher Example", email: "teacher@example.invalid" });
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(ready, false);
+    privateLoad.resolve({
+      status: "loaded",
+      domains: { plan: null, progress: null, preferences: null, content: null },
+      revisions: { plan: 0, progress: 0, preferences: 0, content: 0 },
+      updatedAt: { plan: null, progress: null, preferences: null, content: null }
+    });
+    await controller.ready;
+    assert.equal(ready, true);
+    controller.destroy();
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("late cloud preload remains suspended throughout demo and resumes only after exit", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const cloudPreload = deferred();
+  const calls = [];
+  const cloudClient = {
+    status: "ready",
+    observeAuth() {
+      calls.push("observe");
+      return () => calls.push("unsubscribe");
+    }
+  };
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: memoryStore(stateWithoutPlan()),
+      cloudClientPromise: cloudPreload.promise,
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+    });
+    findAll(root, (node) =>
+      node.tagName === "button" && node.textContent === "Explore a temporary demo"
+    )[0].click();
+    cloudPreload.resolve(cloudClient);
+    await controller.ready;
+
+    assert.deepEqual(calls, []);
+    assert.match(textOf(root), /Temporary CIRC HQ demo/);
+    findAll(root, (node) =>
+      node.tagName === "button" && node.textContent === "Exit demo and set up CIRC HQ"
+    )[0].click();
+    assert.deepEqual(calls, ["observe"]);
     controller.destroy();
   } finally {
     globalThis.document = previousDocument;

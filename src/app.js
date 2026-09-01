@@ -2224,9 +2224,12 @@ export function renderApp(root, services = {}) {
       });
 
   const readyPromise = Promise.all([privateSeedPromise, cloudClientPreload])
-    .then(([seedResult, cloudClient]) => {
+    .then(async ([seedResult, cloudClient]) => {
       resolvedCloudClient = cloudClient;
-      if (!appDestroyed && recoveryStatus !== "unrecoverable") runtime.connect(cloudClient);
+      if (!appDestroyed && recoveryStatus !== "unrecoverable") {
+        const connection = runtime.connect(cloudClient);
+        await (connection?.ready ?? Promise.resolve());
+      }
       return seedResult;
     });
 
