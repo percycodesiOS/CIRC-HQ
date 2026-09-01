@@ -600,6 +600,7 @@ test("Jekyll exclusions cover every nonruntime release path and expose every pub
     "src/storage/cloud-domains.js",
     "src/storage/cloud-sync.js",
     "src/storage/firebase-adapter.js",
+    "src/storage/room-sync.js",
     "src/storage/sync-engine.js",
     "src/ui/curriculum.js",
     "tests"
