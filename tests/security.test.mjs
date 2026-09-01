@@ -11,6 +11,7 @@ import * as access from "../src/model/access.js";
 import * as devServer from "../scripts/dev-server.mjs";
 import { createClassroomProjection, createInitialState } from "../src/model/state.js";
 import { validateTeacherPlan } from "../src/model/teacher-plan.js";
+import { assertCloudDomainShape } from "../src/storage/cloud-domains.js";
 import { buildTeacherDocumentPatch, createFirebaseAdapter } from "../src/storage/firebase-adapter.js";
 import { LocalStore, STATE_KEY } from "../src/storage/local-store.js";
 import { mergeStates } from "../src/storage/sync-engine.js";
@@ -591,6 +592,7 @@ test("Jekyll exclusions cover every nonruntime release path and expose every pub
     "firebase-config.example.js",
     "package.json",
     "scripts",
+    "src/storage/cloud-domains.js",
     "src/storage/firebase-adapter.js",
     "src/storage/sync-engine.js",
     "src/ui/curriculum.js",
@@ -1066,6 +1068,21 @@ test("Firebase teacher writes keep one private document boundary", async () => {
   assert.equal(writes[0][0], "playbookTeachers/teacher-uid");
   assert.deepEqual(Object.keys(writes[0][1]), ["playbookPrivateV1"]);
   assert.deepEqual(writes[0][2], { merge: true });
+});
+
+test("cloud domains reject runners, credentials, authentication, submissions, and private shared fields", () => {
+  for (const value of [
+    { experienceRunners: {} },
+    { auth: { provider: "google" } },
+    { token: "not-a-credential" },
+    { studentSubmissions: [] },
+    { notes: [] }
+  ]) {
+    assert.throws(
+      () => assertCloudDomainShape("artifacts", value),
+      /cloud-domain-invalid/
+    );
+  }
 });
 
 test("separate-project shared mode stays blocked without trusted membership", () => {
