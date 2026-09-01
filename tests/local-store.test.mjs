@@ -5,7 +5,7 @@ import {
   createTechTerrariumArtifact,
   recordArtifactHandoff
 } from "../src/model/shared-artifact.js";
-import { LocalStore, BACKUP_KEY, STATE_KEY } from "../src/storage/local-store.js";
+import { LocalStore, BACKUP_KEY, DEVICE_KEY, STATE_KEY } from "../src/storage/local-store.js";
 import { createInitialState } from "../src/model/state.js";
 
 const NOW = "2026-08-28T12:00:00.000Z";
@@ -449,4 +449,115 @@ test("backup and save never retain an invalid shared artifact from the prior pri
   const backup = JSON.parse(storage.getItem(BACKUP_KEY));
   assert.deepEqual(Object.keys(backup.sharedArtifacts), [TECH_TERRARIUM_ARTIFACT_ID]);
   assert.equal(JSON.stringify(backup).includes("private-teacher"), false);
+});
+
+function validDeviceMetadata(overrides = {}) {
+  return {
+    schemaVersion: 1,
+    accountUid: "teacher-uid",
+    teacherConfirmed: true,
+    planConfirmed: true,
+    uploadAuthorized: true,
+    pendingDomains: ["progress", "sharedArtifact"],
+    conflictDomains: ["plan"],
+    lastVerifiedAt: NOW,
+    lastVerifiedRevisions: {
+      plan: 4,
+      progress: 2,
+      preferences: 1,
+      content: 3,
+      sharedArtifact: 7
+    },
+    tenantId: "tenant-safe",
+    roomId: "room-safe",
+    pendingSharedHandoff: {
+      artifactId: TECH_TERRARIUM_ARTIFACT_ID,
+      expectedRevision: 7,
+      handoff: "repeat",
+      eventId: "event-h215f038ee95c283cb97e2cc32f036331",
+      visitDate: "2026-08-28",
+      nowIso: NOW
+    },
+    ...overrides
+  };
+}
+
+test("device metadata round-trips only the exact admitted non-secret schema", () => {
+  const storage = memoryStorage();
+  const store = makeStore(storage);
+  const source = validDeviceMetadata();
+
+  const saved = store.saveDeviceMetadata(source);
+  const loaded = store.loadDeviceMetadata();
+
+  assert.deepEqual(saved, source);
+  assert.deepEqual(loaded, source);
+  assert.notEqual(saved, source);
+  assert.notEqual(loaded, saved);
+  assert.deepEqual(JSON.parse(storage.getItem(DEVICE_KEY)), source);
+  assert.doesNotMatch(JSON.stringify(loaded), /accessToken|refreshToken|experienceRunners|inviteCode/);
+});
+
+test("malformed device metadata fails closed without overwriting its raw value", () => {
+  const cases = [
+    { ...validDeviceMetadata(), accessToken: "forbidden" },
+    { ...validDeviceMetadata(), pendingDomains: ["plan", "plan"] },
+    { ...validDeviceMetadata(), pendingDomains: ["content", "plan"] },
+    { ...validDeviceMetadata(), tenantId: "tenant/unsafe" },
+    { ...validDeviceMetadata(), roomId: null },
+    { ...validDeviceMetadata(), lastVerifiedAt: "2026-08-28T12:00:00Z" },
+    { ...validDeviceMetadata(), pendingSharedHandoff: { ...validDeviceMetadata().pendingSharedHandoff, eventId: "class-a" } },
+    { ...validDeviceMetadata(), experienceRunners: {} }
+  ];
+
+  for (const candidate of cases) {
+    const raw = JSON.stringify(candidate);
+    const storage = memoryStorage({ [DEVICE_KEY]: raw });
+    const loaded = makeStore(storage).loadDeviceMetadata();
+
+    assert.deepEqual(loaded, {
+      schemaVersion: 1,
+      accountUid: null,
+      teacherConfirmed: false,
+      planConfirmed: false,
+      uploadAuthorized: false,
+      pendingDomains: [],
+      conflictDomains: [],
+      lastVerifiedAt: null,
+      lastVerifiedRevisions: {
+        plan: 0,
+        progress: 0,
+        preferences: 0,
+        content: 0,
+        sharedArtifact: 0
+      },
+      tenantId: null,
+      roomId: null,
+      pendingSharedHandoff: null
+    });
+    assert.equal(storage.getItem(DEVICE_KEY), raw);
+  }
+});
+
+test("clearing cloud identity preserves local state backup and ordered private pending domains", () => {
+  const primary = validState();
+  const backup = validState({ updatedAt: "2026-08-28T11:00:00.000Z" });
+  const storage = memoryStorage({
+    [STATE_KEY]: JSON.stringify(primary),
+    [BACKUP_KEY]: JSON.stringify(backup),
+    [DEVICE_KEY]: JSON.stringify(validDeviceMetadata({
+      pendingDomains: ["plan", "progress", "sharedArtifact"]
+    }))
+  });
+  const store = makeStore(storage);
+
+  const cleared = store.clearCloudIdentityMetadata({ preservePending: true });
+
+  assert.equal(cleared.accountUid, null);
+  assert.equal(cleared.teacherConfirmed, false);
+  assert.equal(cleared.uploadAuthorized, false);
+  assert.deepEqual(cleared.pendingDomains, ["plan", "progress"]);
+  assert.equal(cleared.pendingSharedHandoff, null);
+  assert.equal(storage.getItem(STATE_KEY), JSON.stringify(primary));
+  assert.equal(storage.getItem(BACKUP_KEY), JSON.stringify(backup));
 });

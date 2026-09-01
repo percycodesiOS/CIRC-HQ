@@ -1,4 +1,4 @@
-import { buildBoardProjection } from "./model/access.js";
+import { admitLocalState, buildBoardProjection } from "./model/access.js";
 import { buildAdminPlanDocument } from "./model/admin-plan.js";
 import { EXPERIENCE_TIMING_PLANS } from "./model/experience-timing-plans.js";
 import {
@@ -18,6 +18,8 @@ import {
 } from "./model/shared-artifact.js";
 import { ownerKeyForTeacher } from "./model/state.js";
 import { createWeatherService } from "./services/weather.js";
+import { createCloudRuntimeController } from "./runtime/cloud-runtime.js";
+import { createBrowserFirebaseClient, createFirebaseClient } from "./storage/firebase-adapter.js";
 import { LocalStore } from "./storage/local-store.js";
 import { buildBoardView } from "./ui/board.js";
 import { buildRoomView } from "./ui/room.js";
@@ -33,6 +35,7 @@ import {
   previewSettingsRestore,
   previewSpecialEvent
 } from "./ui/settings.js";
+import { buildSetupHelpView, buildSetupView } from "./ui/setup.js";
 import { buildTodayPresentation, buildWelcomePresentation } from "./ui/today-ui.js";
 import { buildTodayViewModel } from "./ui/view-model.js";
 
@@ -697,7 +700,7 @@ function experienceRunnerRoute(project, runner, actions, artifactContext = null)
       element("h1", { text: project.title }),
       actions.previewOnly
         ? element("p", { className: "runner-preview-label", text: "Preview only" })
-        : null,
+        : element("p", { className: "runner-device-owner", text: "This device is running the class" }),
       actionButton("Student directions", "primary-action runner-student-action", () => actions.openStudent(project.number), "student")
     ]),
     actions.schedule ? element("div", { className: "runner-schedule" }, [
@@ -1053,8 +1056,8 @@ function studentProjectRoute(project, actions, runner) {
   ]);
 }
 
-function roomRoute(state) {
-  const view = buildRoomView(state);
+function roomRoute(state, cloudPresentation = null) {
+  const view = buildRoomView(state, cloudPresentation);
   const sections = view.genericSections.map((section) => element("details", {
     className: "tool-card"
   }, [
@@ -1087,6 +1090,12 @@ function roomRoute(state) {
         element("p", { className: "date-line", text: "Generic operating help and your saved private references" })
       ])
     ]),
+    view.cloudRoom ? element("section", { className: "cloud-room-summary" }, [
+      element("h2", { text: "Shared CIRC room" }),
+      element("p", { text: view.cloudRoom.name ?? "No CIRC room selected" }),
+      view.cloudRoom.role ? element("p", { text: `Role: ${view.cloudRoom.role}` }) : null,
+      view.cloudRoom.syncLabel ? element("p", { text: view.cloudRoom.syncLabel }) : null
+    ].filter(Boolean)) : null,
     element("div", { className: "tool-grid" }, sections),
     element("section", { className: "private-resources" }, [
       element("h2", { text: "Private resources" }),
@@ -1267,7 +1276,7 @@ function settingsRoute(context) {
       importMessage.textContent = "Apply needs the exact current preview. Preview the change again.";
       return;
     }
-    context.replaceState(result.state);
+    context.replaceState(result.state, { domains: ["plan"], alreadyPersisted: true });
     context.previewToken = null;
     applyButton.setAttribute("disabled", "");
     importMessage.textContent = "Validated plan applied on this browser.";
@@ -1334,6 +1343,13 @@ function settingsRoute(context) {
   });
   scheduleButton.addEventListener("click", () => context.navigate("schedule"));
 
+  const cloudHelpButton = element("button", {
+    className: "secondary-action",
+    text: "Open Setup help",
+    attributes: { type: "button" }
+  });
+  cloudHelpButton.addEventListener("click", context.openSetupHelp);
+
   return element("section", {}, [
     element("div", { className: "page-heading" }, [
       element("div", {}, [
@@ -1369,7 +1385,8 @@ function settingsRoute(context) {
       ]),
       element("section", {}, [
         element("h2", { text: "Cloud activation status" }),
-        element("p", { text: "Cloud setup is not configured. Local mode remains fully usable." })
+        element("p", { text: context.syncPresentation.label }),
+        cloudHelpButton
       ]),
       element("section", {}, [
         element("h2", { text: "Weather resource" }),
@@ -1390,7 +1407,7 @@ export function renderApp(root, services = {}) {
   const loaded = store.load();
   let state = loaded.state;
   let recoveryStatus = loaded.status;
-  let route = recoveryStatus === "unrecoverable" ? "recovery" : state.plan ? "today" : "welcome";
+  let route = recoveryStatus === "unrecoverable" ? "recovery" : state.plan ? "today" : "setup";
   let selectedTeacherId =
     services.teacherId ??
     state.preferences?.teacherId ??
@@ -1413,6 +1430,7 @@ export function renderApp(root, services = {}) {
   let lastBoundaryKey = "";
   let lastRenderedMinute = "";
   let lastRunnerLayoutKey = "";
+  let appDestroyed = false;
   const siteHeader = document.querySelector(".site-header");
   const liveStatus = document.getElementById("app-status");
   const navButtons = [...document.querySelectorAll("[data-route]")];
@@ -1421,6 +1439,96 @@ export function renderApp(root, services = {}) {
   const navSnapshots = navButtons.map((button) => snapshotAttributes(button));
 
   const now = () => services.clock?.now?.() ?? new Date();
+
+  function adoptPersistedState(nextState) {
+    state = admitLocalState(nextState);
+    previewOnly = !state.plan;
+    configuredPreview = false;
+    previewRunner = null;
+    selectedTeacherId = state.plan?.teachers?.find(({ id }) => id === selectedTeacherId)?.id ??
+      state.plan?.teachers?.[0]?.id ?? null;
+    selectedProjectNumber = buildProjectHomeView(
+      state,
+      { teacherId: selectedTeacherId }
+    ).currentProject.number;
+    return state;
+  }
+
+  function persistAndAdoptState(nextState) {
+    const admitted = admitLocalState(nextState);
+    const persisted = typeof store.save === "function" ? store.save(admitted) : admitted;
+    return adoptPersistedState(persisted);
+  }
+
+  function downloadLocalBackup() {
+    let text;
+    try {
+      text = exportSettingsBackup(store);
+    } catch {
+      return;
+    }
+    if (typeof services.downloadText === "function") {
+      services.downloadText("circ-hq-backup.json", text, "application/json");
+      return;
+    }
+    const blob = new Blob([text], { type: "application/json" });
+    const href = URL.createObjectURL(blob);
+    const link = element("a", { attributes: { href, download: "circ-hq-backup.json" } });
+    link.click();
+    URL.revokeObjectURL(href);
+  }
+
+  const runtime = createCloudRuntimeController({
+    store,
+    clock: { now },
+    readFileText: services.readFileText ?? ((file) => file.text()),
+    migrationOptions: services.migrationOptions ?? null,
+    getState: () => state,
+    acceptPersistedState: adoptPersistedState,
+    persistAndAcceptState: persistAndAdoptState,
+    invalidate: () => {
+      if (!appDestroyed) render();
+    },
+    routes: {
+      openToday: () => navigate("today"),
+      previewExperience: () => {
+        if (state.plan) openConfiguredPreview(selectedProjectNumber);
+        else openPreview();
+      },
+      openSetupHelp: () => {
+        route = "setup-help";
+        render();
+      },
+      enterDemo: () => {
+        previewOnly = true;
+        configuredPreview = false;
+        previewRunner = null;
+        route = "setup";
+      },
+      exitDemo: () => {
+        previewOnly = !state.plan;
+        route = "setup";
+      },
+      returnToSetup: () => {
+        route = "setup";
+        render();
+      },
+      replaceTeacherPlan: () => {
+        setupImportAllowed = true;
+        navigate("settings");
+      },
+      exportLocalBackup: downloadLocalBackup
+    }
+  });
+
+  function commitLocal(nextState, { domains = [], sharedHandoff = null } = {}) {
+    const persisted = persistAndAdoptState(nextState);
+    void runtime.afterLocalCommit({ domains, state: persisted });
+    if (sharedHandoff) {
+      void runtime.afterSharedHandoff({ state: persisted, handoff: sharedHandoff });
+    }
+    return persisted;
+  }
 
   function confirmFinish() {
     const message = "Finish this lesson? Both timers will stop at 0:00.";
@@ -1468,7 +1576,7 @@ export function renderApp(root, services = {}) {
     if (previewOnly) return setRunnerInMemory(runner);
     setRunnerInMemory(runner);
     state.updatedAt = now().toISOString();
-    state = typeof store.save === "function" ? store.save(state) : state;
+    state = commitLocal(state, { domains: [] });
     return selectedRunner();
   }
 
@@ -1593,15 +1701,18 @@ export function renderApp(root, services = {}) {
   }
 
   function todayModel(currentTime = now()) {
-    return buildTodayViewModel({
+    const syncPresentation = runtime.getSyncPresentation();
+    const model = buildTodayViewModel({
       plan: state.plan,
       teacherId: selectedTeacherId,
       dateKey: localDateKey(currentTime),
       now: currentTime,
       nowMinutes: currentTime.getHours() * 60 + currentTime.getMinutes(),
       weather,
-      syncStatus: services.syncStatus ?? "local"
+      syncStatus: services.syncStatus ?? syncPresentation.status
     });
+    if (services.syncStatus === undefined) model.sync = syncPresentation;
+    return model;
   }
 
   function currentTeachingEvent(model = todayModel()) {
@@ -1743,7 +1854,15 @@ export function renderApp(root, services = {}) {
       [TECH_TERRARIUM_ARTIFACT_ID]: transitioned
     };
     nextState.updatedAt = nowIso;
-    state = store.save(nextState);
+    state = commitLocal(nextState, {
+      domains: [],
+      sharedHandoff: {
+        handoff: confirmedHandoff.handoff,
+        eventId: confirmedHandoff.eventId,
+        visitDate: confirmedHandoff.visitDate,
+        nowIso
+      }
+    });
     pendingArtifactHandoff = null;
     render();
   }
@@ -1826,7 +1945,7 @@ export function renderApp(root, services = {}) {
     const timestamp = now().toISOString();
     const previousState = structuredClone(state);
     const updated = advanceProjectProgress(state, selectedTeacherId, projectNumber, timestamp);
-    state = typeof store.save === "function" ? store.save(updated) : updated;
+    state = commitLocal(updated, { domains: ["progress"] });
     lastCompletion = {
       previousState,
       teacherId: selectedTeacherId,
@@ -1845,9 +1964,7 @@ export function renderApp(root, services = {}) {
     if (!lastCompletion) return;
     const completion = lastCompletion;
     lastCompletion = null;
-    state = typeof store.save === "function"
-      ? store.save(completion.previousState)
-      : structuredClone(completion.previousState);
+    state = commitLocal(completion.previousState, { domains: ["progress"] });
     selectedTeacherId = completion.teacherId;
     selectedProjectNumber = completion.projectNumber;
     navigate("today");
@@ -1865,29 +1982,27 @@ export function renderApp(root, services = {}) {
     render();
   }
 
-  function replaceState(nextState) {
+  function replaceState(nextState, { domains = [], alreadyPersisted = true } = {}) {
     lastCompletion = null;
     pendingArtifactHandoff = null;
-    state = nextState;
-    previewOnly = !state.plan;
-    configuredPreview = false;
-    previewRunner = null;
+    if (alreadyPersisted) adoptPersistedState(nextState);
+    else persistAndAdoptState(nextState);
     if (state.plan) setupImportAllowed = false;
     if (state.plan) route = "today";
-    selectedTeacherId = state.plan?.teachers?.[0]?.id ?? null;
-    selectedProjectNumber = buildProjectHomeView(
-      state,
-      { teacherId: selectedTeacherId }
-    ).currentProject.number;
+    if (domains.length) void runtime.afterLocalCommit({ domains, state });
     timelineExpanded = false;
     render();
   }
 
   function completeRecoveryRestore(nextState) {
     recoveryStatus = "primary";
-    route = nextState.plan ? "today" : "welcome";
+    route = nextState.plan ? "today" : "setup";
     navButtons.forEach((button, index) => restoreAttributes(button, navSnapshots[index]));
-    replaceState(nextState);
+    replaceState(nextState, {
+      domains: ["plan", "progress", "preferences", "content"],
+      alreadyPersisted: true
+    });
+    if (resolvedCloudClient) runtime.connect(resolvedCloudClient);
   }
 
   function toggleTimeline() {
@@ -1964,7 +2079,12 @@ export function renderApp(root, services = {}) {
       previewOnly
     };
     let view;
-    if (route === "welcome") view = welcomeRoute(actions);
+    if (route === "setup") {
+      view = buildSetupView(runtime.getSetupModel(), runtime.getSetupActions(), { document });
+    }
+    else if (route === "setup-help") {
+      view = buildSetupHelpView(runtime.getSetupModel(), runtime.getSetupActions(), { document });
+    }
     else if (route === "today") view = buildToday(model, actions, {
       timelineExpanded,
       artifactContext: teacherArtifactContext(model, projectView.currentProject.number)
@@ -2010,7 +2130,7 @@ export function renderApp(root, services = {}) {
       );
     }
     else if (route === "schedule") view = scheduleRoute(state, navigate);
-    else if (route === "room") view = roomRoute(state);
+    else if (route === "room") view = roomRoute(state, runtime.getRoomPresentation());
     else {
       const context = {
         store,
@@ -2028,10 +2148,27 @@ export function renderApp(root, services = {}) {
         get importAllowed() {
           return Boolean(state.plan) || setupImportAllowed;
         },
+        syncPresentation: runtime.getSyncPresentation(),
+        openSetupHelp: runtime.getSetupActions().openSetupHelp,
         navigate,
         replaceState
       };
       view = settingsRoute(context);
+    }
+    if (runtime.getSetupModel().mode === "demo" && route !== "setup" && route !== "setup-help") {
+      const exitDemo = element("button", {
+        className: "primary-action demo-exit-action",
+        text: "Exit demo and set up CIRC HQ",
+        attributes: { type: "button" }
+      });
+      exitDemo.addEventListener("click", runtime.getSetupActions().exitDemo);
+      view = element("div", { className: "demo-route-frame", attributes: { "data-mode": "demo" } }, [
+        element("section", { className: "demo-route-notice" }, [
+          element("p", { text: "Temporary demo. Nothing here is saved or synced." }),
+          exitDemo
+        ]),
+        view
+      ]);
     }
     const recoveryNotice = recoveryStatus === "recovered-backup"
       ? element("p", {
@@ -2057,6 +2194,15 @@ export function renderApp(root, services = {}) {
 
   render();
 
+  const cloudClientPreload = services.cloudClient
+    ? Promise.resolve(services.cloudClient)
+    : services.cloudClientPromise
+      ? Promise.resolve(services.cloudClientPromise).catch(() => createFirebaseClient({ config: {} }))
+      : import("../firebase-config.js")
+          .then((module) => createBrowserFirebaseClient(module.firebaseConfig))
+          .catch(() => createFirebaseClient());
+  let resolvedCloudClient = null;
+
   const privateSeedPromise = services.loadPrivateSeed === false
     ? Promise.resolve({ status: "disabled", state, nextAction: null })
     : loadPrivateSeedOnLocalhost({
@@ -2065,15 +2211,9 @@ export function renderApp(root, services = {}) {
         store
       }).then((result) => {
         if (result.status === "applied") {
-          state = result.state;
-          previewOnly = false;
+          adoptPersistedState(result.state);
           setupImportAllowed = false;
           route = "today";
-          selectedTeacherId = state.plan?.teachers?.[0]?.id ?? null;
-          selectedProjectNumber = buildProjectHomeView(
-            state,
-            { teacherId: selectedTeacherId }
-          ).currentProject.number;
           privateSeedMessage = "";
           render();
         } else if (result.nextAction) {
@@ -2082,6 +2222,13 @@ export function renderApp(root, services = {}) {
         }
         return result;
       });
+
+  const readyPromise = Promise.all([privateSeedPromise, cloudClientPreload])
+    .then(([seedResult, cloudClient]) => {
+      resolvedCloudClient = cloudClient;
+      if (!appDestroyed && recoveryStatus !== "unrecoverable") runtime.connect(cloudClient);
+      return seedResult;
+    });
 
   const timer = window.setInterval(() => {
     if (recoveryStatus === "unrecoverable") return;
@@ -2128,8 +2275,10 @@ export function renderApp(root, services = {}) {
     get previewOnly() {
       return previewOnly;
     },
-    ready: privateSeedPromise,
+    ready: readyPromise,
     destroy() {
+      appDestroyed = true;
+      runtime.destroy();
       window.clearInterval(timer);
       document.removeEventListener?.("visibilitychange", handleVisibilityChange);
       restoreAttributes(siteHeader, siteHeaderSnapshot);

@@ -74,7 +74,22 @@ function admitPrivateResource(resource) {
   };
 }
 
-export function buildRoomView(state = {}) {
+function safeCloudRoom(presentation) {
+  if (!presentation || typeof presentation !== "object" || Array.isArray(presentation)) return null;
+  const status = ["missing", "owner", "member", "ready"].includes(presentation.status)
+    ? presentation.status
+    : "missing";
+  const name = typeof presentation.name === "string" && presentation.name.trim() !== ""
+    ? presentation.name.trim().slice(0, 80)
+    : null;
+  const role = ["owner", "teacher"].includes(presentation.role) ? presentation.role : null;
+  const syncLabel = typeof presentation.syncLabel === "string" && presentation.syncLabel.trim() !== ""
+    ? presentation.syncLabel.trim().slice(0, 80)
+    : null;
+  return { status, name, role, syncLabel };
+}
+
+export function buildRoomView(state = {}, cloudPresentation = null) {
   const privateResources = (Array.isArray(state.resources) ? state.resources : [])
     .map(admitPrivateResource)
     .filter(Boolean);
@@ -83,6 +98,7 @@ export function buildRoomView(state = {}) {
     privateResources,
     privateResourceStatus: privateResources.length
       ? `${privateResources.length} private resources available`
-      : "No private resources saved yet"
+      : "No private resources saved yet",
+    cloudRoom: safeCloudRoom(cloudPresentation)
   };
 }

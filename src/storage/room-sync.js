@@ -496,7 +496,8 @@ export function createRoomSyncClient({ firebase, crypto } = {}) {
         membership: membershipView({ uid, tenantId, roomId, role: "owner" }),
         inviteCode: rawInvite,
         revision: 1,
-        artifact: structuredClone(artifact)
+        artifact: structuredClone(artifact),
+        projectProgress: projectProgressFor(artifact)
       };
     } catch (error) {
       return { status: safeCloudFailureStatus(error) };
@@ -623,6 +624,44 @@ export function createRoomSyncClient({ firebase, crypto } = {}) {
     }
   }
 
+  async function loadSharedArtifact(input) {
+    const uid = currentUid(firebase);
+    if (
+      !uid ||
+      !hasExactKeys(input, ["tenantId", "roomId"]) ||
+      !isSafeSegment(input.tenantId) ||
+      !isSafeSegment(input.roomId)
+    ) return artifactUnavailable("not-member");
+    const membershipResult = await loadRoomMembership(uid);
+    if (
+      membershipResult.status !== "member" ||
+      membershipResult.membership.tenantId !== input.tenantId ||
+      membershipResult.membership.roomId !== input.roomId
+    ) return artifactUnavailable(
+      ["offline", "denied"].includes(membershipResult.status)
+        ? membershipResult.status
+        : "not-member"
+    );
+    try {
+      const artifact = admittedEnvelope(await firebase.getDocument(artifactPath(input.tenantId, input.roomId)));
+      const progress = admittedProgressEnvelope(await firebase.getDocument(progressPath(input.tenantId, input.roomId)));
+      if (
+        !artifact ||
+        !progress ||
+        artifact.revision !== progress.revision ||
+        !progressMatchesArtifact(progress.value, artifact.value)
+      ) return artifactUnavailable("denied");
+      return {
+        status: "loaded",
+        revision: artifact.revision,
+        value: artifact.value,
+        projectProgress: progress.value
+      };
+    } catch (error) {
+      return artifactUnavailable(safeCloudFailureStatus(error));
+    }
+  }
+
   async function saveSharedArtifact(input) {
     const uid = currentUid(firebase);
     if (!uid || !validSaveInput(input)) return artifactUnavailable("denied");
@@ -726,6 +765,7 @@ export function createRoomSyncClient({ firebase, crypto } = {}) {
     createTenantRoom,
     redeemRoomInvite,
     loadRoomMembership,
+    loadSharedArtifact,
     saveSharedArtifact
   };
 }

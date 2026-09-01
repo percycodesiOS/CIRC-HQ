@@ -13,6 +13,7 @@ import {
   createTechTerrariumArtifact,
   recordArtifactHandoff
 } from "../src/model/shared-artifact.js";
+import { createFirebaseClient } from "../src/storage/firebase-adapter.js";
 
 class FakeNode {
   constructor(tagName) {
@@ -388,7 +389,7 @@ function stateWithoutPlan() {
   return state;
 }
 
-test("a device without a plan starts on the CIRC HQ welcome route", async () => {
+test("a device without a plan starts on mature guided setup", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   const root = new FakeNode("main");
@@ -409,27 +410,16 @@ test("a device without a plan starts on the CIRC HQ welcome route", async () => 
     await controller.ready;
 
     const rendered = textOf(root);
-    assert.match(rendered, /CIRC HQ/);
-    assert.match(rendered, /The K-6 Playbook/);
-    assert.match(rendered, /Set up this device/);
-    assert.match(rendered, /Preview without saving/);
+    assert.match(rendered, /Get CIRC HQ ready/);
+    assert.match(rendered, /Continue with Google/);
+    assert.match(rendered, /Explore a temporary demo/);
+    assert.doesNotMatch(rendered, /Set up this device|Preview without saving/);
     const makerImages = findAll(root, (node) =>
-      node.tagName === "img" && node.getAttribute("src") === "assets/circ-hq-maker.webp"
+      node.tagName === "img" && node.getAttribute("src") === "assets/tech-terrarium-hero.webp"
     );
     assert.equal(makerImages.length, 1);
-
-    const setup = findAll(root, (node) =>
-      node.tagName === "button" && node.textContent === "Set up this device"
-    );
-    assert.equal(setup.length, 1);
-    setup[0].click();
-    assert.match(textOf(root), /Teacher Setup/);
     assert.equal(controller.previewOnly, true);
-    const planPicker = findAll(root, (node) =>
-      node.tagName === "input" && node.getAttribute("type") === "file"
-    );
-    assert.equal(planPicker.length, 1);
-    assert.equal(planPicker[0].hasAttribute("disabled"), false);
+    assert.equal(findAll(root, (node) => node.tagName === "input").length, 0);
     controller.destroy();
   } finally {
     globalThis.document = previousDocument;
@@ -437,7 +427,7 @@ test("a device without a plan starts on the CIRC HQ welcome route", async () => 
   }
 });
 
-test("welcome preview opens Today without saving or creating progress", async () => {
+test("temporary demo performs no durable or cloud work and has a direct exit", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   const root = new FakeNode("main");
@@ -470,21 +460,24 @@ test("welcome preview opens Today without saving or creating progress", async ()
     await controller.ready;
 
     const preview = findAll(root, (node) =>
-      node.tagName === "button" && node.textContent === "Preview without saving"
+      node.tagName === "button" && node.textContent === "Explore a temporary demo"
     );
     assert.equal(preview.length, 1);
     preview[0].click();
 
     assert.equal(controller.previewOnly, true);
-    assert.match(textOf(root), /Today/);
-    assert.equal(findAll(root, (node) =>
-      node.tagName === "button" && node.textContent === "Open class runner"
-    ).length, 0);
+    assert.match(textOf(root), /Temporary CIRC HQ demo/);
+    const exit = findAll(root, (node) =>
+      node.tagName === "button" && node.textContent === "Exit demo and set up CIRC HQ"
+    );
+    assert.equal(exit.length, 1);
     assert.equal(saveCount, 0);
     assert.deepEqual(state, original);
     assert.equal(state.plan, null);
     assert.deepEqual(state.experienceRunners, {});
     assert.deepEqual(state.teacherProgress, {});
+    exit[0].click();
+    assert.match(textOf(root), /Get CIRC HQ ready/);
     controller.destroy();
   } finally {
     globalThis.document = previousDocument;
@@ -492,13 +485,12 @@ test("welcome preview opens Today without saving or creating progress", async ()
   }
 });
 
-test("setup unlocks only plan import until a validated plan is applied", async () => {
+test("guided setup exposes no plan or teaching mutation before account confirmation", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   const root = new FakeNode("main");
   const state = stateWithoutPlan();
   const original = structuredClone(state);
-  const imported = stateWithActiveEvent("teach");
   let saveCount = 0;
   let importCount = 0;
   globalThis.document = fakeDocument();
@@ -514,7 +506,7 @@ test("setup unlocks only plan import until a validated plan is applied", async (
         load: () => ({ state, error: null }),
         importPlan: () => {
           importCount += 1;
-          return { ok: true, state: structuredClone(imported) };
+          throw new Error("plan import must stay unavailable before account confirmation");
         },
         save: (nextState) => {
           saveCount += 1;
@@ -527,13 +519,10 @@ test("setup unlocks only plan import until a validated plan is applied", async (
     });
     await controller.ready;
 
-    findAll(root, (node) =>
-      node.tagName === "button" && node.textContent === "Set up this device"
-    )[0].click();
-    const setupPicker = findAll(root, (node) =>
+    assert.match(textOf(root), /Continue with Google/);
+    assert.equal(findAll(root, (node) =>
       node.tagName === "input" && node.getAttribute("type") === "file"
-    )[0];
-    assert.equal(setupPicker.hasAttribute("disabled"), false);
+    ).length, 0);
 
     controller.navigate("projects");
     const currentProject = findAll(root, (node) =>
@@ -565,23 +554,10 @@ test("setup unlocks only plan import until a validated plan is applied", async (
     const picker = findAll(root, (node) =>
       node.tagName === "input" && node.getAttribute("type") === "file"
     )[0];
-    assert.equal(picker.hasAttribute("disabled"), false);
-    picker.files = [{ text: async () => JSON.stringify(imported.plan) }];
-    await picker.listeners.get("change")?.();
-    findAll(root, (node) => node.tagName === "button" && node.textContent === "Apply")[0].click();
-
-    assert.equal(importCount, 1);
-    assert.equal(controller.previewOnly, false);
-    controller.navigate("projects");
-    findAll(root, (node) =>
-      node.tagName === "button" && /^Open Experience 2:/.test(node.getAttribute("aria-label") ?? "")
-    )[0].click();
-    const enabledComplete = findAll(root, (node) =>
-      node.tagName === "button" && textOf(node) === "Complete experience and move to next"
-    );
-    assert.equal(enabledComplete.length, 1);
-    enabledComplete[0].click();
-    assert.equal(saveCount, 1);
+    assert.equal(picker.hasAttribute("disabled"), true);
+    assert.equal(importCount, 0);
+    assert.equal(saveCount, 0);
+    assert.equal(controller.previewOnly, true);
     controller.destroy();
   } finally {
     globalThis.document = previousDocument;
@@ -589,7 +565,7 @@ test("setup unlocks only plan import until a validated plan is applied", async (
   }
 });
 
-test("Preview to Teacher Setup remains read-only and cannot Apply an import", async () => {
+test("temporary demo to Teacher Setup remains read-only and cannot Apply an import", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   const root = new FakeNode("main");
@@ -625,7 +601,7 @@ test("Preview to Teacher Setup remains read-only and cannot Apply an import", as
     await controller.ready;
 
     findAll(root, (node) =>
-      node.tagName === "button" && node.textContent === "Preview without saving"
+      node.tagName === "button" && node.textContent === "Explore a temporary demo"
     )[0].click();
     controller.navigate("settings");
     const picker = findAll(root, (node) =>
@@ -690,7 +666,49 @@ test("a validated stored plan starts on Today instead of Welcome", async () => {
   assert.doesNotMatch(textOf(root), /Set up this device|Preview without saving/);
 });
 
-test("a validated localhost plan import leaves Welcome for Today", async () => {
+test("a valid local plan renders Today before a deferred cloud client resolves", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  let resolveClient;
+  const cloudClientPromise = new Promise((resolve) => {
+    resolveClient = resolve;
+  });
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: memoryStore(stateWithActiveEvent("teach")),
+      cloudClientPromise,
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+    });
+    let ready = false;
+    controller.ready.then(() => {
+      ready = true;
+    });
+
+    assert.match(textOf(root), /Today/);
+    await Promise.resolve();
+    assert.equal(ready, false);
+
+    resolveClient(createFirebaseClient());
+    await controller.ready;
+    assert.match(textOf(root), /Today/);
+    controller.destroy();
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("a validated localhost plan import leaves guided Setup for Today", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   const root = new FakeNode("main");
@@ -717,7 +735,7 @@ test("a validated localhost plan import leaves Welcome for Today", async () => {
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
 
-    assert.match(textOf(root), /The K-6 Playbook/);
+    assert.match(textOf(root), /Get CIRC HQ ready/);
     await controller.ready;
     assert.match(textOf(root), /Today/);
     assert.doesNotMatch(textOf(root), /Set up this device|Preview without saving/);
@@ -1032,6 +1050,9 @@ test("Preview, no plan, no current event, and a current non-teaching event canno
       if (scenario === "no-current") {
         state.plan.teachers[0].days[1][0].start = "10:00";
         state.plan.teachers[0].days[1][0].end = "10:30";
+      } else if (scenario === "non-teach") {
+        delete state.plan.teachers[0].days[1][0].classId;
+        delete state.plan.teachers[0].days[1][0].lessonGuideId;
       }
       let saveCount = 0;
       let saved = null;
@@ -1057,7 +1078,8 @@ test("Preview, no plan, no current event, and a current non-teaching event canno
       });
       await controller.ready;
       if (scenario === "preview") {
-        findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview without saving")[0].click();
+        findAll(root, (node) => node.tagName === "button" && textOf(node) === "Explore a temporary demo")[0].click();
+        findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview an experience")[0].click();
         findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview experience")[0].click();
       } else {
         findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
@@ -1291,6 +1313,7 @@ test("Open class runner opens one live runner and Student directions keeps its t
     const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner");
     assert.equal(run.length, 1);
     run[0].click();
+    assert.match(textOf(root), /This device is running the class/);
     assert.match(textOf(root), /Class timer/);
     assert.match(textOf(root), /Step timer/);
     assert.match(textOf(root), /Start class/);
@@ -1426,19 +1449,15 @@ test("teacher detour controls hold the step, stay out of Student directions, and
     "teacher:teacher-alpha": {
       currentProjectNumber: 2,
       completedProjectNumbers: [1],
+      complete: false,
       updatedAt: "2026-08-20T12:00:00.000Z"
     }
   };
   state.sharedArtifacts = {
     [TECH_TERRARIUM_ARTIFACT_ID]: activeArtifact({ handoff: "repeat" })
   };
-  state.futureSharedArtifactState = {
-    nextContribution: "build-the-base",
-    parked: false
-  };
   const progressBefore = structuredClone(state.teacherProgress);
   const artifactsBefore = structuredClone(state.sharedArtifacts);
-  const futureArtifactBefore = structuredClone(state.futureSharedArtifactState);
   let saved = null;
   globalThis.document = fakeDocument();
   globalThis.window = {
@@ -1541,7 +1560,6 @@ test("teacher detour controls hold the step, stay out of Student directions, and
     assert.equal(Object.hasOwn(landed, "detour"), false);
     assert.deepEqual(saved.teacherProgress, progressBefore);
     assert.deepEqual(saved.sharedArtifacts, artifactsBefore);
-    assert.deepEqual(saved.futureSharedArtifactState, futureArtifactBefore);
     assert.equal(saved.teacherProgress["teacher:teacher-alpha"].currentProjectNumber, 2);
   } finally {
     globalThis.document = previousDocument;
@@ -1714,7 +1732,7 @@ test("opening same-project running and paused runners preserves their active lif
   }
 });
 
-test("Preview without saving opens an in-memory preview runner that cannot save or complete", async () => {
+test("temporary demo opens an in-memory preview runner that cannot save or complete", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   const root = new FakeNode("main");
@@ -1742,7 +1760,8 @@ test("Preview without saving opens an in-memory preview runner that cannot save 
     });
     await controller.ready;
 
-    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview without saving")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Explore a temporary demo")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview an experience")[0].click();
     const preview = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview experience");
     assert.equal(preview.length, 1);
     preview[0].click();
@@ -2236,9 +2255,11 @@ test("completing the current project persists the next project while previews ca
   const root = new FakeNode("main");
   const state = stateWithActiveEvent("teach");
   state.teacherProgress = {
-    "teacher-alpha": {
+    "teacher:teacher-alpha": {
       currentProjectNumber: 2,
-      completedProjectNumbers: [1]
+      completedProjectNumbers: [1],
+      complete: false,
+      updatedAt: "2026-08-20T12:00:00.000Z"
     }
   };
   state.sharedArtifacts = {
@@ -2281,7 +2302,7 @@ test("completing the current project persists the next project while previews ca
     assert.equal(undo.length, 1);
     assert.match(textOf(root), /Tech Terrarium marked complete/);
     undo[0].click();
-    assert.equal(saved.teacherProgress["teacher-alpha"].currentProjectNumber, 2);
+    assert.equal(saved.teacherProgress["teacher:teacher-alpha"].currentProjectNumber, 2);
     assert.deepEqual(saved.sharedArtifacts, artifactBefore);
     assert.match(textOf(root), /Experience 2 of 36/);
     assert.doesNotMatch(textOf(root), /Tech Terrarium marked complete/);
@@ -2670,7 +2691,7 @@ test("unrecoverable state stays visibly locked until a valid full-state backup i
   };
   let locked = true;
   let current = structuredClone(restoredState);
-  const calls = { restore: [], ordinary: [] };
+  const calls = { restore: [], ordinary: [], metadata: [] };
   const store = {
     load: () => locked
       ? {
@@ -2700,6 +2721,11 @@ test("unrecoverable state stays visibly locked until a valid full-state backup i
     backup() {
       calls.ordinary.push("backup");
       throw new Error("ordinary backup must stay locked");
+    },
+    saveDeviceMetadata(metadata) {
+      const saved = structuredClone(metadata);
+      calls.metadata.push(saved);
+      return saved;
     }
   };
   globalThis.document = fakeDocument();
@@ -2765,7 +2791,13 @@ test("unrecoverable state stays visibly locked until a valid full-state backup i
     assert.equal(calls.restore.length, 1);
     assert.deepEqual(calls.restore[0], restoredState);
     assert.deepEqual(calls.ordinary, []);
-    assert.match(textOf(root), /Set up this device/);
+    assert.deepEqual(calls.metadata.at(-1)?.pendingDomains, [
+      "plan",
+      "progress",
+      "preferences",
+      "content"
+    ]);
+    assert.match(textOf(root), /Get CIRC HQ ready|Continue with Google/);
     assert.doesNotMatch(textOf(root), /unrecoverable|do not clear.*site data/i);
     controller.destroy();
   } finally {
@@ -2783,6 +2815,7 @@ test("configured Preview lesson is in memory, exits cleanly, then live runner st
     "teacher:teacher-alpha": {
       currentProjectNumber: 2,
       completedProjectNumbers: [1],
+      complete: false,
       updatedAt: "2026-08-20T12:00:00.000Z"
     }
   };
@@ -2898,7 +2931,7 @@ test("Teacher Setup file chooser has a visible associated name when enabled and 
       });
       await controller.ready;
       if (!configured) {
-        findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview without saving")[0].click();
+        findAll(root, (node) => node.tagName === "button" && textOf(node) === "Explore a temporary demo")[0].click();
       }
       controller.navigate("settings");
       const input = findAll(root, (node) => node.tagName === "input" && node.getAttribute("type") === "file")[0];

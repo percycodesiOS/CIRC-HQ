@@ -86,7 +86,7 @@ test("auth observation emits only normalized Firebase identity", () => {
   assert.equal(JSON.stringify(observed).includes("providerData"), false);
 });
 
-test("Google sign-in selects popup on desktop and redirect on mobile", async () => {
+test("Google sign-in uses one popup on desktop and mobile-shaped calls", async () => {
   const createFirebaseClient = requireFactory("createFirebaseClient");
   const firebase = firebaseDouble();
   const client = createFirebaseClient({
@@ -94,10 +94,10 @@ test("Google sign-in selects popup on desktop and redirect on mobile", async () 
     firebase
   });
 
-  assert.deepEqual(await client.signInWithGoogle({ mobile: false }), { status: "pending" });
+  assert.deepEqual(await client.signInWithGoogle(), { status: "pending" });
   assert.deepEqual(await client.signInWithGoogle({ mobile: true }), { status: "pending" });
   assert.deepEqual(await client.signOut(), { status: "signed-out" });
-  assert.deepEqual(firebase.calls.map((call) => call.kind), ["popup", "redirect", "sign-out"]);
+  assert.deepEqual(firebase.calls.map((call) => call.kind), ["popup", "popup", "sign-out"]);
 });
 
 test("missing configuration and blocked dependency loading preserve safe local mode", async () => {
@@ -139,4 +139,60 @@ test("auth failures are structured and never expose raw Firebase errors", async 
   assert.deepEqual(signInResult, { status: "offline" });
   assert.deepEqual(signOutResult, { status: "denied" });
   assert.equal(JSON.stringify({ signInResult, signOutResult }).includes("detail"), false);
+});
+
+test("popup failures map to exact recoverable auth statuses without raw details", async () => {
+  const createFirebaseClient = requireFactory("createFirebaseClient");
+  const cases = [
+    ["auth/popup-blocked", "popup-blocked"],
+    ["auth/popup-closed-by-user", "popup-closed"],
+    ["auth/cancelled-popup-request", "popup-closed"],
+    ["auth/unauthorized-domain", "unauthorized-domain"],
+    ["auth/network-request-failed", "offline"],
+    ["auth/internal-error", "denied"]
+  ];
+
+  for (const [code, status] of cases) {
+    const firebase = firebaseDouble();
+    firebase.signInWithPopup = async () => {
+      throw Object.assign(new Error(`raw ${code} credential detail`), { code });
+    };
+    const client = createFirebaseClient({
+      config: { projectId: "injected-test-project" },
+      firebase
+    });
+
+    const result = await client.signInWithGoogle();
+
+    assert.deepEqual(result, { status });
+    assert.doesNotMatch(JSON.stringify(result), /raw|credential|auth\//i);
+  }
+});
+
+test("all Firebase lifecycle clients expose the closed room surface", async () => {
+  const createFirebaseClient = requireFactory("createFirebaseClient");
+  const client = createFirebaseClient();
+
+  assert.deepEqual(await client.loadRoomMembership("teacher-uid"), {
+    status: "not-configured",
+    membership: null,
+    room: null
+  });
+  assert.deepEqual(await client.loadSharedArtifact({ tenantId: "tenant-1", roomId: "room-1" }), {
+    status: "not-configured",
+    revision: null,
+    value: null,
+    projectProgress: null
+  });
+  assert.deepEqual(await client.redeemRoomInvite("TEST"), {
+    status: "not-configured",
+    membership: null
+  });
+  assert.deepEqual(await client.createTenantRoom({}), { status: "not-configured" });
+  assert.deepEqual(await client.saveSharedArtifact({}), {
+    status: "not-configured",
+    revision: null,
+    value: null,
+    projectProgress: null
+  });
 });

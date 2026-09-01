@@ -411,6 +411,23 @@ test("Room admits only normalized same-origin app paths and HTTPS resource URLs"
   assert.equal(JSON.stringify(view).includes("rejected-"), false);
 });
 
+test("Room presents only safe cloud membership labels without cloud identifiers", () => {
+  const view = buildRoomView({ resources: [] }, {
+    status: "member",
+    name: "Shared CIRC Room",
+    role: "teacher",
+    syncLabel: "CIRC Cloud verified"
+  });
+
+  assert.deepEqual(view.cloudRoom, {
+    status: "member",
+    name: "Shared CIRC Room",
+    role: "teacher",
+    syncLabel: "CIRC Cloud verified"
+  });
+  assert.doesNotMatch(JSON.stringify(view), /teacher-uid|tenant-safe|room-safe|revision/);
+});
+
 test("opening the Legacy Activity Library uses same-origin classroom compatibility without touching saved values", () => {
   const values = new Map([
     ["missionControl.missions.v5", "{\"unchanged\":true}"],

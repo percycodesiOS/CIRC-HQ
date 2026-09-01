@@ -752,3 +752,63 @@ test("unsafe identifiers and Firebase errors are normalized without leaking sens
   assert.equal(denied.status, "denied");
   assert.equal(JSON.stringify(denied).includes(secretMessage), false);
 });
+
+test("shared artifact loading requires exact membership and admits the paired projection", async () => {
+  const { backend, client, result } = await bootstrapRoom();
+  backend.stats.documentReads.length = 0;
+
+  const loaded = await client.loadSharedArtifact({
+    tenantId: result.tenantId,
+    roomId: result.roomId
+  });
+
+  assert.equal(loaded.status, "loaded");
+  assert.equal(loaded.revision, 1);
+  assert.equal(loaded.value.artifactId, TECH_TERRARIUM_ARTIFACT_ID);
+  assert.deepEqual(loaded.projectProgress, progressFor(loaded.value));
+  assert.deepEqual(result.projectProgress, progressFor(result.artifact));
+  const roomPath = `playbookTenants/${result.tenantId}/rooms/${result.roomId}`;
+  assert.deepEqual(backend.stats.documentReads.slice(-2), [
+    `${roomPath}/artifacts/${TECH_TERRARIUM_ARTIFACT_ID}`,
+    `${roomPath}/projectProgress/${TECH_TERRARIUM_ARTIFACT_ID}`
+  ]);
+  assert.doesNotMatch(JSON.stringify(loaded), /token|firebase|invitation/i);
+});
+
+test("shared artifact loading fails closed for nonmembers and mismatched paired revisions", async () => {
+  const { backend, result } = await bootstrapRoom();
+  const outsider = requiredExport("createRoomSyncClient")({
+    firebase: backend.view(JOINING_UID),
+    crypto: sequentialCrypto()
+  });
+
+  assert.deepEqual(await outsider.loadSharedArtifact({
+    tenantId: result.tenantId,
+    roomId: result.roomId
+  }), {
+    status: "not-member",
+    revision: null,
+    value: null,
+    projectProgress: null
+  });
+
+  const roomPath = `playbookTenants/${result.tenantId}/rooms/${result.roomId}`;
+  const progressPath = `${roomPath}/projectProgress/${TECH_TERRARIUM_ARTIFACT_ID}`;
+  backend.records.set(progressPath, {
+    ...backend.records.get(progressPath),
+    revision: 2
+  });
+  const owner = requiredExport("createRoomSyncClient")({
+    firebase: backend.view(OWNER_UID),
+    crypto: sequentialCrypto()
+  });
+  assert.deepEqual(await owner.loadSharedArtifact({
+    tenantId: result.tenantId,
+    roomId: result.roomId
+  }), {
+    status: "denied",
+    revision: null,
+    value: null,
+    projectProgress: null
+  });
+});

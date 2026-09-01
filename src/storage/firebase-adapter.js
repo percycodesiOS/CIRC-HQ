@@ -1,4 +1,5 @@
 import { createPrivateCloudSync, safeCloudFailureStatus } from "./cloud-sync.js";
+import { createRoomSyncClient } from "./room-sync.js";
 
 const FIREBASE_MODULE_ROOT = "https://www.gstatic.com/firebasejs/10.12.2";
 
@@ -16,6 +17,14 @@ function normalizeUser(user) {
 
 function lifecycleClient(status) {
   const unavailable = async () => ({ status });
+  const unavailableMember = async () => ({ status, membership: null, room: null });
+  const unavailableInvite = async () => ({ status, membership: null });
+  const unavailableArtifact = async () => ({
+    status,
+    revision: null,
+    value: null,
+    projectProgress: null
+  });
   return {
     status,
     observeAuth(listener) {
@@ -26,14 +35,28 @@ function lifecycleClient(status) {
     signOut: unavailable,
     loadPrivateDomains: async () => ({ status, domains: null, revisions: null, updatedAt: null }),
     savePrivateDomain: async () => ({ status, revision: null, value: null }),
-    verifyPrivateDomain: async () => ({ status, revision: null, value: null })
+    verifyPrivateDomain: async () => ({ status, revision: null, value: null }),
+    createTenantRoom: unavailable,
+    loadRoomMembership: unavailableMember,
+    loadSharedArtifact: unavailableArtifact,
+    redeemRoomInvite: unavailableInvite,
+    saveSharedArtifact: unavailableArtifact
   };
 }
 
-export function createFirebaseClient({ config = null, firebase = null } = {}) {
+function safeAuthFailureStatus(error) {
+  const code = typeof error?.code === "string" ? error.code.toLowerCase() : "";
+  if (code.includes("popup-blocked")) return "popup-blocked";
+  if (code.includes("popup-closed-by-user") || code.includes("cancelled-popup-request")) return "popup-closed";
+  if (code.includes("unauthorized-domain")) return "unauthorized-domain";
+  return safeCloudFailureStatus(error);
+}
+
+export function createFirebaseClient({ config = null, firebase = null, crypto = globalThis.crypto } = {}) {
   if (config === null || config === undefined) return lifecycleClient("not-configured");
   if (firebase === null || firebase === undefined) return lifecycleClient("cloud-blocked");
   const privateSync = createPrivateCloudSync(firebase);
+  const roomSync = createRoomSyncClient({ firebase, crypto });
 
   return {
     status: "ready",
@@ -47,13 +70,12 @@ export function createFirebaseClient({ config = null, firebase = null } = {}) {
         return () => {};
       }
     },
-    async signInWithGoogle({ mobile = false } = {}) {
+    async signInWithGoogle() {
       try {
-        if (mobile === true) await firebase.signInWithRedirect();
-        else await firebase.signInWithPopup();
+        await firebase.signInWithPopup();
         return { status: "pending" };
       } catch (error) {
-        return { status: safeCloudFailureStatus(error) };
+        return { status: safeAuthFailureStatus(error) };
       }
     },
     async signOut() {
@@ -64,7 +86,8 @@ export function createFirebaseClient({ config = null, firebase = null } = {}) {
         return { status: safeCloudFailureStatus(error) };
       }
     },
-    ...privateSync
+    ...privateSync,
+    ...roomSync
   };
 }
 
@@ -90,7 +113,6 @@ async function createBrowserFirebaseDependencies(config) {
     currentUser: () => auth.currentUser,
     observeAuth: (listener) => authModule.onAuthStateChanged(auth, listener, () => listener(null)),
     signInWithPopup: () => authModule.signInWithPopup(auth, new authModule.GoogleAuthProvider()),
-    signInWithRedirect: () => authModule.signInWithRedirect(auth, new authModule.GoogleAuthProvider()),
     signOut: () => authModule.signOut(auth),
     serverTimestamp: () => firestoreModule.serverTimestamp(),
     async getDocument(path) {
@@ -109,11 +131,14 @@ async function createBrowserFirebaseDependencies(config) {
   };
 }
 
-export async function createBrowserFirebaseClient(config, { loadDependencies = createBrowserFirebaseDependencies } = {}) {
+export async function createBrowserFirebaseClient(
+  config,
+  { loadDependencies = createBrowserFirebaseDependencies, crypto = globalThis.crypto } = {}
+) {
   if (config === null || config === undefined) return createFirebaseClient();
   try {
     const firebase = await loadDependencies(config);
-    return createFirebaseClient({ config, firebase });
+    return createFirebaseClient({ config, firebase, crypto });
   } catch {
     return createFirebaseClient({ config });
   }

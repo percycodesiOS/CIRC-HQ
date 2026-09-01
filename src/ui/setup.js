@@ -22,7 +22,14 @@ const ACTION_NAMES = Object.freeze([
   "previewExperience",
   "openSetupHelp",
   "exploreDemo",
-  "exitDemo"
+  "exitDemo",
+  "syncNow",
+  "exportLocalBackup",
+  "replaceTeacherPlan",
+  "signOut",
+  "useCloudPlan",
+  "keepLocalPlan",
+  "returnToSetup"
 ]);
 const ACCOUNT_STATUSES = new Set(["signed-out", "pending", "observed", "confirmed"]);
 const PLAN_STATUSES = new Set(["missing", "preview", "cloud-found", "confirmed"]);
@@ -30,6 +37,14 @@ const ROOM_STATUSES = new Set(["missing", "owner", "member", "joining", "ready"]
 const ROOM_ROLES = new Set(["owner", "teacher", null]);
 const SYNC_STATUSES = new Set(["idle", "pending", "verified", "offline", "attention"]);
 const BACKUP_STATUSES = new Set(["ready", "preserved", "unavailable"]);
+const SYNC_DOMAINS = Object.freeze(["plan", "progress", "preferences", "content", "sharedArtifact"]);
+const SYNC_DOMAIN_LABELS = Object.freeze({
+  plan: "Private plan",
+  progress: "Teacher progress",
+  preferences: "Preferences",
+  content: "Private content",
+  sharedArtifact: "Shared project"
+});
 
 const PRIVATE_BOUNDARY = [
   "Teacher plan and schedule",
@@ -69,6 +84,17 @@ function nonNegativeIntegerOrNull(value) {
   return value === null || Number.isInteger(value) && value >= 0;
 }
 
+function validDomainList(value) {
+  if (!Array.isArray(value)) return false;
+  let prior = -1;
+  for (const domain of value) {
+    const index = SYNC_DOMAINS.indexOf(domain);
+    if (index < 0 || index <= prior) return false;
+    prior = index;
+  }
+  return true;
+}
+
 function validateModel(model) {
   if (!isRecord(model) || !["setup", "demo"].includes(model.mode) || !STEP_IDS.has(model.current)) {
     invalidModel();
@@ -105,7 +131,9 @@ function validateModel(model) {
     invalidModel();
   }
   if (!isRecord(model.sync) || !SYNC_STATUSES.has(model.sync.status) ||
-      !nullableString(model.sync.lastVerifiedAt)) {
+      !nullableString(model.sync.lastVerifiedAt) ||
+      !validDomainList(model.sync.pendingDomains) ||
+      !validDomainList(model.sync.conflictDomains)) {
     invalidModel();
   }
   if (!isRecord(model.localBackup) || !BACKUP_STATUSES.has(model.localBackup.status) ||
@@ -469,12 +497,16 @@ function demoStep(documentRef, actions) {
     element(documentRef, "p", { text: "This demo lets you look around without connecting an account or changing classroom data." }),
     element(documentRef, "p", { className: "setup-demo-boundary", text: "Nothing in this demo is saved or synced." }),
     element(documentRef, "p", { className: "setup-disabled-explanation", text: "Sign-in, private-file selection, room actions, cloud upload, and live-class actions are unavailable in demo mode." }),
+    button(documentRef, "Preview an experience", "secondary-action", actions.previewExperience),
     button(documentRef, "Exit demo and set up CIRC HQ", "primary-action setup-primary-action", actions.exitDemo)
   ];
 }
 
-function setupHelp(documentRef, model) {
-  return [
+function setupHelp(documentRef, model, actions) {
+  const pending = model.sync.pendingDomains.map((domain) => `${SYNC_DOMAIN_LABELS[domain]} pending`);
+  const conflicts = model.sync.conflictDomains.map((domain) => `${SYNC_DOMAIN_LABELS[domain]} conflict`);
+  const planConflict = model.sync.conflictDomains.includes("plan");
+  const children = [
     element(documentRef, "h1", { text: "Setup help" }),
     element(documentRef, "p", { text: "CIRC HQ keeps the teacher plan private, shares only selected room artifacts, and preserves a local recovery path." }),
     element(documentRef, "dl", { className: "setup-help-summary" }, [
@@ -484,9 +516,32 @@ function setupHelp(documentRef, model) {
       summaryRow(documentRef, "Last verified sync", model.sync.lastVerifiedAt),
       summaryRow(documentRef, "Local backup", backupStatusLabel(model.localBackup.status))
     ]),
+    pending.length ? element(documentRef, "section", { className: "setup-help-pending" }, [
+      element(documentRef, "h2", { text: "Pending sync" }),
+      list(documentRef, pending, "setup-pending-list")
+    ]) : null,
+    conflicts.length ? element(documentRef, "section", { className: "setup-help-conflicts" }, [
+      element(documentRef, "h2", { text: "Needs a decision" }),
+      list(documentRef, conflicts, "setup-conflict-list")
+    ]) : null,
+    element(documentRef, "div", { className: "setup-help-actions" }, [
+      button(documentRef, "Sync now", "primary-action setup-primary-action", actions.syncNow),
+      button(documentRef, "Export local backup", "secondary-action", actions.exportLocalBackup),
+      button(documentRef, "Replace teacher plan", "secondary-action", actions.replaceTeacherPlan),
+      button(documentRef, "Use cloud plan", "secondary-action", actions.useCloudPlan, planConflict ? {} : { disabled: "" }),
+      button(documentRef, "Keep local plan", "secondary-action", actions.keepLocalPlan, planConflict ? {} : { disabled: "" }),
+      button(documentRef, "Sign out", "secondary-action", actions.signOut),
+      button(documentRef, "Return to setup", "secondary-action", actions.returnToSetup)
+    ]),
+    element(documentRef, "h2", { text: "Leave this device signed in" }),
+    element(documentRef, "p", { text: "Leave this trusted classroom device signed in for quicker private sync. Sign out before another teacher uses the browser." }),
     element(documentRef, "h2", { text: "If setup is interrupted" }),
-    element(documentRef, "p", { text: "Keep teaching locally while offline, preserve the local backup, and return to the current setup step when the account or network is ready." })
+    element(documentRef, "p", { text: "Keep teaching locally while offline, preserve the local backup, and return to the current setup step when the account or network is ready." }),
+    element(documentRef, "p", { text: "If Google sign-in is blocked, allow pop-ups for this site and try again from the Continue with Google button." }),
+    element(documentRef, "p", { text: "If an invitation expired or was already used, ask the room owner for a new one-time invitation." }),
+    element(documentRef, "p", { text: "If access is denied or a plan conflicts, keep the local backup and use the recovery choice shown here before syncing again." })
   ];
+  return children.filter(Boolean);
 }
 
 function buildFrame(documentRef, model, content, { help = false } = {}) {
@@ -540,5 +595,5 @@ export function buildSetupHelpView(model, actions, options = {}) {
       button(documentRef, "Exit demo and set up CIRC HQ", "primary-action setup-primary-action", actions.exitDemo)
     ], { help: true });
   }
-  return buildFrame(documentRef, model, setupHelp(documentRef, model), { help: true });
+  return buildFrame(documentRef, model, setupHelp(documentRef, model, actions), { help: true });
 }

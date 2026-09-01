@@ -111,7 +111,7 @@ function model(overrides = {}) {
       warnings: []
     },
     room: { status: "missing", name: null, role: null },
-    sync: { status: "idle", lastVerifiedAt: null },
+    sync: { status: "idle", lastVerifiedAt: null, pendingDomains: [], conflictDomains: [] },
     localBackup: { status: "ready" },
     currentCycleDay: null,
     notice: null,
@@ -134,7 +134,14 @@ function actionsDouble(overrides = {}) {
     "previewExperience",
     "openSetupHelp",
     "exploreDemo",
-    "exitDemo"
+    "exitDemo",
+    "syncNow",
+    "exportLocalBackup",
+    "replaceTeacherPlan",
+    "signOut",
+    "useCloudPlan",
+    "keepLocalPlan",
+    "returnToSetup"
   ].map((name) => [name, (...args) => {
     calls.push([name, ...args]);
     return overrides[name]?.(...args);
@@ -157,7 +164,7 @@ function completeModel(overrides = {}) {
       warnings: []
     },
     room: { status: "ready", name: "CIRC Room", role: "owner" },
-    sync: { status: "verified", lastVerifiedAt: "September 1, 2026 at 9:00 AM" },
+    sync: { status: "verified", lastVerifiedAt: "September 1, 2026 at 9:00 AM", pendingDomains: [], conflictDomains: [] },
     localBackup: { status: "preserved" },
     currentCycleDay: "Cycle Day 2",
     ...overrides
@@ -299,7 +306,7 @@ test("upload and verification steps expose only their own current mutation", () 
   const upload = buildSetupView(model({ current: "upload", completed: ["account", "teacher", "plan", "room"] }), actions, { document: documentDouble });
   findAll(upload, (node) => node.tagName === "button" && node.textContent === "Upload and verify")[0].click();
   assert.deepEqual(calls, [["uploadAndVerify"]]);
-  const verify = buildSetupView(model({ current: "verify", completed: ["account", "teacher", "plan", "room", "upload"], sync: { status: "attention", lastVerifiedAt: null } }), actions, { document: documentDouble });
+  const verify = buildSetupView(model({ current: "verify", completed: ["account", "teacher", "plan", "room", "upload"], sync: { status: "attention", lastVerifiedAt: null, pendingDomains: ["plan"], conflictDomains: [] } }), actions, { document: documentDouble });
   const status = findAll(verify, (node) => node.getAttribute("role") === "status")[0];
   assert.equal(status.getAttribute("aria-live"), "polite");
   assert.match(textOf(status), /Sync needs attention/);
@@ -330,6 +337,54 @@ test("demo help exposes one enabled exit and no mutation controls", () => {
   assert.deepEqual(findAll(view, (node) => node.tagName === "button").map((node) => node.textContent), ["Exit demo and set up CIRC HQ"]);
 });
 
+test("setup help exposes safe recovery controls and domain labels without identifiers", () => {
+  const { actions, calls } = actionsDouble();
+  const view = buildSetupHelpView(completeModel({
+    sync: {
+      status: "attention",
+      lastVerifiedAt: "September 1, 2026 at 9:00 AM",
+      pendingDomains: ["content", "sharedArtifact"],
+      conflictDomains: ["plan"]
+    }
+  }), actions, { document: documentDouble });
+  const labels = [
+    "Sync now",
+    "Export local backup",
+    "Replace teacher plan",
+    "Use cloud plan",
+    "Keep local plan",
+    "Sign out",
+    "Return to setup"
+  ];
+  for (const label of labels) {
+    const control = findAll(view, (node) => node.tagName === "button" && node.textContent === label)[0];
+    assert.ok(control, label);
+    control.click();
+  }
+  assert.deepEqual(calls.map(([name]) => name), [
+    "syncNow",
+    "exportLocalBackup",
+    "replaceTeacherPlan",
+    "useCloudPlan",
+    "keepLocalPlan",
+    "signOut",
+    "returnToSetup"
+  ]);
+  assert.match(textOf(view), /Private content|Shared project|Plan conflict/);
+  assert.doesNotMatch(textOf(view), /teacher-uid|tenant-safe|room-safe|revision|invite hash/i);
+});
+
+test("plan conflict controls stay disabled when no plan conflict exists", () => {
+  const { actions, calls } = actionsDouble();
+  const view = buildSetupHelpView(completeModel(), actions, { document: documentDouble });
+  for (const label of ["Use cloud plan", "Keep local plan"]) {
+    const control = findAll(view, (node) => node.tagName === "button" && node.textContent === label)[0];
+    assert.equal(control.hasAttribute("disabled"), true);
+    control.click();
+  }
+  assert.deepEqual(calls, []);
+});
+
 test("invalid setup model and missing callbacks fail closed", () => {
   const { actions } = actionsDouble();
   assert.throws(() => buildSetupView(model({ mode: "unknown" }), actions, { document: documentDouble }), /setup-model-invalid/);
@@ -339,6 +394,8 @@ test("invalid setup model and missing callbacks fail closed", () => {
   assert.throws(() => buildSetupHelpView(model({ mode: "demo" }), missing, { document: documentDouble }), /setup-actions-invalid/);
   assert.throws(() => buildSetupView(model({ notice: { kind: "error", text: { raw: "unsafe" } } }), actions, { document: documentDouble }), /setup-model-invalid/);
   assert.throws(() => buildSetupView(model({ notice: { kind: "error", text: "safe", raw: "unsafe" } }), actions, { document: documentDouble }), /setup-model-invalid/);
+  assert.throws(() => buildSetupView(model({ sync: { status: "pending", lastVerifiedAt: null, pendingDomains: ["plan", "plan"], conflictDomains: [] } }), actions, { document: documentDouble }), /setup-model-invalid/);
+  assert.throws(() => buildSetupView(model({ sync: { status: "pending", lastVerifiedAt: null, pendingDomains: ["uid"], conflictDomains: [] } }), actions, { document: documentDouble }), /setup-model-invalid/);
 });
 
 test("error notice is semantic and product copy has no forbidden dashes", () => {
