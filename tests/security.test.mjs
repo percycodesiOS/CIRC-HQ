@@ -20,7 +20,7 @@ import { previewPlanImport } from "../src/ui/settings.js";
 const ROOT = path.resolve(import.meta.dirname, "..");
 const LEGACY_SHA256 =
   "6E7FF5AA3B15A57A44F0D3351C6C6A5A3B3D14813E9B5616AF3D138C5E41B69F";
-const ROOT_GITIGNORE = "/.superpowers/\n";
+const ROOT_GITIGNORE = "/.superpowers/\n/.worktrees/\n";
 const verifier = await import("../scripts/verify-public.mjs").catch(() => null);
 
 async function listFilesRecursively(directory) {

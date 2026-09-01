@@ -4,7 +4,7 @@
 
 **Release target:** A teacher-usable release for September 2, 2026
 
-**Source repository:** `K:\Projects\CIRC-HQ`
+**Source repository:** the current CIRC HQ repository root
 
 **Current public surface:** GitHub Pages remains the delivery surface for this release. Firebase supplies authentication and data only. A Firebase Hosting or custom-domain move is a later, separately verified cutover.
 

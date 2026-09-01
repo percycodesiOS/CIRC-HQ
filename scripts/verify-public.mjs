@@ -9,7 +9,7 @@ import { getPublicStaticManifest } from "./dev-server.mjs";
 const ROOT = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const LEGACY_NORMALIZED_SHA256 =
   "6E7FF5AA3B15A57A44F0D3351C6C6A5A3B3D14813E9B5616AF3D138C5E41B69F";
-const EXPECTED_ROOT_GITIGNORE = "/.superpowers/\n";
+const EXPECTED_ROOT_GITIGNORE = "/.superpowers/\n/.worktrees/\n";
 const ALLOWED_UNTRACKED = new Set([
   "_config.yml",
   "design-qa.md",
@@ -136,6 +136,8 @@ const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "assets/icons/LICENSE-phosphor.txt",
   "classroom-legacy.html",
   "docs/FIREBASE-ACTIVATION-GATE.md",
+  "docs/superpowers/plans/2026-09-01-circ-hq-cloud-setup.md",
+  "docs/superpowers/specs/2026-09-01-circ-hq-cloud-setup-design.md",
   "firebase-config.example.js",
   "firebase/playbook.rules.fragment",
   "package.json",
