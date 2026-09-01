@@ -11,5 +11,6 @@ exclude:
   - scripts
   - src/storage/firebase-adapter.js
   - src/storage/sync-engine.js
+  - src/model/setup-flow.js
   - src/ui/curriculum.js
   - tests
