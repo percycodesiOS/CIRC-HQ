@@ -1,5 +1,9 @@
 import { admitLocalState } from "../model/access.js";
-import { validateSharedArtifact } from "../model/shared-artifact.js";
+import {
+  TECH_TERRARIUM_ARTIFACT_ID,
+  TECH_TERRARIUM_STAGES,
+  validateSharedArtifact
+} from "../model/shared-artifact.js";
 import { findForbiddenField, isCanonicalIso, isPlainRecord } from "../model/schema-admission.js";
 
 const PRIVATE_CONTENT_FIELDS = Object.freeze([
@@ -170,17 +174,20 @@ function validateArtifacts(value) {
 function validateProjectProgress(value) {
   if (!isPlainRecord(value) || hasForbiddenCloudField(value, { shared: true })) cloudDomainError();
   for (const [projectId, progress] of Object.entries(value)) {
+    const stage = TECH_TERRARIUM_STAGES.find((candidate) => candidate.id === progress?.stageId);
+    const finalStage = TECH_TERRARIUM_STAGES.at(-1);
+    const isFinalPosition = stage?.id === finalStage.id &&
+      progress?.contributionIndex === finalStage.contributions.length - 1;
     if (
-      typeof projectId !== "string" ||
+      projectId !== TECH_TERRARIUM_ARTIFACT_ID ||
       !hasExactKeys(progress, PROJECT_PROGRESS_KEYS) ||
-      !Number.isInteger(progress.projectNumber) ||
-      progress.projectNumber < 1 ||
-      progress.projectNumber > 36 ||
-      typeof progress.stageId !== "string" ||
-      progress.stageId === "" ||
+      progress.projectNumber !== 2 ||
+      !stage ||
       !Number.isInteger(progress.contributionIndex) ||
       progress.contributionIndex < 0 ||
+      progress.contributionIndex >= stage.contributions.length ||
       !PROJECT_STATUSES.has(progress.status) ||
+      progress.status === "complete" && !isFinalPosition ||
       !isCanonicalIso(progress.updatedAt)
     ) cloudDomainError();
   }

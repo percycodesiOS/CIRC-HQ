@@ -80,6 +80,25 @@ test("unknown cloud fields fail closed", () => {
   );
 });
 
+test("project progress rejects identities and positions that admitted artifacts cannot produce", () => {
+  const validProgress = partitionSharedDomains(stateFixture()).projectProgress[
+    "tech-terrarium-2026-27"
+  ];
+  const invalidProgress = [
+    { "": validProgress },
+    { "unknown-project": validProgress },
+    { "tech-terrarium-2026-27": { ...validProgress, stageId: "unknown-stage" } },
+    { "tech-terrarium-2026-27": { ...validProgress, contributionIndex: 3 } }
+  ];
+
+  for (const value of invalidProgress) {
+    assert.throws(
+      () => assertCloudDomainShape("projectProgress", value),
+      /cloud-domain-invalid/
+    );
+  }
+});
+
 test("private-domain apply updates only admitted private fields", () => {
   const local = stateFixture();
   const cloud = partitionPrivateDomains(local);
