@@ -12,7 +12,7 @@ import * as devServer from "../scripts/dev-server.mjs";
 import { createClassroomProjection, createInitialState } from "../src/model/state.js";
 import { validateTeacherPlan } from "../src/model/teacher-plan.js";
 import { assertCloudDomainShape } from "../src/storage/cloud-domains.js";
-import { buildTeacherDocumentPatch, createFirebaseAdapter } from "../src/storage/firebase-adapter.js";
+import * as firebaseAdapter from "../src/storage/firebase-adapter.js";
 import { LocalStore, STATE_KEY } from "../src/storage/local-store.js";
 import { mergeStates } from "../src/storage/sync-engine.js";
 import { buildRoomView } from "../src/ui/room.js";
@@ -301,24 +301,29 @@ test("sync admission removes unsafe local and remote resources", () => {
   assert.equal(JSON.stringify(merged.state.resources).includes("genericProbe"), false);
 });
 
-test("Firebase load and write patch admit only safe resources", async () => {
-  const remote = stateWithResources([safeResource(), unsafeResource()]);
-  const firebase = {
-    currentUser: () => ({ uid: "teacher-uid" }),
-    getDocument: async () => remote,
-    setDocument: async () => {}
-  };
-  const adapter = createFirebaseAdapter({ config: { projectId: "injected" }, firebase });
+test("Firebase private domain admission rejects unsafe resources before I/O", async () => {
+  let ioCount = 0;
+  const client = firebaseAdapter.createFirebaseClient({
+    config: { projectId: "injected-test-project" },
+    firebase: {
+      currentUser: () => ({ uid: "teacher-uid" }),
+      getDocument: async () => { ioCount += 1; return null; },
+      runTransaction: async () => { ioCount += 1; },
+      serverTimestamp: () => ({ toDate: () => new Date("2026-09-01T12:00:00.000Z") })
+    }
+  });
+  const result = await client.savePrivateDomain("teacher-uid", "content", {
+    checklist: [],
+    classes: [],
+    lessonGuides: [],
+    specialEvents: [],
+    resources: [safeResource(), unsafeResource()],
+    notes: [],
+    tombstones: []
+  }, 0);
 
-  const loaded = await adapter.loadPrivateState();
-  const patch = buildTeacherDocumentPatch(remote);
-
-  assert.deepEqual(loaded.state.resources.map((resource) => resource.id), ["safe-resource"]);
-  assert.deepEqual(
-    patch.playbookPrivateV1.resources.map((resource) => resource.id),
-    ["safe-resource"]
-  );
-  assert.equal(JSON.stringify({ loaded, patch }).includes("genericProbe"), false);
+  assert.deepEqual(result, { status: "denied", revision: null, value: null });
+  assert.equal(ioCount, 0);
 });
 
 test("Room presents only fields returned by shared resource admission", () => {
@@ -593,6 +598,7 @@ test("Jekyll exclusions cover every nonruntime release path and expose every pub
     "package.json",
     "scripts",
     "src/storage/cloud-domains.js",
+    "src/storage/cloud-sync.js",
     "src/storage/firebase-adapter.js",
     "src/storage/sync-engine.js",
     "src/ui/curriculum.js",
@@ -1051,23 +1057,64 @@ test("verifier detectors fail closed for credential shapes and unsafe web links"
   ].join("\n")), 2);
 });
 
-test("Firebase teacher writes keep one private document boundary", async () => {
+test("Firebase private writes use an exact child document and closed envelope", async () => {
   const writes = [];
-  const adapter = createFirebaseAdapter({
-    config: { projectId: "injected" },
+  let stored = null;
+  const serverTime = { toDate: () => new Date("2026-09-01T12:00:00.000Z") };
+  const client = firebaseAdapter.createFirebaseClient({
+    config: { projectId: "injected-test-project" },
     firebase: {
       currentUser: () => ({ uid: "teacher-uid" }),
-      getDocument: async () => null,
-      setDocument: async (...args) => writes.push(args)
+      serverTimestamp: () => serverTime,
+      runTransaction: async (callback) => {
+        const staged = [];
+        const result = await callback({
+          get: async () => null,
+          set: (path, value, ...rest) => staged.push({ path, value, rest })
+        });
+        writes.push(...staged);
+        stored = staged[0]?.value ?? null;
+        return result;
+      },
+      getDocument: async () => stored
     }
   });
-  const result = await adapter.savePrivateState(stateWithResources([safeResource()]));
 
-  assert.equal(result.status, "saved");
+  const result = await client.savePrivateDomain("teacher-uid", "preferences", { preferences: {} }, 0);
+
+  assert.equal(result.status, "verified");
   assert.equal(writes.length, 1);
-  assert.equal(writes[0][0], "playbookTeachers/teacher-uid");
-  assert.deepEqual(Object.keys(writes[0][1]), ["playbookPrivateV1"]);
-  assert.deepEqual(writes[0][2], { merge: true });
+  assert.equal(writes[0].path, "playbookTeachers/teacher-uid/private/preferences");
+  assert.deepEqual(writes[0].rest, []);
+  assert.deepEqual(Object.keys(writes[0].value).sort(), [
+    "preferences",
+    "revision",
+    "schemaVersion",
+    "updatedAt",
+    "updatedBy"
+  ]);
+  assert.equal("experienceRunners" in writes[0].value, false);
+  assert.equal("sharedArtifacts" in writes[0].value, false);
+});
+
+test("Firebase client exposes no whole-state or credential surface", () => {
+  for (const obsolete of [
+    "buildTeacherDocumentPatch",
+    "createFirebaseAdapter",
+    "createBrowserFirebaseAdapter"
+  ]) {
+    assert.equal(obsolete in firebaseAdapter, false, obsolete);
+  }
+  const client = firebaseAdapter.createFirebaseClient();
+  for (const obsolete of [
+    "loadPrivateState",
+    "savePrivateState",
+    "signInWithEmail",
+    "createEmailAccount",
+    "requestPasswordReset"
+  ]) {
+    assert.equal(obsolete in client, false, obsolete);
+  }
 });
 
 test("cloud domains reject runners, credentials, authentication, submissions, and private shared fields", () => {

@@ -10,6 +10,7 @@ exclude:
   - package.json
   - scripts
   - src/storage/cloud-domains.js
+  - src/storage/cloud-sync.js
   - src/storage/firebase-adapter.js
   - src/storage/sync-engine.js
   - src/model/setup-flow.js

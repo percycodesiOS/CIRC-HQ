@@ -1,139 +1,142 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createBrowserFirebaseAdapter, createFirebaseAdapter, buildTeacherDocumentPatch } from "../src/storage/firebase-adapter.js";
 
-function state(overrides = {}) {
-  return {
-    format: "playbook.state.v1",
-    schemaVersion: 1,
-    updatedAt: "2026-08-28T12:00:00.000Z",
-    plan: null,
-    teacherProgress: {},
-    checklist: [],
-    classes: [],
-    lessonGuides: [],
-    specialEvents: [],
-    resources: [],
-    notes: [],
-    preferences: {},
-    tombstones: [],
-    ...overrides
-  };
+import * as firebaseAdapter from "../src/storage/firebase-adapter.js";
+
+function requireFactory(name) {
+  assert.equal(typeof firebaseAdapter[name], "function", `${name} must be exported`);
+  return firebaseAdapter[name];
 }
 
-function firebaseDouble({ uid = "kenny-uid", remoteState = null, loadError = null, saveError = null } = {}) {
+function firebaseDouble({ uid = "teacher-uid" } = {}) {
   const calls = [];
+  let authListener = null;
+  const unsubscribe = () => {};
   return {
     calls,
-    currentUser: () => (uid ? { uid } : null),
-    async getDocument(path) {
-      calls.push(["get", path]);
-      if (loadError) throw loadError;
-      return remoteState;
+    currentUser: () => uid ? {
+      uid,
+      displayName: "Teacher Name",
+      email: "teacher@example.invalid",
+      accessToken: "must-not-escape",
+      providerData: [{ providerId: "google.com" }]
+    } : null,
+    observeAuth(listener) {
+      calls.push({ kind: "observe" });
+      authListener = listener;
+      return unsubscribe;
     },
-    async setDocument(path, patch, options) {
-      calls.push(["set", path, patch, options]);
-      if (saveError) throw saveError;
+    emitAuth(user) {
+      authListener(user);
+    },
+    async signInWithPopup() {
+      calls.push({ kind: "popup" });
+      return { user: this.currentUser(), credential: "must-not-escape" };
+    },
+    async signInWithRedirect() {
+      calls.push({ kind: "redirect" });
+    },
+    async signOut() {
+      calls.push({ kind: "sign-out" });
     }
   };
 }
 
-test("buildTeacherDocumentPatch protects the private state boundary", () => {
-  const privateState = state({ role: "admin", tenantId: "tenant-a", claims: { teacher: true }, unrecognizedSensitiveField: "exclude me" });
+test("browser client delegates pinned dependency loading to the injectable client", async () => {
+  const createBrowserFirebaseClient = requireFactory("createBrowserFirebaseClient");
+  const firebase = firebaseDouble();
+  const config = { projectId: "injected-test-project" };
+  const seen = [];
 
-  const patch = buildTeacherDocumentPatch(privateState);
+  const client = await createBrowserFirebaseClient(config, {
+    loadDependencies: async (received) => {
+      seen.push(received);
+      return firebase;
+    }
+  });
 
-  assert.deepEqual(Object.keys(patch), ["playbookPrivateV1"]);
-  assert.equal(patch.playbookPrivateV1.format, "playbook.state.v1");
-  assert.deepEqual(patch.playbookPrivateV1.resources, []);
-  assert.equal("role" in patch.playbookPrivateV1, false);
-  assert.equal("tenantId" in patch.playbookPrivateV1, false);
-  assert.equal("claims" in patch.playbookPrivateV1, false);
-  assert.equal("unrecognizedSensitiveField" in patch.playbookPrivateV1, false);
-  assert.throws(
-    () => buildTeacherDocumentPatch(state({ credential: "forbidden" })),
-    /invalid|forbidden|state/i
+  assert.deepEqual(seen, [config]);
+  assert.equal(client.status, "ready");
+  assert.equal("loadPrivateState" in client, false);
+  assert.equal("savePrivateState" in client, false);
+  assert.equal("signInWithEmail" in client, false);
+  assert.equal("requestPasswordReset" in client, false);
+});
+
+test("auth observation emits only normalized Firebase identity", () => {
+  const createFirebaseClient = requireFactory("createFirebaseClient");
+  const firebase = firebaseDouble();
+  const client = createFirebaseClient({
+    config: { projectId: "injected-test-project" },
+    firebase
+  });
+  const observed = [];
+
+  const unsubscribe = client.observeAuth((user) => observed.push(user));
+  firebase.emitAuth(firebase.currentUser());
+  firebase.emitAuth(null);
+
+  assert.equal(typeof unsubscribe, "function");
+  assert.deepEqual(observed, [{
+    uid: "teacher-uid",
+    displayName: "Teacher Name",
+    email: "teacher@example.invalid"
+  }, null]);
+  assert.equal(JSON.stringify(observed).includes("must-not-escape"), false);
+  assert.equal(JSON.stringify(observed).includes("providerData"), false);
+});
+
+test("Google sign-in selects popup on desktop and redirect on mobile", async () => {
+  const createFirebaseClient = requireFactory("createFirebaseClient");
+  const firebase = firebaseDouble();
+  const client = createFirebaseClient({
+    config: { projectId: "injected-test-project" },
+    firebase
+  });
+
+  assert.deepEqual(await client.signInWithGoogle({ mobile: false }), { status: "pending" });
+  assert.deepEqual(await client.signInWithGoogle({ mobile: true }), { status: "pending" });
+  assert.deepEqual(await client.signOut(), { status: "signed-out" });
+  assert.deepEqual(firebase.calls.map((call) => call.kind), ["popup", "redirect", "sign-out"]);
+});
+
+test("missing configuration and blocked dependency loading preserve safe local mode", async () => {
+  const createBrowserFirebaseClient = requireFactory("createBrowserFirebaseClient");
+  const notConfigured = await createBrowserFirebaseClient(null);
+  const blocked = await createBrowserFirebaseClient(
+    { projectId: "injected-test-project" },
+    { loadDependencies: async () => { throw new Error("private module detail"); } }
   );
+
+  assert.equal(notConfigured.status, "not-configured");
+  assert.equal(blocked.status, "cloud-blocked");
+  assert.equal(JSON.stringify({ notConfigured, blocked }).includes("private module detail"), false);
+  assert.deepEqual(await notConfigured.signInWithGoogle({ mobile: false }), { status: "not-configured" });
+  assert.deepEqual(await blocked.signOut(), { status: "cloud-blocked" });
 });
 
-test("dormant Firebase load and write admission use the complete closed local-state schema", async () => {
-  const source = state({
-    unsupportedTopLevel: "drop",
-    preferences: { teacherId: "teacher-alpha", unsupportedNested: "drop" },
-    notes: [{
-      id: "note-safe",
-      text: "Safe note",
-      visibility: "teacher-private",
-      updatedAt: "2026-08-28T12:00:00.000Z",
-      unsupportedNested: "drop"
-    }]
-  });
-  const patch = buildTeacherDocumentPatch(source).playbookPrivateV1;
-  assert.equal(Object.hasOwn(patch, "unsupportedTopLevel"), false);
-  assert.deepEqual(patch.preferences, { teacherId: "teacher-alpha" });
-  assert.equal(Object.hasOwn(patch.notes[0], "unsupportedNested"), false);
-  assert.throws(
-    () => buildTeacherDocumentPatch(state({ studentRoster: ["individual record"] })),
-    /invalid|forbidden|state/i
-  );
-
-  const adapter = createFirebaseAdapter({
-    config: { apiKey: "injected-test-value" },
-    firebase: firebaseDouble({ remoteState: source })
-  });
-  const loaded = await adapter.loadPrivateState();
-  assert.equal(Object.hasOwn(loaded.state, "unsupportedTopLevel"), false);
-  assert.deepEqual(loaded.state.preferences, { teacherId: "teacher-alpha" });
-});
-
-test("uses the signed-in teacher's exact private document path and merges newer remote state before saving", async () => {
-  const remoteState = state({ updatedAt: "2026-08-28T13:00:00.000Z", resources: [{ id: "remote", title: "Remote", updatedAt: "2026-08-28T13:00:00.000Z" }] });
-  const firebase = firebaseDouble({ remoteState });
-  const adapter = createFirebaseAdapter({ config: { apiKey: "injected-test-value" }, firebase });
-  const localState = state({ resources: [{ id: "local", title: "Local", updatedAt: "2026-08-28T12:00:00.000Z" }] });
-
-  const result = await adapter.savePrivateState(localState);
-
-  assert.equal(result.status, "saved");
-  assert.deepEqual(result.state.resources.map((item) => item.id), ["local", "remote"]);
-  assert.deepEqual(firebase.calls[0], ["get", "playbookTeachers/kenny-uid"]);
-  assert.equal(firebase.calls[1][0], "set");
-  assert.equal(firebase.calls[1][1], "playbookTeachers/kenny-uid");
-  assert.deepEqual(Object.keys(firebase.calls[1][2]), ["playbookPrivateV1"]);
-  assert.deepEqual(firebase.calls[1][3], { merge: true });
-});
-
-test("rejects saving when no authenticated teacher UID exists", async () => {
-  const adapter = createFirebaseAdapter({ config: { apiKey: "injected-test-value" }, firebase: firebaseDouble({ uid: null }) });
-
-  await assert.rejects(adapter.savePrivateState(state()), /authenticated UID/i);
-});
-
-test("surfaces cloud read and write failures instead of reporting success", async () => {
-  const loadAdapter = createFirebaseAdapter({ config: { apiKey: "injected-test-value" }, firebase: firebaseDouble({ loadError: new Error("offline") }) });
-  const saveAdapter = createFirebaseAdapter({ config: { apiKey: "injected-test-value" }, firebase: firebaseDouble({ saveError: new Error("denied") }) });
-
-  assert.deepEqual(await loadAdapter.loadPrivateState(), { status: "load-error", state: null, error: "offline" });
-  const result = await saveAdapter.savePrivateState(state());
-  assert.equal(result.status, "save-error");
-  assert.equal(result.error, "denied");
-});
-
-test("keeps local mode usable when Firebase configuration is absent", async () => {
-  const adapter = createFirebaseAdapter({});
-
-  assert.equal(adapter.status, "not-configured");
-  assert.deepEqual(await adapter.loadPrivateState(), { status: "not-configured", state: null, error: null });
-  assert.deepEqual(await adapter.savePrivateState(state()), { status: "not-configured", state: null, error: null });
-});
-
-test("guards browser initialization failures with cloud-blocked local-usable behavior", async () => {
-  const adapter = await createBrowserFirebaseAdapter({
-    config: { apiKey: "injected-test-value" },
-    loadDependencies: async () => { throw new Error("module unavailable"); }
+test("auth failures are structured and never expose raw Firebase errors", async () => {
+  const createFirebaseClient = requireFactory("createFirebaseClient");
+  const firebase = firebaseDouble();
+  firebase.signInWithPopup = async () => {
+    const error = new Error("credential and account detail must not escape");
+    error.code = "auth/network-request-failed";
+    throw error;
+  };
+  firebase.signOut = async () => {
+    const error = new Error("permission detail must not escape");
+    error.code = "auth/unauthenticated";
+    throw error;
+  };
+  const client = createFirebaseClient({
+    config: { projectId: "injected-test-project" },
+    firebase
   });
 
-  assert.equal(adapter.status, "cloud-blocked");
-  assert.deepEqual(await adapter.loadPrivateState(), { status: "cloud-blocked", state: null, error: null });
-  assert.deepEqual(await adapter.savePrivateState(state()), { status: "cloud-blocked", state: null, error: null });
+  const signInResult = await client.signInWithGoogle({ mobile: false });
+  const signOutResult = await client.signOut();
+
+  assert.deepEqual(signInResult, { status: "offline" });
+  assert.deepEqual(signOutResult, { status: "denied" });
+  assert.equal(JSON.stringify({ signInResult, signOutResult }).includes("detail"), false);
 });
