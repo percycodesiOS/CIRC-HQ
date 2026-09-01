@@ -559,6 +559,80 @@ test("Firestore emulator rule matrix is intentionally skipped without its local 
     }));
   });
 
+  await matrix("artifact history rejects a reused event and visit-date identity even when the visit map differs", async () => {
+    await seedRoom(environment);
+    const first = recordArtifactHandoff(initialArtifact(), {
+      handoff: "ready",
+      eventId: EVENT_ID,
+      visitDate: "2026-09-01",
+      nowIso: NEXT_ISO
+    });
+    await assertSucceeds(commitArtifactValues(tammy, TAMMY, first, 2));
+    const later = "2026-09-01T15:00:00.000Z";
+    const duplicateIdentity = {
+      ...first,
+      updatedAt: later,
+      visits: [...first.visits, {
+        eventId: EVENT_ID,
+        visitDate: "2026-09-01",
+        handoff: "repeat",
+        stageId: first.stageId,
+        contributionIndex: first.contributionIndex,
+        recordedAt: later
+      }],
+      visitIdentities: [...first.visitIdentities, `${EVENT_ID}|2026-09-01`]
+    };
+    await assertFails(commitArtifactValues(tammy, TAMMY, duplicateIdentity, 3));
+  });
+
+  await matrix("artifact rules reject impossible local dates and impossible ISO timestamps", async () => {
+    const invalidCases = [
+      { visitDate: "2026-02-31", nowIso: "2026-09-01T14:00:00.000Z" },
+      { visitDate: "2026-02-29", nowIso: "2026-09-01T14:00:00.000Z" },
+      { visitDate: "2026-09-01", nowIso: "2026-02-31T14:00:00.000Z" }
+    ];
+    for (const { visitDate, nowIso } of invalidCases) {
+      await environment.clearFirestore();
+      await seedRoom(environment);
+      const value = recordArtifactHandoff(initialArtifact(), {
+        handoff: "ready",
+        eventId: EVENT_ID,
+        visitDate: "2026-09-01",
+        nowIso: NEXT_ISO
+      });
+      value.updatedAt = nowIso;
+      value.visits[0] = { ...value.visits[0], visitDate, recordedAt: nowIso };
+      value.visitIdentities[0] = `${EVENT_ID}|${visitDate}`;
+      await assertFails(commitArtifactValues(tammy, TAMMY, value, 2));
+    }
+  });
+
+  await matrix("artifact rules accept leap day and supported-range calendar boundaries", async () => {
+    for (const { createdAt, visitDate, updatedAt } of [
+      {
+        createdAt: "2020-01-01T00:00:00.000Z",
+        visitDate: "2028-02-29",
+        updatedAt: "2028-02-29T23:59:59.999Z"
+      },
+      {
+        createdAt: "2099-12-31T00:00:00.000Z",
+        visitDate: "2099-12-31",
+        updatedAt: "2099-12-31T23:59:59.999Z"
+      }
+    ]) {
+      await environment.clearFirestore();
+      const base = createTechTerrariumArtifact({ artifactId: ARTIFACT_ID, nowIso: createdAt });
+      await assertSucceeds(commitOwnerBootstrap(kenny, { artifactValue: base }));
+      const next = recordArtifactHandoff(base, {
+        handoff: "repeat",
+        eventId: EVENT_ID,
+        visitDate,
+        nowIso: updatedAt
+      });
+      await assertSucceeds(commitArtifactValues(kenny, KENNY, next, 2));
+    }
+  });
+
   await matrix("unknown artifact IDs and malformed initial values are denied", async () => {
     await seedRoom(environment);
     await assertFails(setDoc(doc(kenny, `playbookTenants/${TENANT_ID}/rooms/${ROOM_ID}/artifacts/other-project`), envelope(KENNY, initialArtifact())));

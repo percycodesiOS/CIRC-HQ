@@ -74,7 +74,8 @@ const ARTIFACT_KEYS = Object.freeze([
   "status",
   "createdAt",
   "updatedAt",
-  "visits"
+  "visits",
+  "visitIdentities"
 ].sort());
 const VISIT_KEYS = Object.freeze([
   "eventId",
@@ -108,6 +109,10 @@ function isFinalPosition(stageId, contributionIndex) {
   return stageId === finalStage.id && contributionIndex === finalStage.contributions.length - 1;
 }
 
+function visitIdentity(eventId, visitDate) {
+  return `${eventId}|${visitDate}`;
+}
+
 function validVisit(visit, createdTimestamp, updatedTimestamp, previousTimestamp) {
   if (!hasExactKeys(visit, VISIT_KEYS)) return null;
   if (
@@ -136,7 +141,9 @@ export function validateSharedArtifact(candidate) {
     !validPosition(candidate.stageId, candidate.contributionIndex) ||
     !isCanonicalIso(candidate.createdAt) ||
     !isCanonicalIso(candidate.updatedAt) ||
-    !Array.isArray(candidate.visits)
+    !Array.isArray(candidate.visits) ||
+    !Array.isArray(candidate.visitIdentities) ||
+    candidate.visitIdentities.length !== candidate.visits.length
   ) return null;
 
   const createdTimestamp = Date.parse(candidate.createdAt);
@@ -149,9 +156,11 @@ export function validateSharedArtifact(candidate) {
 
   let previousTimestamp = createdTimestamp;
   const recordedVisits = new Set();
-  for (const visit of candidate.visits) {
-    const visitKey = `${visit?.eventId ?? ""}\u0000${visit?.visitDate ?? ""}`;
+  for (let index = 0; index < candidate.visits.length; index += 1) {
+    const visit = candidate.visits[index];
+    const visitKey = visitIdentity(visit?.eventId ?? "", visit?.visitDate ?? "");
     if (recordedVisits.has(visitKey)) return null;
+    if (candidate.visitIdentities[index] !== visitKey) return null;
     const recordedTimestamp = validVisit(
       visit,
       createdTimestamp,
@@ -182,7 +191,8 @@ export function createTechTerrariumArtifact(options) {
     status: "active",
     createdAt: options.nowIso,
     updatedAt: options.nowIso,
-    visits: []
+    visits: [],
+    visitIdentities: []
   };
 }
 
@@ -213,9 +223,8 @@ export function recordArtifactHandoff(artifact, options) {
   ) {
     throw new TypeError("shared-artifact-handoff-invalid");
   }
-  if (admitted.visits.some((visit) =>
-    visit.eventId === options.eventId && visit.visitDate === options.visitDate
-  )) {
+  const identity = visitIdentity(options.eventId, options.visitDate);
+  if (admitted.visitIdentities.includes(identity)) {
     throw new Error("shared-artifact-visit-already-recorded");
   }
 
@@ -229,6 +238,7 @@ export function recordArtifactHandoff(artifact, options) {
     contributionIndex: workedContributionIndex,
     recordedAt: options.nowIso
   });
+  admitted.visitIdentities.push(identity);
   admitted.updatedAt = options.nowIso;
 
   if (options.handoff === "park") {

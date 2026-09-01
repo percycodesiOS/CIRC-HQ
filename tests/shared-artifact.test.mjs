@@ -96,7 +96,8 @@ test("creates the exact Tech Terrarium schema at the first contribution without 
     status: "active",
     createdAt: CREATED_AT,
     updatedAt: CREATED_AT,
-    visits: []
+    visits: [],
+    visitIdentities: []
   });
   assert.deepEqual(getCurrentContribution(artifact), {
     stageId: "define",
@@ -140,6 +141,9 @@ test("Ready records the worked position and advances exactly one contribution", 
     contributionIndex: 0,
     recordedAt: NEXT_AT
   }]);
+  assert.deepEqual(result.visitIdentities, [
+    "event-hb90c825ba3dd6b4eaf91fdd1dd87f114|2026-08-31"
+  ]);
 });
 
 test("Ready wraps from a stage's final contribution to the next stage", () => {
@@ -264,6 +268,7 @@ test("validation returns a detached strict-schema clone", () => {
   assert.deepEqual(admitted, source);
   assert.notEqual(admitted, source);
   assert.notEqual(admitted.visits, source.visits);
+  assert.notEqual(admitted.visitIdentities, source.visitIdentities);
   admitted.visits[0].eventId = "changed-after-validation";
   assert.equal(source.visits[0].eventId, "event-hf8fefae94d90db3145907d1b341ac884");
 
@@ -289,10 +294,33 @@ test("validation fails closed for artifact schema, type, range, timestamp, and e
     { ...valid, updatedAt: "not-a-date" },
     { ...valid, updatedAt: "2026-08-31T12:59:59.000Z" },
     { ...valid, visits: {} },
+    { ...valid, visitIdentities: {} },
+    Object.fromEntries(Object.entries(valid).filter(([key]) => key !== "visitIdentities")),
     { ...valid, teacherId: "private-teacher" }
   ];
 
   for (const candidate of invalid) {
+    assert.equal(validateSharedArtifact(candidate), null, JSON.stringify(candidate));
+  }
+});
+
+test("validation requires an exact unique visit identity projection", () => {
+  const eventId = "event-hf083ed573c6ce9d50953bceb5657ea95";
+  const valid = recordArtifactHandoff(initialArtifact(), {
+    handoff: "repeat",
+    eventId,
+    visitDate: "2026-08-31",
+    nowIso: NEXT_AT
+  });
+  const identity = `${eventId}|2026-08-31`;
+
+  assert.deepEqual(valid.visitIdentities, [identity]);
+  for (const candidate of [
+    { ...valid, visitIdentities: [] },
+    { ...valid, visitIdentities: ["wrong|2026-08-31"] },
+    { ...valid, visitIdentities: [identity, identity] },
+    { ...valid, visitIdentities: [7] }
+  ]) {
     assert.equal(validateSharedArtifact(candidate), null, JSON.stringify(candidate));
   }
 });
@@ -409,6 +437,10 @@ test("a scheduled event records exactly one handoff per visit date and permits t
     nowIso: "2026-09-01T13:35:00.000Z"
   });
   assert.equal(nextDate.visits.length, 2);
+  assert.deepEqual(nextDate.visitIdentities, [
+    "event-hf5c94f6f76d25a4bcc7c4a1b3304e5de|2026-08-31",
+    "event-hf5c94f6f76d25a4bcc7c4a1b3304e5de|2026-09-01"
+  ]);
   assert.deepEqual(nextDate.visits.map(({ eventId, visitDate }) => ({ eventId, visitDate })), [
     { eventId: "event-hf5c94f6f76d25a4bcc7c4a1b3304e5de", visitDate: "2026-08-31" },
     { eventId: "event-hf5c94f6f76d25a4bcc7c4a1b3304e5de", visitDate: "2026-09-01" }

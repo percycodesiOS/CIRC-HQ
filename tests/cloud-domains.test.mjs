@@ -71,6 +71,7 @@ test("shared cloud data contains only admitted room domains", () => {
     }
   });
   assert.doesNotMatch(JSON.stringify(domains), /schedule|duty|notes|resources|preferences/);
+  assert.deepEqual(domains.artifacts["tech-terrarium-2026-27"].visitIdentities, []);
 });
 
 test("unknown cloud fields fail closed", () => {

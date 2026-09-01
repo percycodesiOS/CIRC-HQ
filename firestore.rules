@@ -90,14 +90,28 @@ service cloud.firestore {
     }
 
     function validIso(value) {
-      return value is string && value.matches(
-        '^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[0-1])T([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9][.][0-9]{3}Z$'
+      return value is string && (
+        value.matches(
+          '^20[2-9][0-9]-(0[13578]|1[02])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9][.][0-9]{3}Z$'
+        ) ||
+        value.matches(
+          '^20[2-9][0-9]-(0[469]|11)-(0[1-9]|[12][0-9]|30)T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9][.][0-9]{3}Z$'
+        ) ||
+        value.matches(
+          '^20[2-9][0-9]-02-(0[1-9]|1[0-9]|2[0-8])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9][.][0-9]{3}Z$'
+        ) ||
+        value.matches(
+          '^20(2[048]|[2468][048]|[3579][26])-02-29T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9][.][0-9]{3}Z$'
+        )
       );
     }
 
     function validLocalDate(value) {
-      return value is string && value.matches(
-        '^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[0-1])$'
+      return value is string && (
+        value.matches('^20[2-9][0-9]-(0[13578]|1[02])-(0[1-9]|[12][0-9]|3[01])$') ||
+        value.matches('^20[2-9][0-9]-(0[469]|11)-(0[1-9]|[12][0-9]|30)$') ||
+        value.matches('^20[2-9][0-9]-02-(0[1-9]|1[0-9]|2[0-8])$') ||
+        value.matches('^20(2[048]|[2468][048]|[3579][26])-02-29$')
       );
     }
 
@@ -195,7 +209,7 @@ service cloud.firestore {
     function validArtifact(value) {
       return exact(value, [
           "schemaVersion", "artifactId", "projectNumber", "stageId", "contributionIndex",
-          "status", "createdAt", "updatedAt", "visits"
+          "status", "createdAt", "updatedAt", "visits", "visitIdentities"
         ]) &&
         value.schemaVersion == 1 &&
         value.artifactId == "tech-terrarium-2026-27" &&
@@ -203,7 +217,9 @@ service cloud.firestore {
         validStatusPosition(value.stageId, value.contributionIndex, value.status) &&
         validIso(value.createdAt) &&
         validIso(value.updatedAt) &&
-        value.visits is list;
+        value.visits is list &&
+        value.visitIdentities is list &&
+        value.visitIdentities.size() == value.visits.size();
     }
 
     function validInitialArtifact(value) {
@@ -212,7 +228,8 @@ service cloud.firestore {
         value.contributionIndex == 0 &&
         value.status == "active" &&
         value.createdAt == value.updatedAt &&
-        value.visits.size() == 0;
+        value.visits.size() == 0 &&
+        value.visitIdentities.size() == 0;
     }
 
     function validProgress(value) {
@@ -251,29 +268,18 @@ service cloud.firestore {
     }
 
     function readyTransition(before, after) {
-      return before.stageId == "define" && before.contributionIndex < 2 &&
-          after.stageId == "define" && after.contributionIndex == before.contributionIndex + 1 &&
+      return before.contributionIndex < 2 &&
+          after.stageId == before.stageId &&
+          after.contributionIndex == before.contributionIndex + 1 &&
           after.status == "active" ||
-        before.stageId == "define" && before.contributionIndex == 2 &&
-          after.stageId == "prepare" && after.contributionIndex == 0 && after.status == "active" ||
-        before.stageId == "prepare" && before.contributionIndex < 2 &&
-          after.stageId == "prepare" && after.contributionIndex == before.contributionIndex + 1 &&
-          after.status == "active" ||
-        before.stageId == "prepare" && before.contributionIndex == 2 &&
-          after.stageId == "base" && after.contributionIndex == 0 && after.status == "active" ||
-        before.stageId == "base" && before.contributionIndex < 2 &&
-          after.stageId == "base" && after.contributionIndex == before.contributionIndex + 1 &&
-          after.status == "active" ||
-        before.stageId == "base" && before.contributionIndex == 2 &&
-          after.stageId == "systems" && after.contributionIndex == 0 && after.status == "active" ||
-        before.stageId == "systems" && before.contributionIndex < 2 &&
-          after.stageId == "systems" && after.contributionIndex == before.contributionIndex + 1 &&
-          after.status == "active" ||
-        before.stageId == "systems" && before.contributionIndex == 2 &&
-          after.stageId == "test" && after.contributionIndex == 0 && after.status == "active" ||
-        before.stageId == "test" && before.contributionIndex < 2 &&
-          after.stageId == "test" && after.contributionIndex == before.contributionIndex + 1 &&
-          after.status == "active" ||
+        before.contributionIndex == 2 &&
+          after.contributionIndex == 0 &&
+          after.status == "active" && (
+            before.stageId == "define" && after.stageId == "prepare" ||
+            before.stageId == "prepare" && after.stageId == "base" ||
+            before.stageId == "base" && after.stageId == "systems" ||
+            before.stageId == "systems" && after.stageId == "test"
+          ) ||
         before.stageId == "test" && before.contributionIndex == 2 &&
           after.stageId == "test" && after.contributionIndex == 2 && after.status == "complete";
     }
@@ -292,12 +298,15 @@ service cloud.firestore {
 
     function validArtifactHandoff(before, after) {
       let visit = after.visits[after.visits.size() - 1];
+      let identity = visit.eventId + "|" + visit.visitDate;
       return validArtifact(after) &&
         before.status != "complete" &&
         after.createdAt == before.createdAt &&
         after.visits.size() == before.visits.size() + 1 &&
         after.visits == before.visits.concat([visit]) &&
-        !before.visits.hasAny([visit]) &&
+        after.visitIdentities.size() == before.visitIdentities.size() + 1 &&
+        after.visitIdentities == before.visitIdentities.concat([identity]) &&
+        !before.visitIdentities.hasAny([identity]) &&
         validVisit(visit) &&
         visit.stageId == before.stageId &&
         visit.contributionIndex == before.contributionIndex &&
