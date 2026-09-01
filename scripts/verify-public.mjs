@@ -43,6 +43,7 @@ const ALLOWED_UNTRACKED = new Set([
   "src/model/step-timer.js",
   "src/model/setup-flow.js",
   "src/ui/project-home.js",
+  "src/ui/setup.js",
   "scripts/verify-public.mjs",
   "tests/admin-plan.test.mjs",
   "tests/experience-runner.test.mjs",
@@ -50,6 +51,7 @@ const ALLOWED_UNTRACKED = new Set([
   "tests/project-catalog.test.mjs",
   "tests/project-home.test.mjs",
   "tests/shared-artifact.test.mjs",
+  "tests/setup-ui.test.mjs",
   "tests/step-timer.test.mjs",
   "tests/security.test.mjs"
 ]);
@@ -153,6 +155,7 @@ const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "src/storage/firebase-adapter.js",
   "src/storage/room-sync.js",
   "src/storage/sync-engine.js",
+  "src/ui/setup.js",
   "src/model/experience-runner.js",
   "src/model/experience-timing-plans.js",
   "src/model/step-timer.js",
@@ -182,6 +185,7 @@ const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "tests/state.test.mjs",
   "tests/sync-engine.test.mjs",
   "tests/setup-flow.test.mjs",
+  "tests/setup-ui.test.mjs",
   "tests/step-timer.test.mjs",
   "tests/teacher-plan-v1.test.mjs",
   "tests/teacher-plan.test.mjs",

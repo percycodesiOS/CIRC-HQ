@@ -52,7 +52,7 @@ test("public shell exposes the approved name and exact navigation", async () => 
   assert.doesNotMatch(html, /class="brand-mark"/);
   assert.doesNotMatch(html, /<span[^>]*>\s*CIRC\s*<\/span>/);
   assert.doesNotMatch(html, /Mission Control|Teaching Zone/i);
-  assert.match(html, /<img[^>]+src="assets\/circ-hq-maker\.webp"/);
+  assert.match(html, /<img[^>]+src="assets\/tech-terrarium-hero\.webp"/);
   assert.doesNotMatch(html, /data-route="schedule"/);
   assert.match(html, /data-route="settings"[^>]*aria-label="Teacher Setup"/);
 

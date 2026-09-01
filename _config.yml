@@ -19,5 +19,6 @@ exclude:
   - src/storage/room-sync.js
   - src/storage/sync-engine.js
   - src/model/setup-flow.js
+  - src/ui/setup.js
   - src/ui/curriculum.js
   - tests
