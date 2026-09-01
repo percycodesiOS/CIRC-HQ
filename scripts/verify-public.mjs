@@ -9,7 +9,7 @@ import { getPublicStaticManifest } from "./dev-server.mjs";
 const ROOT = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const LEGACY_NORMALIZED_SHA256 =
   "6E7FF5AA3B15A57A44F0D3351C6C6A5A3B3D14813E9B5616AF3D138C5E41B69F";
-const EXPECTED_ROOT_GITIGNORE = "/.superpowers/\n/.worktrees/\n";
+const EXPECTED_ROOT_GITIGNORE = "/.superpowers/\n/.worktrees/\n/.firebase/\n/.firebaserc\n/firebase-debug.log\n/firestore-debug.log\n/ui-debug.log\n/node_modules/\n";
 const ALLOWED_UNTRACKED = new Set([
   "_config.yml",
   "design-qa.md",
@@ -141,7 +141,10 @@ const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "docs/superpowers/plans/2026-09-01-circ-hq-cloud-setup.md",
   "docs/superpowers/specs/2026-09-01-circ-hq-cloud-setup-design.md",
   "firebase-config.example.js",
-  "firebase/playbook.rules.fragment",
+  ".firebaserc.example",
+  "firebase.json",
+  "firestore.rules",
+  "package-lock.json",
   "package.json",
   "scripts/dev-server.mjs",
   "scripts/verify-public.mjs",
@@ -161,6 +164,7 @@ const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "tests/cloud-domains.test.mjs",
   "tests/cloud-sync.test.mjs",
   "tests/dev-server.test.mjs",
+  "tests/firestore-rules.test.mjs",
   "tests/firebase-adapter.test.mjs",
   "tests/room-sync.test.mjs",
   "tests/experience-runner.test.mjs",
@@ -209,6 +213,7 @@ const TEXT_EXTENSIONS = new Set([
   ".html",
   ".js",
   ".json",
+  ".rules",
   ".yml",
   ".md",
   ".mjs",
@@ -298,7 +303,7 @@ function isForbiddenCandidatePath(value) {
     /^[a-z]:/i.test(candidate) ||
     segments.some((segment) => segment === "" || segment === "." || segment === "..")
   ) return true;
-  if (candidate !== ".gitignore" && segments.some((segment) => segment.startsWith("."))) {
+  if (!new Set([".gitignore", ".firebaserc.example"]).has(candidate) && segments.some((segment) => segment.startsWith("."))) {
     return true;
   }
   const root = segments[0].toLowerCase();
@@ -410,7 +415,7 @@ export function parseJekyllExcludes(value) {
       insideExcludeList = true;
       continue;
     }
-    const match = line.match(/^  - ([A-Za-z0-9][A-Za-z0-9._/-]*)$/);
+    const match = line.match(/^  - (\.?[A-Za-z0-9][A-Za-z0-9._/-]*)$/);
     if (!match) return null;
     const exclusion = normalizedPath(match[1]);
     if (
@@ -508,7 +513,7 @@ export async function inspectRuntimeImportBoundary(root = ROOT) {
 
 function isTextCandidate(relativePath) {
   const basename = path.posix.basename(relativePath);
-  return basename === ".gitignore" ||
+  return basename === ".gitignore" || basename === ".firebaserc.example" ||
     basename === "README" ||
     TEXT_EXTENSIONS.has(path.posix.extname(relativePath));
 }

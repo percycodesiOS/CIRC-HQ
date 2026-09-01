@@ -21,7 +21,7 @@ import { previewPlanImport } from "../src/ui/settings.js";
 const ROOT = path.resolve(import.meta.dirname, "..");
 const LEGACY_SHA256 =
   "6E7FF5AA3B15A57A44F0D3351C6C6A5A3B3D14813E9B5616AF3D138C5E41B69F";
-const ROOT_GITIGNORE = "/.superpowers/\n/.worktrees/\n";
+const ROOT_GITIGNORE = "/.superpowers/\n/.worktrees/\n/.firebase/\n/.firebaserc\n/firebase-debug.log\n/firestore-debug.log\n/ui-debug.log\n/node_modules/\n";
 const verifier = await import("../scripts/verify-public.mjs").catch(() => null);
 
 async function listFilesRecursively(directory) {
@@ -594,7 +594,11 @@ test("Jekyll exclusions cover every nonruntime release path and expose every pub
     "design-qa.md",
     "docs",
     "firebase",
+    ".firebaserc.example",
     "firebase-config.example.js",
+    "firebase.json",
+    "firestore.rules",
+    "package-lock.json",
     "package.json",
     "scripts",
     "src/storage/cloud-domains.js",

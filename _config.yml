@@ -6,7 +6,11 @@ exclude:
   - design-qa.md
   - docs
   - firebase
+  - .firebaserc.example
   - firebase-config.example.js
+  - firebase.json
+  - firestore.rules
+  - package-lock.json
   - package.json
   - scripts
   - src/storage/cloud-domains.js
