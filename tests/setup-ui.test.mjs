@@ -39,6 +39,26 @@ class FakeNode {
     this.listeners.set(name, listener);
   }
 
+  matches(selector) {
+    const normalized = selector.trim();
+    if (normalized === "button") return this.tagName === "button";
+    if (normalized === "input") return this.tagName === "input";
+    if (normalized === "button:not([disabled])") return this.tagName === "button" && !this.hasAttribute("disabled");
+    if (normalized === "input:not([disabled])") return this.tagName === "input" && !this.hasAttribute("disabled");
+    return false;
+  }
+
+  querySelectorAll(selector) {
+    const selectors = selector.split(",").map((part) => part.trim());
+    const matches = [];
+    const visit = (node) => {
+      if (selectors.some((part) => node.matches(part))) matches.push(node);
+      for (const child of node.children) visit(child);
+    };
+    visit(this);
+    return matches;
+  }
+
   click() {
     if (!this.hasAttribute("disabled")) this.listeners.get("click")?.({ currentTarget: this });
   }
@@ -49,8 +69,13 @@ class FakeNode {
 }
 
 const documentDouble = {
+  defaultView: { innerWidth: 390, innerHeight: 844 },
   createElement: (tagName) => new FakeNode(tagName)
 };
+
+function isFocusableControl(node) {
+  return (node.matches("button:not([disabled])") || node.matches("input:not([disabled])")) && !node.hasAttribute("aria-hidden");
+}
 
 function textOf(node) {
   return [node.textContent, ...node.children.map(textOf)].filter(Boolean).join(" ");
@@ -157,6 +182,19 @@ test("setup rail marks known prior steps and keeps the current action first", ()
   assert.equal(findAll(rail, (node) => node.hasAttribute("aria-current") && node.getAttribute("aria-current") === "step").length, 1);
   const html = serialize(view);
   assert.ok(html.indexOf("Choose private teacher plan") < html.indexOf("Setup help"));
+});
+
+test("390px setup puts the current primary control before the detailed rail and focus query finds it", () => {
+  const { actions } = actionsDouble();
+  const view = buildSetupView(model(), actions, { document: documentDouble });
+  const focusable = view.querySelectorAll("button, input").filter(isFocusableControl);
+  const primary = focusable.find((node) => node.className.includes("setup-primary-action"));
+  assert.equal(focusable[0], primary);
+  assert.equal(focusable[0].textContent, "Continue with Google");
+  const html = serialize(view);
+  assert.ok(html.indexOf("Continue with Google") < html.indexOf("CIRC HQ setup progress"));
+  assert.equal(documentDouble.defaultView.innerWidth, 390);
+  assert.equal(documentDouble.defaultView.innerHeight, 844);
 });
 
 test("teacher step displays only the supplied safe account fields and wires both choices", () => {
@@ -272,6 +310,9 @@ test("complete step shows summary and wires the three safe destinations", () => 
   const view = buildSetupView(completeModel(), actions, { document: documentDouble });
   for (const label of ["Open Today", "Preview an experience", "Setup help"]) {
     findAll(view, (node) => node.tagName === "button" && node.textContent === label)[0].click();
+  }
+  for (const label of ["Open Today", "Preview an experience", "Setup help"]) {
+    assert.equal(findAll(view, (node) => node.tagName === "button" && node.textContent === label).length, 1);
   }
   assert.deepEqual(calls.map(([name]) => name), ["openToday", "previewExperience", "openSetupHelp"]);
   assert.match(textOf(view), /Kenny|Cycle Day 2|CIRC Room|preserved/i);

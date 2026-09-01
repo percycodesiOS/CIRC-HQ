@@ -458,8 +458,7 @@ function completeStep(documentRef, model, actions) {
     ]),
     element(documentRef, "div", { className: "setup-complete-actions" }, [
       button(documentRef, "Open Today", "primary-action setup-primary-action", actions.openToday),
-      button(documentRef, "Preview an experience", "secondary-action", actions.previewExperience),
-      button(documentRef, "Setup help", "secondary-action", actions.openSetupHelp)
+      button(documentRef, "Preview an experience", "secondary-action", actions.previewExperience)
     ])
   ];
 }
@@ -500,8 +499,8 @@ function buildFrame(documentRef, model, content, { help = false } = {}) {
   const children = [
     setupVisual(documentRef),
     element(documentRef, "div", { className: "setup-content" }, [
-      setupRail(documentRef, model),
       current,
+      setupRail(documentRef, model),
       noticeNode(documentRef, model.notice)
     ])
   ];
