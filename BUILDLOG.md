@@ -1,5 +1,19 @@
 # CIRC HQ - BUILDLOG
 
+## 2026-09-02 active lesson focus runner
+
+- Rebuilt the active teacher runner around one sticky command bar that keeps the current step, dominant step timer, class timer, Pause or Resume, +1 min, Previous, and Next Step visible while the lesson scrolls.
+- Added a complete visual lesson path with one meaning-based reviewed Phosphor icon per step, every duration, and Done, Now, Ended here, or Next state. Seven-step, eight-step, and nine-step experiences now use their actual path length, and the path becomes a compact horizontal sequence on tablets and phones. The semantic resolver covers all 42 selectable paths, 340 step instances, and 231 unique step labels without sending any current label to the neutral fallback.
+- Student directions now render in full and appear before teacher cues. One honest Teacher action card appears only when guidance exists. The runner does not infer speech, invent a fallback, or render an empty action card. Secondary teacher help and full lesson context stay collapsed until requested.
+- The current-step card uses the reviewed real project image and a two-column desktop layout that becomes one clean column on tablets and phones. Directions remain before optional artwork at every responsive width.
+- Active teacher and student runners use the focused shell, so the ordinary sticky site header cannot collide with the live timer dock.
+- Student view carries the same active step, timer values, full sequence, directions, and safe exit while excluding teacher cues and teacher controls.
+- A class clock that ends early now retains the actual stopped step instead of falsely presenting the final lesson step. Student entry resets scroll to the top, and no-control timer bars use an accurate accessible label.
+- Strict TDD began with 5 focused failures for the missing command bar, sequence rail, complete directions, student parity, and sticky CSS contract. Review-driven RED tests then covered early class completion, responsive ordering, dynamic path lengths, accessible labels, honest teacher cues, semantic icon precedence, complete curriculum icon coverage, and the narrow-phone schedule. The focused app-render, public-shell, and security matrix finishes at 109 of 109 passing tests.
+- Browser acceptance covered 1487 by 1058, 1440 by 900, 768 by 1024, 390 by 844, and 360 by 800. The bar remained eight pixels from the top, both timers froze during Pause, Resume and +1 min worked, Next Step advanced correctly, phone controls remained in one row with 48-pixel targets, phone schedule times did not wrap, student privacy held, and measured horizontal overflow remained zero.
+- The approved hybrid reference and implementation were compared at the same exact 1487 by 1058 viewport in `reference-vs-prototype-1487x1058-normalized-final.png`. The final report is in `design-qa.md`, and all visual evidence remains outside the public repository.
+- Full `npm test` passes 454 of 456 tests with 2 expected environment-dependent skips and 0 failures. `npm run verify` passes all 16 fail-closed release gates. The optional local Firestore rules emulator remains unavailable because Java is not installed, and no Firebase configuration or rules changed in this user-interface release.
+
 ## 2026-09-01 transient room invitation handoff fix
 
 - Final first-use review found that room creation advanced and rerendered the setup walkthrough before the UI could place the returned one-time invitation code into the old status node. The room existed, but the owner could lose the only raw code needed by the second teacher.

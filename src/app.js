@@ -275,6 +275,36 @@ const WEATHER_ICON_FILES = Object.freeze({
   unavailable: "warning-circle"
 });
 
+const RUNNER_WORK_ICON_RULES = Object.freeze([
+  Object.freeze({ pattern: /\b(?:STORY|TOUR)\b|\bHOST THE DEMO\b/, icon: "chalkboard-teacher" }),
+  Object.freeze({ pattern: /\b(?:JOBS|PARTNER|ROLES)\b|\bJOIN AND TEST\b/, icon: "student" }),
+  Object.freeze({
+    pattern: /\b(?:PLAN|CHOOSE|PREDICT)\b|\b(?:SET THE TEST|READ THE MODE|NAME THE PROBLEM|NAME ONE NEED)\b/,
+    icon: "calendar-dots"
+  }),
+  Object.freeze({ pattern: /\b(?:READ|LEARN|WRITE|DRAW|SKETCH|ENCODE|RECORD|MAP|KEY|MESSAGE|COPY)\b/, icon: "books" }),
+  Object.freeze({
+    pattern: /\b(?:TEST|CHECK|OBSERVE|MEASURE|COMPARE|SURVEY|TRACE|DETECT|CHALLENGE|READINGS|DISPLAY|CLARIFY|LOOK|FIND|SAMPLE)\b/,
+    icon: "presentation-chart"
+  }),
+  Object.freeze({ pattern: /\b(?:RUN|PLAY|REPEAT)\b|\bPOWER THE SIGNAL\b/, icon: "play-circle" }),
+  Object.freeze({ pattern: /\b(?:FLOW|ROUTE|PATH|SEND|LOAD|FLOAT|DROP|CONNECT|JOIN)\b/, icon: "arrow-right" }),
+  Object.freeze({
+    pattern: /\b(?:BUILD|ASSEMBLE|MAKE|FIX|IMPROVE|ADJUST|CHANGE|REMOVE|REPAIR|RESHAPE|STRENGTHEN|SHAPE|TUNE|ADD|PLACE|SORT|MODEL|REDUCE|FINISH|DEBUG|SMOOTH|CLOSE)\b/,
+    icon: "gear-six"
+  })
+]);
+
+export function runnerStepIconFile(step) {
+  const label = step.label.toUpperCase();
+  if (step.kind === "safety" || /\bSAFE(?:TY|LY)?\b/.test(label)) return "warning-circle";
+  if (step.kind === "ready") return "play-circle";
+  if (step.kind === "exit") return "presentation-chart";
+  if (step.kind === "transition") return /\b(?:RETURN|INSIDE)\b/.test(label) ? "house" : "arrow-right";
+  if (step.kind === "cleanup") return "gear-six";
+  return RUNNER_WORK_ICON_RULES.find((rule) => rule.pattern.test(label))?.icon ?? "student";
+}
+
 function imageIcon(name, label, className = "action-icon") {
   return element("img", {
     className,
@@ -521,7 +551,7 @@ function runnerTimerCard(label, seconds, timerKey, className = "") {
 
 function runnerStudentDirections(step) {
   const list = element("ol", { className: "runner-student-directions" });
-  for (const direction of step.directions.slice(0, 3)) {
+  for (const direction of step.directions) {
     list.append(element("li", { text: direction }));
   }
   return list;
@@ -538,6 +568,71 @@ function runnerCue(label, content, className = "") {
   return element("section", { className: `runner-cue ${className}`.trim() }, [
     element("h3", { text: label }),
     body
+  ]);
+}
+
+function runnerCommandBar(step, runner, controls = [], { student = false } = {}) {
+  const timer = runner.timer;
+  const ariaLabel = student || controls.length === 0
+    ? "Live lesson timers"
+    : "Live lesson controls and timers";
+  return element("section", {
+    className: `runner-command-bar${student ? " runner-student-command-bar" : ""}${controls.length ? "" : " no-controls"}`,
+    attributes: { "aria-label": ariaLabel }
+  }, [
+    element("div", { className: "runner-command-step" }, [
+      element("span", {
+        text: `Step ${timer.currentStepIndex + 1} of ${runner.steps.length}`
+      }),
+      element("strong", { text: step.label })
+    ]),
+    element("div", { className: "runner-command-timers" }, [
+      runnerTimerCard("Step timer", timer.currentStepRemainingSeconds, "step", "runner-step-timer"),
+      runnerTimerCard("Class timer", timer.totalRemainingSeconds, "class")
+    ]),
+    controls.length
+      ? element("div", { className: "runner-controls runner-command-controls" }, controls)
+      : null
+  ].filter(Boolean));
+}
+
+function runnerStepRail(runner) {
+  const activeIndex = runner.timer.currentStepIndex;
+  const lessonComplete = runner.timer.status === "complete";
+  const finishedAtLastStep = lessonComplete && activeIndex === runner.steps.length - 1;
+  const items = runner.steps.map((step, index) => {
+    const state = finishedAtLastStep || index < activeIndex
+      ? "complete"
+      : index === activeIndex
+        ? lessonComplete ? "ended" : "active"
+        : "upcoming";
+    const stateLabel = state === "complete"
+      ? "Done"
+      : state === "active"
+        ? "Now"
+        : state === "ended"
+          ? "Ended here"
+          : "Next";
+    return element("li", {
+      className: `runner-step-rail-item ${state}`,
+      attributes: { "aria-current": state === "active" || state === "ended" ? "step" : null }
+    }, [
+      imageIcon(runnerStepIconFile(step), "", "runner-step-icon"),
+      element("span", { className: "runner-step-copy" }, [
+        element("strong", { text: `${index + 1}. ${step.label}` }),
+        element("span", { text: `${step.minutes} min | ${stateLabel}` })
+      ])
+    ]);
+  });
+  return element("section", { className: "runner-step-rail-wrap" }, [
+    element("div", { className: "runner-step-rail-heading" }, [
+      element("p", { className: "section-kicker", text: "Lesson path" }),
+      element("strong", { text: `${activeIndex + 1} of ${runner.steps.length} steps` })
+    ]),
+    element("ol", {
+      className: "runner-step-rail",
+      attributes: { "aria-label": "All timed lesson steps" }
+    }, items)
   ]);
 }
 
@@ -641,21 +736,20 @@ function sharedArtifactCard(context, actions) {
 function experienceRunnerRoute(project, runner, actions, artifactContext = null) {
   const timer = runner.timer;
   if (timer.status === "complete") {
+    const stoppedStep = runner.steps[timer.currentStepIndex] ?? { label: "Lesson complete" };
     return element("section", {
       className: "experience-runner",
       attributes: { "data-view": "experience-runner" }
     }, [
+      runnerCommandBar(stoppedStep, runner),
       element("div", { className: "runner-heading" }, [
         element("p", { className: "project-kicker", text: `Experience ${project.number} of ${PROJECTS.length}` }),
         element("h1", { text: "Lesson complete" }),
         element("p", { text: `${project.title} is complete. Both timers have stopped.` }),
         actionButton("Back to Today", "primary-action", () => actions.navigate("today"))
       ]),
-      element("div", { className: "runner-timer-bar" }, [
-        runnerTimerCard("Class timer", 0, "class"),
-        runnerTimerCard("Step timer", 0, "step", "runner-step-timer")
-      ]),
-      sharedArtifactCard(artifactContext, actions)
+      sharedArtifactCard(artifactContext, actions),
+      runnerStepRail(runner)
     ]);
   }
   const step = getActiveRunnerStep(runner, { teacherKey: actions.teacherKey });
@@ -678,22 +772,27 @@ function experienceRunnerRoute(project, runner, actions, artifactContext = null)
           actionButton("Safe Landing", "runner-control runner-safe-landing", () => actions.applyRunnerAction("safe-landing"))
         ]
       : ready
-      ? [primaryControl]
-      : [
-          primaryControl,
-          actionButton("+1 minute", "runner-control", () => actions.applyRunnerAction("add-minute")),
-          actionButton("Previous", "runner-control", () => actions.applyRunnerAction("previous")),
-          actionButton(lastStep ? "Finish Lesson" : "Next Step", "runner-control runner-next", () => actions.applyRunnerAction(lastStep ? "finish" : "next")),
-          ...(!paused
-            ? [actionButton("Question Detour", "runner-control runner-detour-control", () => actions.applyRunnerAction("start-detour"))]
-            : [])
-        ];
+        ? [primaryControl]
+        : [
+            primaryControl,
+            actionButton("+1 min", "runner-control", () => actions.applyRunnerAction("add-minute")),
+            actionButton("Previous", "runner-control", () => actions.applyRunnerAction("previous")),
+            actionButton(lastStep ? "Finish Lesson" : "Next Step", "runner-control runner-next", () => actions.applyRunnerAction(lastStep ? "finish" : "next"))
+          ];
+  const supportControls = actions.previewOnly || paused || ready || detourActive
+    ? []
+    : [actionButton("Question Detour", "runner-control runner-detour-control", () => actions.applyRunnerAction("start-detour"))];
   const teacherDirections = runnerTeacherDirections(step);
-  const studentDirections = step.directions.slice(0, 3);
+  const teacherAction = teacherDirections.length > 0
+    ? runnerCue("Teacher action", teacherDirections)
+    : null;
+  const studentDirections = step.directions;
+  const artwork = projectArtwork(project, "runner-focus-art");
   return element("section", {
     className: "experience-runner",
     attributes: { "data-view": "experience-runner" }
   }, [
+    runnerCommandBar(step, runner, controls),
     element("div", { className: "runner-heading" }, [
       actionButton("Back to Today", "detail-back", () => actions.navigate("today")),
       element("p", { className: "project-kicker", text: `Experience ${project.number} of ${PROJECTS.length}` }),
@@ -707,11 +806,6 @@ function experienceRunnerRoute(project, runner, actions, artifactContext = null)
       element("strong", { text: `Class ends at ${actions.schedule.endLabel}` }),
       element("span", { text: `Cleanup begins at ${actions.schedule.cleanupLabel}` })
     ]) : null,
-    sharedArtifactCard(artifactContext, actions),
-    element("div", { className: "runner-timer-bar" }, [
-      runnerTimerCard("Class timer", timer.totalRemainingSeconds, "class"),
-      runnerTimerCard("Step timer", timer.currentStepRemainingSeconds, "step", "runner-step-timer")
-    ]),
     detourActive ? runnerDetour(runner.detour) : null,
     expired ? element("p", {
       className: "runner-expired",
@@ -720,27 +814,38 @@ function experienceRunnerRoute(project, runner, actions, artifactContext = null)
         : "Step time is up. Choose Next Step when the class is ready.",
       attributes: { role: "alert" }
     }) : null,
-    element("section", { className: "runner-step-card" }, [
-      element("p", { className: "section-kicker", text: `Step ${timer.currentStepIndex + 1} of ${runner.steps.length}` }),
-      element("h2", { text: step.label }),
-      element("div", { className: "runner-now-grid" }, [
-        runnerCue("Say", teacherDirections[0] ?? "Name the next step."),
-        runnerCue("Do", teacherDirections.slice(1)),
-        element("section", { className: "runner-cue runner-student-card" }, [
-          element("h3", { text: "Students" }),
-          runnerStudentDirections(step)
+    element("div", { className: `runner-focus-layout${artwork ? "" : " no-art"}` }, [
+      element("section", { className: "runner-step-card" }, [
+        element("p", { className: "section-kicker", text: `Step ${timer.currentStepIndex + 1} of ${runner.steps.length}` }),
+        element("h2", { text: step.label }),
+        element("div", { className: "runner-now-grid" }, [
+          element("section", { className: "runner-cue runner-student-card" }, [
+            element("h3", { text: "Students" }),
+            runnerStudentDirections(step)
+          ]),
+          teacherAction,
+          element("details", { className: "runner-teacher-help" }, [
+            element("summary", { text: "More teacher help" }),
+            element("div", { className: "runner-teacher-help-grid" }, [
+              runnerCue(
+                "Done when",
+                `Students have completed ${studentDirections.length === 1 ? "this direction" : `all ${studentDirections.length} directions`} and can show the result.`
+              ),
+              runnerCue("If stuck", "Pause. Model one example. Restart with one team."),
+              runnerCue("Finished early", [project.fastFinish.title, project.fastFinish.directions]),
+              runnerCue("Return to the build", "Good question. Let us test it while we keep building.", "runner-return-cue")
+            ])
+          ])
         ]),
-        runnerCue(
-          "Done when",
-          `Students have completed ${studentDirections.length === 1 ? "this direction" : `all ${studentDirections.length} directions`} and can show the result.`
-        ),
-        runnerCue("If stuck", "Pause. Model one example. Restart with one team."),
-        runnerCue("Finished early", [project.fastFinish.title, project.fastFinish.directions]),
-        runnerCue("Return to the build", "Good question. Let us test it while we keep building.", "runner-return-cue")
+        runnerMoreContext(project)
       ]),
-      runnerMoreContext(project)
-    ]),
-    controls.length ? element("div", { className: "runner-controls" }, controls) : null
+      artwork
+    ].filter(Boolean)),
+    supportControls.length
+      ? element("div", { className: "runner-support-controls" }, supportControls)
+      : null,
+    runnerStepRail(runner),
+    sharedArtifactCard(artifactContext, actions)
   ].filter(Boolean));
 }
 
@@ -751,6 +856,7 @@ function studentRunnerRoute(project, runner, actions) {
     className: "board-view project-student-view runner-student-view",
     attributes: { "data-view": "project-student" }
   }, [
+    runnerCommandBar(step, runner, [], { student: true }),
     element("div", { className: "board-heading" }, [
       element("p", { className: "eyebrow", text: "Student directions" }),
       element("h1", { text: project.title }),
@@ -760,15 +866,12 @@ function studentRunnerRoute(project, runner, actions) {
       element("p", { className: "board-lesson", text: `Step ${timer.currentStepIndex + 1} of ${runner.steps.length}: ${step.label}` }),
       actionButton("Exit student view", "primary-action", () => actions.navigate("today"))
     ]),
-    projectArtwork(project, "runner-student-art"),
-    element("div", { className: "runner-timer-bar runner-student-timers" }, [
-      runnerTimerCard("Class timer", timer.totalRemainingSeconds, "class"),
-      runnerTimerCard("Step timer", timer.currentStepRemainingSeconds, "step", "runner-step-timer")
-    ]),
     element("section", { className: "board-section runner-student-step" }, [
       element("h2", { text: step.label }),
       runnerStudentDirections(step)
-    ])
+    ]),
+    projectArtwork(project, "runner-student-art"),
+    runnerStepRail(runner)
   ].filter(Boolean));
 }
 
@@ -1923,6 +2026,7 @@ export function renderApp(root, services = {}) {
     route = nextRoute;
     if (nextRoute !== "today") timelineExpanded = false;
     render();
+    globalThis.window?.scrollTo?.(0, 0);
     root.focus({ preventScroll: true });
   }
 
@@ -2178,7 +2282,7 @@ export function renderApp(root, services = {}) {
         })
       : null;
     root.replaceChildren(...[recoveryNotice, view].filter(Boolean));
-    setBoardShell(route === "board" || route === "project-student");
+    setBoardShell(route === "board" || route === "project-student" || route === "experience-runner");
     setNavigation();
     announceBoundary(model);
     const currentTime = now();

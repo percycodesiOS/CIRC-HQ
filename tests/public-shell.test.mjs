@@ -182,6 +182,61 @@ test("simplified shell keeps readable colors and 44px controls", async () => {
   assert.match(css, /\.attribution-link,\s*\n\.resource-link\s*\{[^}]*min-height:\s*44px/s);
   assert.match(css, /\.runner-timer-bar\s*\{[^}]*top:\s*90px/s);
   assert.match(css, /\.runner-student-timers\s*\{[^}]*top:\s*8px/s);
+  const commandBarRule = /\.runner-command-bar\s*\{([^}]*)\}/s.exec(css)?.[1] ?? "";
+  assert.match(commandBarRule, /position:\s*sticky/);
+  assert.match(
+    commandBarRule,
+    /top:\s*calc\(8px \+ env\(safe-area-inset-top\)\);/,
+    "the focused runner command bar should use the top edge released by its hidden site header"
+  );
+  assert.match(
+    css,
+    /html,\s*\nbody\s*\{[^}]*overflow-x:\s*clip;/s,
+    "the document must not create an overflow scroll container that breaks sticky lesson controls"
+  );
+  assert.match(
+    css,
+    /\.runner-controls\.runner-command-controls\s*\{[^}]*grid-template-columns:\s*repeat\(4,/s,
+    "phone lesson controls must stay in one four-button row"
+  );
+  assert.match(
+    css,
+    /\.runner-controls\.runner-command-controls\s*\{[^}]*margin:\s*0;[^}]*gap:\s*7px;/s,
+    "the ordinary runner-control margins must not inflate the sticky command bar"
+  );
+  assert.match(
+    css,
+    /\.runner-command-bar \[data-runner-timer="class"\]\s*\{[^}]*font-size:/s,
+    "the narrower class clock needs its own fit-safe value size"
+  );
+  assert.match(
+    css,
+    /@media \(max-width:\s*900px\)\s*\{[\s\S]*?\.runner-command-bar,[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\);/s,
+    "tablet-width runner controls must stack before their desktop minimum columns can clip"
+  );
+  assert.doesNotMatch(
+    css,
+    /\.runner-focus-art\s*\{[^}]*grid-row:\s*1;/s,
+    "phone layouts must keep current directions before optional artwork"
+  );
+  assert.match(
+    css,
+    /\.runner-command-controls \.runner-control\s*\{[^}]*font-size:\s*0\.8rem;/s,
+    "phone command labels must remain glance-readable"
+  );
+  const stepRailRule = /\.runner-step-rail\s*\{([^}]*)\}/s.exec(css)?.[1] ?? "";
+  assert.match(stepRailRule, /repeat\(auto-fit,\s*minmax\(92px, 1fr\)\)/);
+  assert.doesNotMatch(stepRailRule, /repeat\(9,/);
+  assert.match(
+    css,
+    /@media \(max-width:\s*900px\)\s*\{[\s\S]*?\.runner-step-rail\s*\{[^}]*grid-auto-flow:\s*column;[^}]*grid-auto-columns:/s,
+    "tablet and phone rails should create one scrolling track per real lesson step"
+  );
+  assert.match(
+    css,
+    /@media \(max-width:\s*620px\)\s*\{[\s\S]*?\.runner-schedule\s*\{[^}]*white-space:\s*nowrap;/s,
+    "phone class and cleanup times should remain on one readable line"
+  );
 
   const channel = (value) => {
     const normalized = value / 255;

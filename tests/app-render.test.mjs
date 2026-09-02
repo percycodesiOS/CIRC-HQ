@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { renderApp } from "../src/app.js";
+import { renderApp, runnerStepIconFile } from "../src/app.js";
 import { EXPERIENCE_TIMING_PLANS } from "../src/model/experience-timing-plans.js";
 import {
   advanceExperienceRunnerClock,
@@ -198,6 +198,26 @@ function runningLastStepRunner() {
     nowIso: timestamp
   });
   while (runner.timer.currentStepIndex < runner.steps.length - 1) {
+    runner = applyExperienceRunnerAction(runner, "next", {
+      teacherKey: "teacher:teacher-alpha",
+      nowIso: timestamp
+    });
+  }
+  return runner;
+}
+
+function runningStepRunner(stepIndex = 6) {
+  const timestamp = "2026-08-20T13:10:00.000Z";
+  let runner = createExperienceRunner(EXPERIENCE_TIMING_PLANS[1], {
+    teacherKey: "teacher:teacher-alpha",
+    nowIso: timestamp,
+    modeId: "build-new"
+  });
+  runner = applyExperienceRunnerAction(runner, "start", {
+    teacherKey: "teacher:teacher-alpha",
+    nowIso: timestamp
+  });
+  while (runner.timer.currentStepIndex < stepIndex) {
     runner = applyExperienceRunnerAction(runner, "next", {
       teacherKey: "teacher:teacher-alpha",
       nowIso: timestamp
@@ -1431,6 +1451,7 @@ test("Open class runner opens one live runner and Student directions keeps its t
   const root = new FakeNode("main");
   let currentTime = new Date("2026-08-20T09:10:00-04:00");
   let timerCallback = null;
+  const scrollPositions = [];
   const state = stateWithActiveEvent("teach");
   const store = {
     load: () => ({ state, error: null }),
@@ -1444,6 +1465,7 @@ test("Open class runner opens one live runner and Student directions keeps its t
       return 1;
     },
     clearInterval: () => {},
+    scrollTo: (left, top) => scrollPositions.push([left, top]),
     fetch: async () => ({ ok: false })
   };
   try {
@@ -1458,12 +1480,13 @@ test("Open class runner opens one live runner and Student directions keeps its t
     const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner");
     assert.equal(run.length, 1);
     run[0].click();
+    assert.deepEqual(scrollPositions.at(-1), [0, 0]);
     assert.match(textOf(root), /This device is running the class/);
     assert.match(textOf(root), /Class timer/);
     assert.match(textOf(root), /Step timer/);
     assert.match(textOf(root), /Start class/);
     assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Pause").length, 0);
-    assert.doesNotMatch(textOf(root), /\+1 minute|Previous|Next Step/);
+    assert.doesNotMatch(textOf(root), /\+1 min|Previous|Next Step/);
     const initialTimerValues = findAll(root, (node) => /\brunner-timer-value\b/.test(node.className))
       .map((node) => textOf(node));
     assert.equal(initialTimerValues.length, 2);
@@ -1479,7 +1502,7 @@ test("Open class runner opens one live runner and Student directions keeps its t
     start[0].click();
     assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Pause").length, 1);
     assert.doesNotMatch(textOf(root), /Start class/);
-    assert.match(textOf(root), /\+1 minute/);
+    assert.match(textOf(root), /\+1 min/);
     assert.match(textOf(root), /Previous/);
     assert.match(textOf(root), /Next Step/);
 
@@ -1491,11 +1514,12 @@ test("Open class runner opens one live runner and Student directions keeps its t
     const student = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Student directions");
     assert.equal(student.length, 1);
     student[0].click();
+    assert.deepEqual(scrollPositions.at(-1), [0, 0]);
     const studentText = textOf(root);
     assert.match(studentText, /Class timer/);
     assert.match(studentText, /Step timer/);
     assert.match(studentText, /\d+:\d{2}/);
-    assert.doesNotMatch(studentText, /Teacher script|Teacher moves|Download admin plan|Pause|\+1 minute|Previous|Next Step/);
+    assert.doesNotMatch(studentText, /Teacher script|Teacher moves|Download admin plan|Pause|\+1 min|Previous|Next Step/);
 
     const exit = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Exit student view");
     assert.equal(exit.length, 1);
@@ -1506,6 +1530,275 @@ test("Open class runner opens one live runner and Student directions keeps its t
     globalThis.document = previousDocument;
     globalThis.window = previousWindow;
   }
+});
+
+test("running teacher lesson keeps the current step, both timers, and live controls in one command bar", async () => {
+  const state = stateWithActiveEvent("teach");
+  const runner = runningStepRunner();
+  state.experienceRunners = { "teacher:teacher-alpha": runner };
+
+  const root = await renderRoute(state, "experience-runner");
+  const commandBars = findAll(root, (node) => /\brunner-command-bar\b/.test(node.className));
+  assert.equal(commandBars.length, 1, "teacher runner should render exactly one sticky command bar");
+
+  const commandBar = commandBars[0];
+  assert.equal(commandBar.getAttribute("aria-label"), "Live lesson controls and timers");
+  assert.match(textOf(commandBar), /Step 7 of 9/);
+  assert.match(textOf(commandBar), /BUILD THE MODE/);
+  assert.deepEqual(
+    findAll(commandBar, (node) => node.getAttribute("data-runner-timer"))
+      .map((node) => node.getAttribute("data-runner-timer")),
+    ["step", "class"],
+    "the current-step timer should appear before the full-class timer"
+  );
+  for (const label of ["Pause", "+1 min", "Previous", "Next Step"]) {
+    assert.equal(
+      findAll(commandBar, (node) => node.tagName === "button" && textOf(node) === label).length,
+      1,
+      `${label} should stay in the command bar while the lesson is running`
+    );
+  }
+});
+
+for (const scenario of [
+  { name: "zero", directions: [] },
+  { name: "one", directions: ["Move each team to its assigned station."] },
+  {
+    name: "multiple",
+    directions: [
+      "Move each team to its assigned station.",
+      "Check that the shared materials stay in the center."
+    ]
+  }
+]) {
+  test(`teacher runner renders ${scenario.name} unstructured teacher directions without inventing Say or Do cues`, async () => {
+    const state = stateWithActiveEvent("teach");
+    const runner = runningStepRunner();
+    const activeStep = runner.steps[runner.timer.currentStepIndex];
+    if (scenario.directions.length === 0) delete activeStep.teacher;
+    else activeStep.teacher = { directions: [...scenario.directions] };
+    state.experienceRunners = { "teacher:teacher-alpha": runner };
+
+    const root = await renderRoute(state, "experience-runner");
+    const cueGrid = findAll(root, (node) => /\brunner-now-grid\b/.test(node.className))[0];
+    const cueHeadings = findAll(cueGrid, (node) => node.tagName === "h3").map(textOf);
+    const teacherActionCards = findAll(cueGrid, (node) =>
+      /\brunner-cue\b/.test(node.className) &&
+      findAll(node, (child) => child.tagName === "h3" && textOf(child) === "Teacher action").length === 1
+    );
+
+    assert.equal(cueHeadings.includes("Say"), false);
+    assert.equal(cueHeadings.includes("Do"), false);
+    assert.equal(teacherActionCards.length, scenario.directions.length === 0 ? 0 : 1);
+    if (scenario.directions.length > 0) {
+      assert.deepEqual(
+        findAll(teacherActionCards[0], (node) => node.tagName === "li").map(textOf),
+        scenario.directions
+      );
+    }
+    assert.equal(
+      findAll(cueGrid, (node) => /\brunner-cue-list\b/.test(node.className) && node.children.length === 0).length,
+      0,
+      "the runner must not render an empty cue list"
+    );
+  });
+}
+
+test("teacher runner shows every timed step and every student direction for the active step", async () => {
+  const state = stateWithActiveEvent("teach");
+  const runner = runningStepRunner();
+  state.experienceRunners = { "teacher:teacher-alpha": runner };
+
+  const root = await renderRoute(state, "experience-runner");
+  const rails = findAll(root, (node) => node.className.split(/\s+/).includes("runner-step-rail"));
+  assert.equal(rails.length, 1, "teacher runner should render one complete step rail");
+  const railItems = findAll(rails[0], (node) => node.className.split(/\s+/).includes("runner-step-rail-item"));
+  assert.equal(railItems.length, runner.steps.length);
+  assert.equal(
+    findAll(rails[0], (node) => node.className.split(/\s+/).includes("runner-step-icon")).length,
+    runner.steps.length,
+    "each path step should carry one reviewed Phosphor icon"
+  );
+  assert.deepEqual(
+    findAll(rails[0], (node) => node.className.split(/\s+/).includes("runner-step-icon"))
+      .map((node) => node.getAttribute("src")),
+    [
+      "assets/icons/play-circle.svg",
+      "assets/icons/calendar-dots.svg",
+      "assets/icons/arrow-right.svg",
+      "assets/icons/warning-circle.svg",
+      "assets/icons/house.svg",
+      "assets/icons/warning-circle.svg",
+      "assets/icons/gear-six.svg",
+      "assets/icons/gear-six.svg",
+      "assets/icons/presentation-chart.svg"
+    ],
+    "step icons should describe the step meaning instead of its ordinal position"
+  );
+  runner.steps.forEach((step, index) => {
+    assert.match(textOf(railItems[index]), new RegExp(step.label));
+    assert.match(textOf(railItems[index]), new RegExp(`${step.minutes} min`, "i"));
+  });
+  assert.equal(railItems[runner.timer.currentStepIndex].getAttribute("aria-current"), "step");
+
+  const directionLists = findAll(root, (node) => /\brunner-student-directions\b/.test(node.className));
+  assert.equal(directionLists.length, 1);
+  const directions = findAll(directionLists[0], (node) => node.tagName === "li").map(textOf);
+  assert.deepEqual(directions, runner.steps[runner.timer.currentStepIndex].directions);
+  assert.equal(directions.length, 4, "BUILD THE MODE has four required student directions");
+});
+
+test("every current lesson path resolves to a reviewed meaning-based icon", () => {
+  const paths = EXPERIENCE_TIMING_PLANS.flatMap((plan) => [
+    plan.steps,
+    ...Object.values(plan.modeVariants ?? {}).map((variant) => variant.steps),
+    ...Object.values(plan.fallbacks ?? {}).map((fallback) => fallback.steps)
+  ]);
+  const steps = paths.flat();
+  const uniqueSteps = new Map(steps.map((step) => [`${step.kind}|${step.label}`, step]));
+  const reviewedFiles = new Set([
+    "arrow-right",
+    "books",
+    "calendar-dots",
+    "chalkboard-teacher",
+    "gear-six",
+    "house",
+    "play-circle",
+    "presentation-chart",
+    "student",
+    "warning-circle"
+  ]);
+
+  assert.equal(paths.length, 42);
+  assert.equal(steps.length, 340);
+  assert.equal(uniqueSteps.size, 231);
+  for (const step of steps) assert.equal(reviewedFiles.has(runnerStepIconFile(step)), true);
+
+  const distribution = Object.fromEntries(
+    [...uniqueSteps.values()]
+      .map(runnerStepIconFile)
+      .sort()
+      .reduce((counts, icon) => counts.set(icon, (counts.get(icon) ?? 0) + 1), new Map())
+  );
+  assert.deepEqual(distribution, {
+    "arrow-right": 8,
+    books: 17,
+    "calendar-dots": 29,
+    "chalkboard-teacher": 3,
+    "gear-six": 84,
+    house: 1,
+    "play-circle": 10,
+    "presentation-chart": 31,
+    student: 6,
+    "warning-circle": 42
+  });
+
+  for (const [label, kind, expected] of [
+    ["BUILD SAFELY", "safety", "warning-circle"],
+    ["GET READY", "ready", "play-circle"],
+    ["EXIT CHECK", "exit", "presentation-chart"],
+    ["RETURN INSIDE", "transition", "house"],
+    ["WALK OUT", "transition", "arrow-right"],
+    ["POWER DOWN", "cleanup", "gear-six"],
+    ["READ THE MODE", "work", "calendar-dots"],
+    ["RUN THE FIRST TEST", "work", "presentation-chart"],
+    ["JOIN AND TEST", "work", "student"],
+    ["HOST THE DEMO", "work", "chalkboard-teacher"],
+    ["UNKNOWN FUTURE STEP", "work", "student"]
+  ]) {
+    assert.equal(runnerStepIconFile({ label, kind }), expected, label);
+  }
+});
+
+test("teacher and student runners never truncate the active step directions", async () => {
+  const state = stateWithActiveEvent("teach");
+  const runner = runningStepRunner();
+  state.experienceRunners = { "teacher:teacher-alpha": runner };
+
+  const teacherRoot = await renderRoute(state, "experience-runner");
+  const studentRoot = await renderRoute(state, "project-student");
+  const expectedDirections = runner.steps[runner.timer.currentStepIndex].directions;
+  const renderedDirections = [teacherRoot, studentRoot].map((root) => {
+    const directionList = findAll(root, (node) => /\brunner-student-directions\b/.test(node.className));
+    assert.equal(directionList.length, 1);
+    return findAll(directionList[0], (node) => node.tagName === "li").map(textOf);
+  });
+
+  assert.deepEqual(renderedDirections, [expectedDirections, expectedDirections]);
+});
+
+test("student runner mirrors the active lesson state and full directions without teacher controls or cues", async () => {
+  const state = stateWithActiveEvent("teach");
+  const runner = runningStepRunner();
+  state.experienceRunners = { "teacher:teacher-alpha": runner };
+
+  const teacherRoot = await renderRoute(state, "experience-runner");
+  const studentRoot = await renderRoute(state, "project-student");
+  const timerValue = (root, key) => textOf(root.querySelector(`[data-runner-timer="${key}"]`));
+
+  assert.deepEqual(
+    [timerValue(studentRoot, "step"), timerValue(studentRoot, "class")],
+    [timerValue(teacherRoot, "step"), timerValue(teacherRoot, "class")]
+  );
+  assert.match(textOf(studentRoot), /Step 7 of 9: BUILD THE MODE/);
+
+  const rails = findAll(studentRoot, (node) => node.className.split(/\s+/).includes("runner-step-rail"));
+  assert.equal(rails.length, 1, "student runner should render the same complete step rail");
+  const railItems = findAll(rails[0], (node) => node.className.split(/\s+/).includes("runner-step-rail-item"));
+  assert.equal(railItems.length, runner.steps.length);
+  assert.equal(railItems[runner.timer.currentStepIndex].getAttribute("aria-current"), "step");
+
+  const directionLists = findAll(studentRoot, (node) => /\brunner-student-directions\b/.test(node.className));
+  assert.equal(directionLists.length, 1);
+  assert.deepEqual(
+    findAll(directionLists[0], (node) => node.tagName === "li").map(textOf),
+    runner.steps[runner.timer.currentStepIndex].directions
+  );
+  assert.equal(findAll(studentRoot, (node) => /\brunner-command-controls\b/.test(node.className)).length, 0);
+  const studentCommandBar = findAll(studentRoot, (node) => /\brunner-command-bar\b/.test(node.className))[0];
+  assert.equal(studentCommandBar.getAttribute("aria-label"), "Live lesson timers");
+  assert.equal(findAll(studentRoot, (node) => /\brunner-cue\b/.test(node.className)).length, 0);
+  const studentView = findAll(studentRoot, (node) => /\bproject-student-view\b/.test(node.className))[0];
+  const studentStepIndex = studentView.children.findIndex((node) => /\brunner-student-step\b/.test(node.className));
+  const studentArtIndex = studentView.children.findIndex((node) => /\brunner-student-art\b/.test(node.className));
+  assert.ok(studentStepIndex >= 0 && studentStepIndex < studentArtIndex, "student directions should come before optional artwork");
+  assert.doesNotMatch(
+    textOf(studentRoot),
+    /Teacher script|Teacher moves|Teacher context|Pause|\+1 min|Previous|Next Step|If stuck|Finished early|Return to the build/
+  );
+});
+
+test("an early class-clock completion keeps the actual stopped step instead of claiming the final step", async () => {
+  const state = stateWithActiveEvent("teach");
+  let runner = createExperienceRunner(EXPERIENCE_TIMING_PLANS[1], {
+    teacherKey: "teacher:teacher-alpha",
+    nowIso: "2026-08-20T12:30:00.000Z",
+    modeId: "build-new"
+  });
+  runner = applyExperienceRunnerAction(runner, "start", {
+    teacherKey: "teacher:teacher-alpha",
+    nowIso: "2026-08-20T12:30:00.000Z"
+  });
+  runner = advanceExperienceRunnerClock(runner, {
+    teacherKey: "teacher:teacher-alpha",
+    nowIso: "2026-08-20T13:05:00.000Z"
+  });
+  assert.equal(runner.timer.status, "complete");
+  assert.equal(runner.timer.currentStepIndex, 0);
+  state.experienceRunners = { "teacher:teacher-alpha": runner };
+
+  const root = await renderRoute(state, "experience-runner");
+  const commandBar = findAll(root, (node) => /\brunner-command-bar\b/.test(node.className))[0];
+  assert.equal(commandBar.getAttribute("aria-label"), "Live lesson timers");
+  assert.match(textOf(commandBar), /Step 1 of 9/);
+  assert.match(textOf(commandBar), /GET READY/);
+  assert.doesNotMatch(textOf(commandBar), /EXIT CHECK/);
+
+  const rail = findAll(root, (node) => node.className.split(/\s+/).includes("runner-step-rail"))[0];
+  const items = findAll(rail, (node) => node.className.split(/\s+/).includes("runner-step-rail-item"));
+  assert.match(items[0].className, /\bended\b/);
+  assert.match(textOf(items[0]), /Ended here/);
+  assert.match(textOf(items[1]), /Next/);
 });
 
 test("scheduled class launch saves a stationary ready runner and renders compact cues and cleanup times", async () => {
@@ -1554,14 +1847,18 @@ test("scheduled class launch saves a stationary ready runner and renders compact
     assert.equal(cueGrid.length, 1);
     assert.deepEqual(
       findAll(cueGrid[0], (node) => node.tagName === "h3").map(textOf),
-      ["Say", "Do", "Students", "Done when", "If stuck", "Finished early", "Return to the build"]
+      ["Students", "Teacher action", "Done when", "If stuck", "Finished early", "Return to the build"]
     );
     assert.match(rendered, /Pause\. Model one example\. Restart with one team\./);
     assert.match(rendered, /Good question\. Let us test it while we keep building\./);
     assert.match(rendered, /Designer's Challenge/);
     const studentDirections = findAll(root, (node) => /\brunner-student-directions\b/.test(node.className));
     assert.equal(studentDirections.length, 1);
-    assert.ok(studentDirections[0].children.length <= 3);
+    const activeStep = saved.experienceRunners["teacher:teacher-alpha"].steps[0];
+    assert.deepEqual(
+      findAll(studentDirections[0], (node) => node.tagName === "li").map(textOf),
+      activeStep.directions
+    );
     const context = findAll(root, (node) => node.tagName === "details" && /More context/.test(textOf(node)));
     assert.equal(context.length, 1);
     assert.equal(context[0].hasAttribute("open"), false);
@@ -2615,7 +2912,7 @@ test("an actionable private-seed failure keeps Today usable and shows one Settin
   }
 });
 
-test("Board hides and inerts the real header until Return to Today or destroy restores it exactly", async () => {
+test("Board and the live lesson runner hide the real header until Today or destroy restores it exactly", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   const root = new FakeNode("main");
@@ -2650,6 +2947,14 @@ test("Board hides and inerts the real header until Return to Today or destroy re
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
+
+    controller.navigate("experience-runner");
+    assert.equal(header.hasAttribute("hidden"), true);
+    assert.equal(header.hasAttribute("inert"), true);
+    assert.equal(header.getAttribute("aria-hidden"), "true");
+    controller.navigate("today");
+    assert.deepEqual([...header.attributes.entries()], originalAttributes);
+    assert.deepEqual(navButtons.map((button) => [...button.attributes.entries()]), originalNavAttributes);
 
     controller.navigate("board");
     assert.equal(header.hasAttribute("hidden"), true);

@@ -647,7 +647,7 @@ test("Jekyll exclusions cover every nonruntime release path and expose every pub
   assert.deepEqual(publication.includes, ["firebase-config.js"]);
   assert.equal(
     verifier.parseJekyllPublicationConfig(
-      config.toString("utf8").replace("include:\n  - firebase-config.js\n\n", "")
+      config.toString("utf8").replace(/include:\r?\n  - firebase-config\.js\r?\n\r?\n/, "")
     ),
     null
   );

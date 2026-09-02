@@ -25,7 +25,7 @@ body {
   min-width: 320px;
   min-height: 100%;
   margin: 0;
-  overflow-x: hidden;
+  overflow-x: clip;
   background: var(--canvas);
 }
 
@@ -2037,22 +2037,39 @@ button:disabled {
 }
 
 .experience-runner {
-  max-width: 980px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
 .runner-heading {
-  padding: 24px;
-  border: 2px solid var(--heading);
-  border-radius: 20px;
-  background: var(--soft-blue);
+  display: grid;
+  margin: 14px 0;
+  padding: 18px 20px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px 18px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(26, 67, 96, 0.08);
 }
 
 .runner-heading h1 {
-  margin: 8px 0 16px;
+  margin: 0;
+  grid-column: 1;
   color: var(--heading);
-  font-size: clamp(2.25rem, 6vw, 4.5rem);
-  line-height: 0.9;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  line-height: 1;
+}
+
+.runner-heading .detail-back,
+.runner-heading .project-kicker,
+.runner-heading .runner-device-owner,
+.runner-heading .runner-preview-label { grid-column: 1; }
+
+.runner-heading .runner-student-action {
+  grid-column: 2;
+  grid-row: 1 / span 4;
 }
 
 .runner-student-action { min-height: 44px; }
@@ -2082,6 +2099,102 @@ button:disabled {
 }
 
 .runner-schedule span { color: var(--secondary); font-weight: 800; }
+
+.runner-command-bar {
+  position: sticky;
+  z-index: 18;
+  top: calc(8px + env(safe-area-inset-top));
+  display: grid;
+  grid-template-columns: minmax(140px, 0.68fr) minmax(300px, 0.9fr) minmax(360px, 1.45fr);
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 10px;
+  align-items: stretch;
+  border: 2px solid #0d4569;
+  border-radius: 18px;
+  background: #185d8b;
+  box-shadow: 0 12px 28px rgba(16, 24, 32, 0.2);
+}
+
+.runner-command-step {
+  display: flex;
+  min-width: 0;
+  padding: 8px 10px;
+  flex-direction: column;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.runner-command-step span {
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.runner-command-step strong {
+  overflow: hidden;
+  color: #ffffff;
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  line-height: 1.05;
+  text-overflow: ellipsis;
+}
+
+.runner-command-timers {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.runner-command-bar .runner-timer-card {
+  display: flex;
+  min-width: 0;
+  padding: 8px 12px;
+  flex-direction: column;
+  justify-content: center;
+  border: 0;
+  box-shadow: none;
+}
+
+.runner-command-bar .runner-timer-value {
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(2rem, 4.2vw, 3.5rem);
+}
+
+.runner-command-bar [data-runner-timer="class"] {
+  font-size: clamp(1.85rem, 3.4vw, 2.8rem);
+  letter-spacing: -0.045em;
+}
+
+.runner-command-bar .runner-timer-label { color: #185d8b; }
+
+.runner-command-bar.no-controls {
+  grid-template-columns: minmax(160px, 0.65fr) minmax(320px, 1fr);
+}
+
+.runner-controls.runner-command-controls {
+  display: grid;
+  margin: 0;
+  grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+  gap: 7px;
+}
+
+.runner-command-controls .runner-control:only-child { grid-column: 1 / -1; }
+
+.runner-command-controls .runner-control {
+  min-height: 54px;
+  padding: 7px 8px;
+  border: 2px solid #101820;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  line-height: 1.05;
+}
+
+.runner-student-command-bar {
+  top: calc(8px + env(safe-area-inset-top));
+  grid-template-columns: minmax(160px, 0.65fr) minmax(320px, 1fr);
+}
 
 .runner-timer-bar {
   position: sticky;
@@ -2152,13 +2265,14 @@ button:disabled {
 .runner-detour-timer { background: #ffffff; }
 
 .runner-step-card {
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
   background: #ffffff;
 }
 
 .runner-step-card {
-  padding: 24px;
+  padding: clamp(20px, 4vw, 34px);
 }
 
 .runner-step-card h2 {
@@ -2172,7 +2286,28 @@ button:disabled {
 .runner-now-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
+}
+
+.runner-focus-layout {
+  display: grid;
+  margin: 14px 0;
+  overflow: hidden;
+  grid-template-columns: minmax(0, 0.92fr) minmax(360px, 1.08fr);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(22, 54, 78, 0.12);
+}
+
+.runner-focus-layout.no-art { grid-template-columns: minmax(0, 1fr); }
+
+.runner-focus-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 430px;
+  object-fit: cover;
 }
 
 .runner-cue {
@@ -2194,8 +2329,38 @@ button:disabled {
 .runner-cue p,
 .runner-cue-list { margin: 0; }
 .runner-cue-list { padding-left: 1.25rem; }
-.runner-student-card { margin-top: 0; border-left: 8px solid var(--lime); }
+.runner-student-card {
+  margin-top: 0;
+  grid-column: 1 / -1;
+  padding: 18px;
+  border: 2px solid #b9d925;
+  border-left: 10px solid var(--lime);
+  background: var(--soft-lime);
+}
+
+.runner-student-card h3 { color: var(--heading); }
 .runner-return-cue { grid-column: 1 / -1; background: var(--soft-blue); }
+
+.runner-teacher-help {
+  grid-column: 1 / -1;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: #f7fafc;
+}
+
+.runner-teacher-help summary {
+  color: var(--heading);
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.runner-teacher-help-grid {
+  display: grid;
+  margin-top: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
 
 .runner-more-context {
   margin-top: 14px;
@@ -2215,10 +2380,14 @@ button:disabled {
 
 .runner-student-directions {
   margin: 0;
-  padding-left: 1.5rem;
+  padding-left: 1.75rem;
+  color: var(--heading);
+  font-size: clamp(1.05rem, 2.1vw, 1.28rem);
+  font-weight: 750;
+  line-height: 1.35;
 }
 
-.runner-student-directions li + li { margin-top: 8px; }
+.runner-student-directions li + li { margin-top: 10px; }
 
 .runner-controls {
   display: grid;
@@ -2243,6 +2412,102 @@ button:disabled {
 .runner-primary-control { background: var(--lime); }
 .runner-detour-control { background: #fff3b7; }
 .runner-safe-landing { background: var(--blue); }
+
+.runner-support-controls {
+  display: flex;
+  margin: 12px 0;
+  justify-content: flex-end;
+}
+
+.runner-support-controls .runner-control {
+  min-height: 48px;
+  padding: 8px 16px;
+  border-radius: 12px;
+}
+
+.runner-step-rail-wrap {
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.runner-step-rail-heading {
+  display: flex;
+  margin-bottom: 10px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.runner-step-rail-heading p { margin: 0; }
+
+.runner-step-rail {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 7px;
+  list-style: none;
+}
+
+.runner-step-rail-item {
+  display: flex;
+  min-width: 0;
+  min-height: 86px;
+  padding: 9px;
+  align-items: flex-start;
+  gap: 7px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #f7fafc;
+}
+
+.runner-step-rail-item.complete {
+  border-color: #96b8a1;
+  background: #eef8f1;
+}
+
+.runner-step-rail-item.active {
+  border: 3px solid var(--heading);
+  background: var(--lime);
+  box-shadow: 3px 3px 0 var(--heading);
+}
+
+.runner-step-rail-item.ended {
+  border: 3px solid var(--heading);
+  background: #fff3b7;
+  box-shadow: 3px 3px 0 var(--heading);
+}
+
+.runner-step-icon {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  object-fit: contain;
+}
+
+.runner-step-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.runner-step-copy strong {
+  font-size: 0.7rem;
+  line-height: 1.1;
+}
+
+.runner-step-copy span {
+  color: var(--secondary);
+  font-size: 0.64rem;
+  font-weight: 750;
+}
+
+.runner-step-rail-item.active .runner-step-copy span,
+.runner-step-rail-item.ended .runner-step-copy span { color: var(--heading); }
 
 .runner-student-art {
   width: 100%;
@@ -2364,9 +2629,113 @@ button:disabled {
   font-weight: 750;
 }
 
+@media (max-width: 900px) {
+  .runner-command-bar,
+  .runner-student-command-bar,
+  .runner-command-bar.no-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .runner-command-step {
+    display: grid;
+    padding: 2px 6px;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+  }
+
+  .runner-controls.runner-command-controls { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+  .runner-focus-layout { grid-template-columns: minmax(0, 1fr); }
+
+  .runner-focus-art {
+    min-height: 0;
+    aspect-ratio: 16 / 9;
+  }
+
+  .runner-step-rail {
+    overflow-x: auto;
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(132px, 1fr);
+    padding: 3px 3px 12px;
+    scroll-snap-type: x proximity;
+  }
+
+  .runner-step-rail-item { scroll-snap-align: center; }
+}
+
 @media (max-width: 620px) {
   .runner-heading,
   .runner-step-card { padding: 18px; }
+
+  .runner-heading {
+    margin: 8px 0;
+    padding: 11px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .runner-heading h1 {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    font-size: 1.35rem;
+  }
+
+  .runner-heading .project-kicker,
+  .runner-heading .runner-device-owner,
+  .runner-heading .runner-preview-label { display: none; }
+
+  .runner-heading .detail-back {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .runner-heading .runner-student-action {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .runner-heading .detail-back,
+  .runner-heading .runner-student-action {
+    width: 100%;
+    min-height: 44px;
+    padding: 6px 8px;
+    font-size: 0.76rem;
+  }
+
+  .runner-command-bar,
+  .runner-student-command-bar {
+    top: calc(8px + env(safe-area-inset-top));
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+    padding: 8px;
+    border-radius: 15px;
+  }
+
+  .runner-command-bar.no-controls { grid-template-columns: minmax(0, 1fr); }
+
+  .runner-command-step {
+    display: grid;
+    padding: 2px 6px;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+  }
+
+  .runner-command-step strong { font-size: 0.98rem; }
+
+  .runner-command-bar .runner-timer-card { padding: 6px 10px; }
+  .runner-command-bar .runner-timer-value { font-size: clamp(2rem, 11vw, 3rem); }
+  .runner-command-controls { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .runner-command-controls .runner-control {
+    min-width: 0;
+    min-height: 48px;
+    padding: 5px 3px;
+    font-size: 0.8rem;
+  }
+
+  .runner-command-bar [data-runner-timer="class"] { font-size: clamp(1.75rem, 10vw, 2.6rem); }
 
   .runner-timer-bar {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
@@ -2376,8 +2745,40 @@ button:disabled {
   .runner-timer-card { padding: 11px; }
   .runner-timer-value { font-size: clamp(1.7rem, 12vw, 3.4rem); }
   .runner-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .runner-controls.runner-command-controls { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .runner-now-grid { grid-template-columns: minmax(0, 1fr); }
+  .runner-teacher-help-grid { grid-template-columns: minmax(0, 1fr); }
   .runner-detour { grid-template-columns: minmax(0, 1fr); }
   .runner-return-cue { grid-column: auto; }
-  .runner-schedule { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .runner-schedule {
+    display: grid;
+    margin: 8px 0;
+    padding: 8px 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    font-size: 0.68rem;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .runner-focus-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .runner-focus-art {
+    min-height: 0;
+    aspect-ratio: 16 / 9;
+  }
+
+  .runner-step-rail-wrap { padding: 13px; }
+  .runner-step-rail {
+    overflow-x: auto;
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(132px, 1fr);
+    padding: 3px 3px 12px;
+    scroll-snap-type: x proximity;
+  }
+
+  .runner-step-rail-item { scroll-snap-align: center; }
 }

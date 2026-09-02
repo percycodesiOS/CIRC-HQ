@@ -1,54 +1,78 @@
-# Option 2 Design QA
+# CIRC HQ Active Lesson Design QA
 
 ## Visual source
 
-- Selected source: approved option 2 reference image reviewed during visual QA.
-- Source size: 853 by 1844 pixels.
-- Source state: CIRC HQ Today screen, Project 2 of 36, Tech Terrarium.
+- Selected source: the approved hybrid active-lesson reference.
+- Source size: 1487 by 1058 pixels.
+- Source intent: one calm classroom screen with a dominant step timer, a secondary class timer, immediate controls, short numbered student directions, real contextual imagery, and a visible lesson sequence.
+- Existing product context retained: the CIRC HQ white maker-studio surface, SV blue, electric lime, rounded cards, reviewed Phosphor icons, current lesson data, teacher schedule, and strict teacher or student projection boundary.
 
 ## Browser implementation evidence
 
-- Local URL: `http://127.0.0.1:4173/`
-- Matching implementation capture: locally generated full-page capture reviewed during implementation QA.
-- Combined comparison: locally generated side-by-side reference comparison reviewed during implementation QA.
-- Browser viewport and capture: 853 by 1844 CSS pixels.
-- Comparison normalization: source and implementation were placed side by side at their native 853 by 1844 dimensions. No crop, scaling, or color adjustment was applied.
-- Final mobile acceptance: locally generated 390-pixel and 360-pixel captures reviewed during implementation QA.
-- Final desktop acceptance: locally generated 1440-pixel capture reviewed during implementation QA.
+- Local URL: `http://127.0.0.1:4273/`.
+- Desktop live-runner capture: `prototype-1440x900-live-controls-final.png`, 1425 by 1670 full-page pixels.
+- Exact-size desktop capture: `prototype-1487x1058-reference-state-final.png`.
+- iPad portrait capture: `prototype-768x1024-live-controls-final.png`, 753 by 2038 full-page pixels.
+- Phone live-runner captures: `prototype-390x844-live-controls-final.png`, 375 by 1696 full-page pixels, and `prototype-360x800-live-controls-final.png`, 345 by 1690 full-page pixels.
+- Phone student-view capture: `prototype-360x800-student-view-final.png`, 345 by 1143 full-page pixels.
+- Normalized comparison: `reference-vs-prototype-1487x1058-normalized-final.png`. The source is on the left and the implementation is on the right. Both panels are exact 1487 by 1058 viewport captures with no scaling, crop, or unequal framing.
+- Evidence files remain outside the repository and cannot enter the public Pages release.
 
 ## Source match assessment
 
-- The implementation preserves the selected white maker-studio surface, bold black type, SV blue, electric lime, rounded outlined cards, large project image, teacher and student actions, independence path, 36-project trail, and fast-finish concept.
-- The live schedule, teacher selector, weather, duty, and Board entry remain above the project because they are required operating functions from the existing product.
-- The official district logo from the visual source was intentionally omitted. Only unprotected text branding is used until logo approval exists.
-- The project artwork and fast-finish artwork are real image assets. Navigation and action icons use the local Phosphor icon set. No placeholder art, text glyph icons, handcrafted SVG, gradient, or remote image dependency is used.
+- The active lesson uses the reference hierarchy: current step, dominant step timer, class timer, and primary controls in one blue command bar.
+- Student directions are the first content inside the current-step card. The real project image sits beside the directions on desktop and follows them on phones and tablets.
+- The full lesson path shows the actual number of steps for the selected experience. Every item includes a meaning-based reviewed icon, short label, duration, and Done, Now, Ended here, or Next state.
+- The ordinary CIRC HQ header is hidden while a live teacher or student runner is open. This focused treatment prevents another sticky surface from competing with the live timers.
+- The selected reference depicts a different outdoor lesson. The implementation uses the current Tech Terrarium lesson, its reviewed real image, and its actual step data.
+- No placeholder art, text-symbol control, handcrafted SVG, gradient, or remote image dependency was introduced.
 
 ## Focused checks
 
-- Hero: the full project title, strapline, main action, teacher action, and student action remain readable against the image at all three tested widths.
-- Mobile glance: at 390 by 844, the main action top is 566 pixels and is visible in the first viewport. At 360 by 800, the main action top is 589 pixels and is visible in the first viewport.
-- Mobile overflow: document scroll width remained below the viewport width at 390 and 360 pixels.
-- Desktop title fit: the title right edge measured 691 pixels and the copy panel right edge measured 811 pixels at 1440 by 900.
-- Project library: the browser exposed exactly 36 named project buttons in the correct order.
-- Teacher flow: Project 2 opened the teacher goal, teacher script, teacher moves, student build path, materials, safety, cleanup, exit evidence, fast finish, stretch, and current-project completion action.
-- Student flow: Student directions opened an isolated project-only view with build steps, fast finish, and stretch, but without the teacher header, teacher script, admin plan, private notes, schedule labels, teacher identity, or duty data.
-- Progress flow: completing the current project advances and persists the next project for that teacher. Past and future previews cannot advance it. The final project becomes complete and reviewable without offering the completion action again.
-- Admin plan: the control remained visible and enabled. The unit contract verifies a complete escaped document, the Pennsylvania STEELS crosswalk, and exclusion of private schedule and person data. The in-app Browser did not surface a download event for the local Blob action.
-- Keyboard semantics: all primary interactions are native buttons or links with accessible names. Static tests verify the shell and Board semantics. The in-app Browser backend did not move focus with synthetic Tab or Enter events, so keyboard activation was not used as sole acceptance evidence.
-- Console: zero warning or error entries after navigation, teacher view, student view, responsive resizing, and reload checks.
+- Timer priority: the current-step timer appears before and more prominently than the class timer.
+- Live controls: Pause or Resume, +1 min, Previous, and Next Step remain in the command bar while the lesson scrolls.
+- Pause behavior: both timers remained unchanged during the timed pause check and resumed correctly.
+- Add-time behavior: +1 min increased both the current-step timer and the class timer.
+- Navigation behavior: Next Step advanced the runner and updated the lesson path.
+- Directions: every student direction in the active step renders. No first-three truncation remains.
+- Teacher hierarchy: Student directions come first. A single Teacher action card appears only when the current step contains teacher guidance. No speech is inferred, no generic fallback is invented, and no empty cue card renders. Additional teacher material stays collapsed under More teacher help and More context.
+- Early finish accuracy: when the class clock ends before the final lesson step, the runner names the actual stopped step and marks Ended here instead of claiming the final step.
+- Variable lesson length: seven-step, eight-step, and nine-step experiences use their actual path length instead of a fixed nine-column layout.
+- Student privacy: student view retains the same step, timer values, complete path, directions, and safe exit. It renders no teacher cues, teacher controls, teacher identity, duty information, or private schedule content.
+- Accessible labeling: teacher controls are announced only while controls exist. Student and completed states announce timers without claiming unavailable controls.
+- Sticky behavior: the command bar remains eight pixels from the top of the page.
+- Phone controls: all four controls remain in one row at 390 and 360 CSS pixels. Each control is at least 48 pixels high with a readable 0.8rem label.
+- Phone schedule: class end and cleanup time remain on one line without wrapping AM onto a separate line.
+- Responsive order: at both 390 and 360 CSS pixels, student directions appear before optional artwork. In the final 360-pixel teacher state, directions begin at 512 pixels and the optional image begins at 972 pixels.
+- Student entry: the 360-pixel student route opens at scroll position zero, directions begin at 447 pixels, and the optional image follows at 616 pixels.
+- Tablet order: at 768 CSS pixels, directions begin at 668 pixels and optional artwork follows at 1096 pixels.
+- Responsive safety: measured horizontal overflow is zero at 1440, 1487, 768, 390, and 360 CSS pixels.
+- Desktop timer fit: the class timer card remains within its measured width with no horizontal overflow.
+- Meaning-based icon coverage: all 42 selectable lesson paths, 340 step instances, and 231 unique step labels resolve through the reviewed semantic icon map. No current label reaches the neutral future-step fallback, and safety, exit, transition, cleanup, and work precedence cases are locked by tests.
+- Automated contract: the focused app-render, public-shell, and security matrix passes 109 of 109 tests.
 
 ## Iteration history
 
-1. P1 mobile density: the 390 pixel screen stacked Now, Next, and Weather, placing the main action below the first viewport. The cards were compressed into one glance row. The main action then passed at both 390 by 844 and 360 by 800.
-2. P1 desktop title fit: the first desktop capture let `Terrarium` extend outside the white copy panel. The maximum display size was reduced. A measured boundary check then passed.
-3. P2 small-card wrapping: `Day complete` could split inside a word. Mobile heading wrapping was changed to whole words.
-4. P1 mobile title clipping: the first phone captures clipped `Terrarium` at the right edge. The mobile display size was reduced and measured again at both widths. The full title now fits with no horizontal overflow.
+1. Primary controls originally appeared at the bottom of the runner and scrolled away. They moved into one sticky command bar with the timers.
+2. The old runner displayed only the first three student directions. The renderer and tests now require the complete direction list.
+3. Global horizontal overflow handling prevented reliable sticky behavior. The page now uses `overflow-x: clip` and preserves sticky behavior without spill.
+4. Phone controls originally wrapped into two rows. The compact layout now keeps all four controls in one readable row.
+5. The ordinary sticky site header competed with the live command bar. Active runner routes now hide that header until the teacher exits.
+6. Student directions originally followed the image on phones. The DOM and responsive layout now keep directions before optional art.
+7. Tablet widths originally inherited desktop minimum columns. The 900-pixel breakpoint now stacks content and uses a horizontal path without clipping.
+8. The lesson path originally assumed nine steps. It now derives its tracks, icons, and state labels from the selected experience.
+9. An early class-clock finish originally displayed the final lesson step. The complete state now retains and labels the actual stopped step.
+10. Student entry originally preserved the teacher page scroll. Route navigation now resets to the top before moving focus.
+11. No-control command bars originally claimed that lesson controls were present. Their accessible label now announces timers only.
+12. Unstructured teacher actions originally became invented Say and Do cards, often leaving Do empty. The runner now shows one honest Teacher action card only when guidance exists.
+13. Step icons originally rotated by position. Every current step now receives an icon from a deterministic meaning-based resolver with complete curriculum coverage.
+14. The narrowest phone schedule originally wrapped AM onto a separate line. The schedule now stays on one compact line per time.
 
 ## Final findings
 
 - P0 findings remaining: 0.
 - P1 findings remaining: 0.
 - P2 findings remaining: 0.
-- Intentional differences: operating schedule strip, no official district logo, and five-stage independence model instead of the visual source's three-stage sketch.
+- Intentional differences: current Tech Terrarium content instead of the reference lesson, four complete teacher controls instead of three, a focused runner without ordinary site navigation, and additional teacher-only information below the core lesson path.
 
 final result: passed
