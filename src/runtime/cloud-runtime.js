@@ -14,7 +14,7 @@ import { applyPlanImport, previewPlanImport } from "../ui/settings.js";
 
 const PRIVATE_DOMAINS = Object.freeze(["plan", "progress", "preferences", "content"]);
 const DEVICE_DOMAINS = Object.freeze([...PRIVATE_DOMAINS, "sharedArtifact"]);
-const SETUP_STEPS = Object.freeze(["account", "teacher", "plan", "room", "upload", "verify", "complete"]);
+const SETUP_STEPS = Object.freeze(["account", "teacher", "schedule", "sync", "verify", "ready"]);
 const SAFE_SEGMENT = /^[^/\\\u0000-\u001f\u007f]+$/;
 
 function clone(value) {
@@ -246,6 +246,17 @@ export function createCloudRuntimeController({
     return !destroyed && generation === tokenGeneration && observedUser?.uid === uid;
   }
 
+  function isTrustedRoomMembership(value, uid) {
+    return value?.trusted === true && value.uid === uid && safeSegment(value.tenantId) &&
+      safeSegment(value.roomId) && ["owner", "teacher"].includes(value.role);
+  }
+
+  function trustedRoomContext(metadata, uid) {
+    if (!isTrustedRoomMembership(roomMembership, uid)) return null;
+    if (metadata.tenantId !== roomMembership.tenantId || metadata.roomId !== roomMembership.roomId) return null;
+    return roomMembership;
+  }
+
   function sameIdentityContext(tokenGeneration, uid) {
     return !destroyed && generation === tokenGeneration && (observedUser?.uid ?? null) === uid;
   }
@@ -426,9 +437,7 @@ export function createCloudRuntimeController({
       syncStatus = "offline";
       return false;
     }
-    if (result?.status !== "member" || !safeSegment(result.membership?.tenantId) ||
-        !safeSegment(result.membership?.roomId) || result.membership?.uid !== uid ||
-        !["owner", "teacher"].includes(result.membership?.role)) {
+    if (result?.status !== "member" || !isTrustedRoomMembership(result.membership, uid)) {
       roomMembership = null;
       roomPresentation = { status: "missing", name: null, role: null };
       return false;
@@ -546,7 +555,7 @@ export function createCloudRuntimeController({
         }
         planSummary = summary;
         planStatus = "cloud-found";
-        current = "plan";
+        current = "schedule";
       } else {
         await mergeReturningBundle(remote, tokenGeneration, uid);
       }
@@ -558,8 +567,8 @@ export function createCloudRuntimeController({
     if (!validCompletion(tokenGeneration, uid)) return;
     const fresh = readMetadata();
     if (remote.classification === "empty") {
-      if (local.plan && fresh.planConfirmed) current = roomMembership ? "upload" : "room";
-      else current = "plan";
+      if (local.plan && fresh.planConfirmed) current = "sync";
+      else current = "schedule";
       if (fresh.pendingDomains.length) {
         if (syncStatus !== "offline") syncStatus = "pending";
       } else {
@@ -570,11 +579,11 @@ export function createCloudRuntimeController({
     } else if (fresh.conflictDomains.length) {
       syncStatus = "attention";
       setNotice("warning", "CIRC Cloud found changes that need a teacher decision. Local teaching remains available.");
-    } else if (fresh.uploadAuthorized && roomReady) {
+    } else if (fresh.uploadAuthorized && (!roomMembership || roomReady)) {
       syncStatus = "verified";
-      current = "complete";
+      current = "ready";
     } else {
-      current = fresh.planConfirmed ? (roomMembership ? "upload" : "room") : "plan";
+      current = fresh.planConfirmed ? "sync" : "schedule";
       if (!new Set(["offline", "attention"]).has(syncStatus)) syncStatus = "idle";
     }
     render();
@@ -617,7 +626,7 @@ export function createCloudRuntimeController({
     }
     if (metadata.teacherConfirmed) {
       accountStatus = "confirmed";
-      current = metadata.planConfirmed ? (metadata.tenantId ? "upload" : "room") : "plan";
+      current = metadata.planConfirmed ? "sync" : "schedule";
       await loadCloudForObservedUser();
     } else {
       current = "teacher";
@@ -756,7 +765,7 @@ export function createCloudRuntimeController({
     metadata.teacherConfirmed = true;
     saveMetadata(metadata);
     accountStatus = "confirmed";
-    current = "plan";
+    current = "schedule";
     setNotice(null, null);
     render();
     await loadCloudForObservedUser();
@@ -860,7 +869,7 @@ export function createCloudRuntimeController({
     saveMetadata(metadata);
     planSummary = safePlanSummary(nextState.plan, nowDate());
     planStatus = "confirmed";
-    current = roomMembership ? "upload" : "room";
+    current = "sync";
     setNotice("status", "Private teacher plan confirmed on this device. It has not been uploaded.");
     render();
     return { status: "confirmed" };
@@ -878,7 +887,8 @@ export function createCloudRuntimeController({
     });
     if (!validCompletion(tokenGeneration, uid)) return { status: "cancelled" };
     if (result?.status !== "created" || !safeSegment(result.tenantId) || !safeSegment(result.roomId) ||
-        result.membership?.uid !== uid || result.membership?.role !== "owner" ||
+        !isTrustedRoomMembership(result.membership, uid) || result.membership.role !== "owner" ||
+        result.membership.tenantId !== result.tenantId || result.membership.roomId !== result.roomId ||
         !isRoomInviteDisplayCode(result.inviteCode) ||
         !Number.isSafeInteger(result.revision) || result.revision < 1) {
       setAttention(result?.status === "offline"
@@ -901,7 +911,7 @@ export function createCloudRuntimeController({
       setAttention("The new room was created, but its shared project could not be admitted on this device. Open Setup help.");
       return { status: "denied" };
     }
-    current = "upload";
+    current = "sync";
     setNotice("status", "CIRC room created. Share the one-time invitation directly with the other teacher.");
     render();
     return { inviteCode: result.inviteCode };
@@ -939,7 +949,7 @@ export function createCloudRuntimeController({
       setAttention("The room was joined, but its shared project could not be verified. Open Setup help.");
       return { status: "attention" };
     }
-    current = "upload";
+    current = "sync";
     setNotice("status", "CIRC room joined and its shared project verified.");
     render();
     return { status: "joined" };
@@ -998,8 +1008,8 @@ export function createCloudRuntimeController({
     const metadata = readMetadata();
     const uid = observedUser?.uid;
     if (!uid || metadata.accountUid !== uid || !metadata.teacherConfirmed || !metadata.planConfirmed ||
-        !roomMembership || metadata.conflictDomains.length > 0 || !client) {
-      setAttention("Complete the account, plan, and room steps before uploading.");
+        metadata.conflictDomains.length > 0 || !client) {
+      setAttention("Complete the account and plan steps before uploading.");
       return { status: "blocked" };
     }
     try {
@@ -1049,20 +1059,23 @@ export function createCloudRuntimeController({
       }
       saveMetadata(latest);
     }
-    const roomResult = await client.loadSharedArtifact({
-      tenantId: roomMembership.tenantId,
-      roomId: roomMembership.roomId
-    });
-    if (!validCompletion(tokenGeneration, uid)) return { status: "cancelled" };
-    if (!applySharedResult(roomResult)) {
-      if (roomResult?.status === "offline") {
-        syncStatus = "offline";
-        setNotice("warning", "Private data was verified, but the shared project is offline. Retry from Setup help when connected.");
-        render();
-        return { status: "offline" };
+    const room = trustedRoomContext(readMetadata(), uid);
+    if (room) {
+      const roomResult = await client.loadSharedArtifact({
+        tenantId: room.tenantId,
+        roomId: room.roomId
+      });
+      if (!validCompletion(tokenGeneration, uid)) return { status: "cancelled" };
+      if (!applySharedResult(roomResult)) {
+        if (roomResult?.status === "offline") {
+          syncStatus = "offline";
+          setNotice("warning", "Private data was verified, but the shared project is offline. Retry from Setup help when connected.");
+          render();
+          return { status: "offline" };
+        }
+        setAttention("Private data was verified, but the shared project needs attention. Retry from Setup help.");
+        return { status: roomResult?.status ?? "denied" };
       }
-      setAttention("Private data was verified, but the shared project needs attention. Retry from Setup help.");
-      return { status: roomResult?.status ?? "denied" };
     }
     const completeMetadata = readMetadata();
     completeMetadata.uploadAuthorized = true;
@@ -1085,7 +1098,7 @@ export function createCloudRuntimeController({
     verifiedMetadata.lastVerifiedAt = nowDate().toISOString();
     saveMetadata(verifiedMetadata);
     syncStatus = "verified";
-    current = "complete";
+    current = "ready";
     setNotice("status", "CIRC Cloud was written, read back, and verified.");
     render();
     return { status: "verified" };
@@ -1137,6 +1150,15 @@ export function createCloudRuntimeController({
     if (!admittedDomains.length || mode === "demo") return { status: "local-only" };
     const admittedState = admitLocalState(state ?? getState());
     const metadata = readMetadata();
+    if (admittedDomains.includes("plan")) {
+      planSummary = safePlanSummary(admittedState.plan, nowDate());
+      planStatus = planSummary
+        ? metadata.planConfirmed
+          ? "confirmed"
+          : "preview"
+        : "missing";
+      if (!metadata.planConfirmed || !planSummary) current = "schedule";
+    }
     for (const domain of admittedDomains) markDomainChanged(domain);
     metadata.pendingDomains = orderedDomains([...metadata.pendingDomains, ...admittedDomains]);
     saveMetadata(metadata);
@@ -1156,7 +1178,8 @@ export function createCloudRuntimeController({
     if (mode === "demo") return { status: "local-only" };
     if (!sameIdentityContext(tokenGeneration, tokenUid)) return { status: "cancelled" };
     const metadata = readMetadata();
-    if (!metadata.tenantId || !metadata.roomId || !handoff || typeof handoff !== "object") return { status: "local-only" };
+    const room = trustedRoomContext(metadata, tokenUid);
+    if (!room || !handoff || typeof handoff !== "object") return { status: "blocked" };
     if (metadata.pendingSharedHandoff) {
       const pending = metadata.pendingSharedHandoff;
       const sameOperation = pending.handoff === handoff.handoff && pending.eventId === handoff.eventId &&
@@ -1189,8 +1212,8 @@ export function createCloudRuntimeController({
     let outcome;
     try {
       outcome = await client.saveSharedArtifact({
-        tenantId: metadata.tenantId,
-        roomId: metadata.roomId,
+        tenantId: room.tenantId,
+        roomId: room.roomId,
         expectedRevision: operation.expectedRevision,
         handoff: operation.handoff,
         eventId: operation.eventId,
@@ -1229,8 +1252,13 @@ export function createCloudRuntimeController({
   async function syncPendingShared(uid, tokenGeneration) {
     const metadata = readMetadata();
     const operation = metadata.pendingSharedHandoff;
-    if (!operation || !metadata.tenantId || !metadata.roomId) return true;
-    const remote = await client.loadSharedArtifact({ tenantId: metadata.tenantId, roomId: metadata.roomId });
+    if (!operation) return true;
+    const room = trustedRoomContext(metadata, uid);
+    if (!room) {
+      syncStatus = "pending";
+      return false;
+    }
+    const remote = await client.loadSharedArtifact({ tenantId: room.tenantId, roomId: room.roomId });
     if (!validCompletion(tokenGeneration, uid)) return false;
     if (remote?.status !== "loaded") {
       syncStatus = remote?.status === "offline" ? "offline" : "attention";
@@ -1246,8 +1274,8 @@ export function createCloudRuntimeController({
       return false;
     }
     const result = await client.saveSharedArtifact({
-      tenantId: metadata.tenantId,
-      roomId: metadata.roomId,
+      tenantId: room.tenantId,
+      roomId: room.roomId,
       expectedRevision: operation.expectedRevision,
       handoff: operation.handoff,
       eventId: operation.eventId,
@@ -1345,6 +1373,7 @@ export function createCloudRuntimeController({
       createRoom,
       redeemInvite,
       uploadAndVerify,
+      openSchedule: () => routes.openSchedule?.(),
       openToday: () => routes.openToday?.(),
       previewExperience: () => routes.previewExperience?.(),
       openSetupHelp: () => routes.openSetupHelp?.(),

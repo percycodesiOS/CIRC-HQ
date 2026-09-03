@@ -1,7 +1,7 @@
 import { validateTeacherPlan } from "./teacher-plan.js";
 
 export const SETUP_STEPS = Object.freeze([
-  "account", "teacher", "plan", "room", "upload", "verify", "complete"
+  "account", "teacher", "schedule", "sync", "verify", "ready"
 ]);
 
 export function createSetupState(seed = {}) {
@@ -10,7 +10,6 @@ export function createSetupState(seed = {}) {
     account: seed.account ?? null,
     teacherConfirmed: false,
     planPreview: null,
-    room: null,
     uploadConfirmed: false,
     verification: null
   };
@@ -57,12 +56,12 @@ export function setupCompletionSummary(state) {
   const snapshot = structuredClone(state);
   return {
     current: snapshot.current,
-    complete: snapshot.current === "complete",
+    complete: snapshot.current === "ready",
     accountConnected: Boolean(snapshot.account),
     teacherConfirmed: snapshot.teacherConfirmed === true,
     planLoaded: snapshot.planPreview !== null,
-    roomJoined: snapshot.room !== null,
-    uploadConfirmed: snapshot.uploadConfirmed === true,
+    scheduleReady: snapshot.planPreview !== null,
+    privateSyncEnabled: snapshot.uploadConfirmed === true,
     verified: snapshot.verification !== null
   };
 }

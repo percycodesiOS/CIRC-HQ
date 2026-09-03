@@ -46,15 +46,14 @@ test("public entrypoints are byte-identical ordinary local shells", async () => 
 
 test("public shell exposes the approved name and exact navigation", async () => {
   const html = await readPublicSource("index.html");
-  assert.match(html, /<title>CIRC HQ \| The K-6 Playbook<\/title>/);
+  assert.match(html, /<title>CIRC HQ \| The Playbook<\/title>/);
   assert.match(html, />\s*CIRC HQ\s*</);
-  assert.match(html, />\s*The K-6 Playbook\s*</);
+  assert.match(html, />\s*The Playbook\s*</);
   assert.doesNotMatch(html, /class="brand-mark"/);
   assert.doesNotMatch(html, /<span[^>]*>\s*CIRC\s*<\/span>/);
   assert.doesNotMatch(html, /Mission Control|Teaching Zone/i);
-  assert.match(html, /<img[^>]+src="assets\/tech-terrarium-hero\.webp"/);
-  assert.doesNotMatch(html, /data-route="schedule"/);
-  assert.match(html, /data-route="settings"[^>]*aria-label="Teacher Setup"/);
+  assert.match(html, /data-route="schedule"[^>]*aria-label="Schedule"/);
+  assert.match(html, /data-route="settings"[^>]*aria-label="Settings"/);
 
   const nav = html.match(/<nav[\s\S]*?<\/nav>/i)?.[0] ?? "";
   const labels = [...nav.matchAll(/<button[^>]+aria-label="([^"]+)"[^>]*>/gi)].map(
@@ -63,11 +62,12 @@ test("public shell exposes the approved name and exact navigation", async () => 
   assert.deepEqual(labels, [
     "Today",
     "Playbooks",
+    "Schedule",
     "Room",
-    "Teacher Setup"
+    "Settings"
   ]);
-  assert.equal((nav.match(/<img\b/gi) ?? []).length, 4);
-  for (const icon of ["house", "books", "chalkboard-teacher", "gear-six"]) {
+  assert.equal((nav.match(/<img\b/gi) ?? []).length, 5);
+  for (const icon of ["house", "books", "calendar-dots", "chalkboard-teacher", "gear-six"]) {
     assert.match(nav, new RegExp(`assets/icons/${icon}\\.svg`));
   }
   assert.doesNotMatch(nav, /<svg\b/i);
@@ -76,38 +76,61 @@ test("public shell exposes the approved name and exact navigation", async () => 
 test("release documentation names the CIRC HQ repository URL and current content scope", async () => {
   const readme = await readPublicSource("README.md");
 
-  assert.match(readme, /^# CIRC HQ \| The K-6 Playbook$/m);
+  assert.match(readme, /^# CIRC HQ \| The Playbook$/m);
   assert.match(readme, /Repository: `percycodesiOS\/CIRC-HQ`/);
   assert.match(readme, /Intended release URL: `https:\/\/percycodesios\.github\.io\/CIRC-HQ\/`/);
-  assert.match(readme, /current reviewed content is Grades 5-6, Playbook A only/i);
-  assert.match(readme, /does not contain complete K-6 content/i);
-  assert.match(readme, /K-4 and Playbook B are not present/i);
+  assert.match(readme, /one shared 36-experience Grades 5-6 yearly path/i);
+  assert.match(readme, /does not publish those raw documents/i);
   assert.doesNotMatch(readme, /https:\/\/percycodesios\.github\.io\/5_MissionControl_6\//);
   assert.doesNotMatch(readme, /127\.0\.0\.1:4173/);
   assert.match(readme, /127\.0\.0\.1:4273/);
 });
 
+test("release documentation makes the ordinary editor primary without requiring a file", async () => {
+  const readme = await readPublicSource("README.md");
+
+  assert.match(readme, /Set up my schedule/i);
+  assert.match(readme, /ordinary schedule editor/i);
+  assert.match(readme, /does not require a plan file/i);
+  assert.match(readme, /Advanced backup/i);
+  assert.match(readme, /backup and restore/i);
+  assert.doesNotMatch(readme, /Choose a private teacher-plan JSON file/i);
+  assert.doesNotMatch(readme, /each import their own one-teacher private file/i);
+});
+
 test("release documentation preserves preview ready and start boundaries", async () => {
   const readme = await readPublicSource("README.md");
 
-  assert.match(readme, /Get CIRC HQ ready/);
-  assert.match(readme, /Choose a private teacher-plan JSON file/i);
-  assert.match(readme, /preview/i);
-  assert.match(readme, /does not upload/i);
+  assert.match(readme, /Preview a lesson/i);
+  assert.match(readme, /memory-only/i);
+  assert.match(readme, /nothing from Preview is saved or synced/i);
   assert.match(readme, /Open class runner creates a Ready runner/i);
   assert.match(readme, /Ready clocks are stationary/i);
-  assert.match(readme, /Start Class is the only action that starts the clocks/i);
+  assert.match(readme, /Start class is the only action that starts the clocks/i);
 });
 
-test("release documentation describes private local schedules and artifact authority", async () => {
+test("release documentation keeps sync and Room optional and preserves privacy gates", async () => {
   const readme = await readPublicSource("README.md");
 
-  assert.match(readme, /Teacher-plan files are local and private/i);
-  assert.match(readme, /Kenny and Tammy each import their own one-teacher private file/i);
-  assert.match(readme, /Schedules remain outside Git and the Pages artifact/i);
+  assert.match(readme, /Private sync is optional/i);
+  assert.match(readme, /explicit Google sign-in/i);
+  assert.match(readme, /explicit cloud write/i);
+  assert.match(readme, /Room is optional/i);
   assert.match(readme, /UID-scoped private cloud namespace/i);
   assert.match(readme, /trusted members/i);
+  assert.match(readme, /Board and Student remain account-free/i);
   assert.match(readme, /Ready, Repeat, and Park each require Confirm/i);
+});
+
+test("release documentation does not call the intended URL live before authorization and verification", async () => {
+  const readme = await readPublicSource("README.md");
+
+  assert.match(readme, /not called live/i);
+  assert.match(readme, /authorized push/i);
+  assert.match(readme, /deploy verification/i);
+  assert.match(readme, /HTTP 200/i);
+  assert.match(readme, /clean-browser acceptance/i);
+  assert.doesNotMatch(readme, /[\u2013\u2014]/u);
 });
 
 test("release documentation states classroom behavior and excluded data truthfully", async () => {
@@ -236,6 +259,11 @@ test("simplified shell keeps readable colors and 44px controls", async () => {
     css,
     /@media \(max-width:\s*620px\)\s*\{[\s\S]*?\.runner-schedule\s*\{[^}]*white-space:\s*nowrap;/s,
     "phone class and cleanup times should remain on one readable line"
+  );
+  assert.match(
+    css,
+    /@media \(max-width:\s*420px\)\s*\{[\s\S]*?\.schedule-editor-tabs\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/s,
+    "phone schedule tabs must not force the schedule form wider than the viewport"
   );
 
   const channel = (value) => {

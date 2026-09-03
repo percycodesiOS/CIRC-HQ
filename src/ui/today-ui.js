@@ -48,11 +48,12 @@ const ICONS = {
 
 export function buildWelcomePresentation() {
   return {
-    eyebrow: "CIRC HQ",
-    title: "The K-6 Playbook",
-    description: "A calm home base for today's plan, hands-on playbooks, and teacher setup.",
-    setupAction: "Set up this device",
-    previewAction: "Preview without saving"
+    eyebrow: "The Playbook",
+    title: "CIRC HQ",
+    description: "See what is happening now, run the next class, and keep the whole day on time.",
+    setupAction: "Set up my schedule",
+    syncAction: "Sign in to sync",
+    previewAction: "Preview a lesson"
   };
 }
 

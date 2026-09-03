@@ -1010,6 +1010,27 @@ button:disabled {
   font: inherit;
 }
 
+.calendar-change-review {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #b9d8ef;
+  border-radius: 12px;
+  background: #f2f8fc;
+}
+
+.calendar-change-message {
+  margin: 0;
+  color: #294c61;
+  line-height: 1.45;
+}
+
+.calendar-change-apply {
+  justify-self: start;
+  min-height: 48px;
+}
+
 .board-view {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2041,6 +2062,1383 @@ button:disabled {
   margin: 0 auto;
 }
 
+/* Teacher-first visual repair. Keep this final block authoritative. */
+:root {
+  --circ-command-blue: #2b86c5;
+  --circ-command-blue-dark: #155a87;
+  --circ-command-blue-soft: #eaf5fc;
+  --circ-success: #78a94d;
+  --circ-success-soft: #eef6e7;
+  --circ-danger: #9b283b;
+}
+
+/* Five plain destinations with a visible current location. */
+.primary-nav {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(72px, 1fr));
+  align-items: stretch;
+  gap: 4px;
+}
+
+.primary-nav button {
+  min-width: 0;
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 0;
+  border-bottom: 4px solid transparent;
+  border-radius: 9px 9px 0 0;
+  background: transparent;
+  color: #243746;
+  font-weight: 800;
+}
+
+.primary-nav button:hover {
+  background: var(--circ-command-blue-soft);
+  color: var(--circ-command-blue-dark);
+}
+
+.primary-nav button[aria-current="page"] {
+  border-bottom-color: var(--circ-command-blue);
+  background: #fff;
+  color: var(--circ-command-blue-dark);
+  box-shadow: none;
+}
+
+/* Welcome: one obvious first move, then two smaller choices. */
+.welcome-view {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+  grid-template-areas: "copy art";
+  align-items: center;
+  gap: clamp(28px, 5vw, 72px);
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: clamp(28px, 5vw, 76px) clamp(20px, 4vw, 54px);
+  border: 1px solid #d6e5ef;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 20px 55px rgba(25, 74, 108, 0.12);
+}
+
+.welcome-copy {
+  grid-area: copy;
+  min-width: 0;
+}
+
+.welcome-copy h1 {
+  max-width: 12ch;
+  margin: 6px 0 14px;
+  color: #12344a;
+  font-size: clamp(2.4rem, 6vw, 5rem);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+}
+
+.welcome-description {
+  max-width: 56ch;
+  color: #455f70;
+  font-size: clamp(1rem, 1.6vw, 1.22rem);
+  line-height: 1.6;
+}
+
+.welcome-maker {
+  grid-area: art;
+  width: min(100%, 520px);
+  height: auto;
+  justify-self: center;
+  border-radius: 30px;
+  object-fit: contain;
+}
+
+.welcome-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  max-width: 610px;
+  margin-top: 26px;
+}
+
+.welcome-actions button {
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 18px;
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+.welcome-actions .welcome-primary {
+  grid-column: 1 / -1;
+  border-color: var(--circ-command-blue-dark);
+  background: var(--circ-command-blue);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(43, 134, 197, 0.22);
+}
+
+.welcome-actions .welcome-secondary {
+  border: 2px solid var(--circ-command-blue);
+  background: #fff;
+  color: var(--circ-command-blue-dark);
+}
+
+.welcome-actions .welcome-preview-action {
+  border: 2px solid #c9dbe7;
+  background: #f4f9fc;
+  color: #24495f;
+}
+
+.welcome-privacy {
+  margin: 14px 0 0;
+  color: #5b7180;
+  font-size: 0.88rem;
+}
+
+/* Optional planning stays quiet until the teacher asks for it. */
+.today-plan-ahead {
+  margin: 22px 0 0;
+  overflow: clip;
+  border: 1px solid #d4e3ec;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(28, 75, 105, 0.07);
+}
+
+.today-plan-ahead > summary {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 12px 16px;
+  color: #31566c;
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.today-plan-ahead[open] > summary {
+  border-bottom: 1px solid #dce8ef;
+  background: #f5f9fc;
+}
+
+.today-plan-ahead > :not(summary) {
+  margin-inline: 16px;
+}
+
+.today-plan-ahead > :last-child {
+  margin-bottom: 16px;
+}
+
+/* Plain-language schedule builder. */
+.schedule-route {
+  width: min(100%, 1120px);
+  margin: 0 auto;
+}
+
+.schedule-teacher-switcher,
+.schedule-editor-status {
+  margin: 0 0 14px;
+}
+
+.schedule-editor {
+  display: grid;
+  gap: 22px;
+  padding: clamp(20px, 3vw, 34px);
+  border: 1px solid #d4e3ec;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 18px 42px rgba(21, 69, 101, 0.1);
+  color: #17384c;
+}
+
+.schedule-editor-header {
+  padding-bottom: 18px;
+  border-bottom: 1px solid #dce8ef;
+}
+
+.schedule-editor-header h1 {
+  max-width: 18ch;
+  margin: 4px 0 8px;
+  color: #12344a;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1.05;
+}
+
+.schedule-editor-header > p:last-child {
+  max-width: 62ch;
+  margin: 0;
+  color: #526a79;
+  line-height: 1.55;
+}
+
+.schedule-editor-calendar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #dce8ef;
+  border-radius: 16px;
+  background: #f6fafc;
+}
+
+.schedule-editor-calendar h2 {
+  grid-column: 1 / -1;
+  margin: 0 0 2px;
+  color: #173f58;
+  font-size: 1.25rem;
+}
+
+.schedule-editor-field {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.schedule-editor-label {
+  color: #294c61;
+  font-size: 0.82rem;
+  font-weight: 850;
+  line-height: 1.3;
+}
+
+.schedule-editor-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 2px solid #bdd2df;
+  border-radius: 10px;
+  background: #fff;
+  color: #142f40;
+  font: inherit;
+}
+
+.schedule-editor-input:hover {
+  border-color: #80afd0;
+}
+
+.schedule-editor-input:focus-visible {
+  border-color: var(--circ-command-blue-dark);
+  outline: 3px solid #bfe3f7;
+  outline-offset: 1px;
+}
+
+.schedule-editor-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(72px, 1fr));
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid #cddfe9;
+  border-radius: 14px;
+  background: #edf5f9;
+}
+
+.schedule-editor-tab {
+  min-width: 0;
+  min-height: 48px;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: #31566c;
+  font-weight: 850;
+}
+
+.schedule-editor-tab:hover {
+  background: #fff;
+}
+
+.schedule-editor-tab.is-selected,
+.schedule-editor-tab[aria-selected="true"] {
+  border-color: var(--circ-command-blue-dark);
+  background: var(--circ-command-blue);
+  color: #fff;
+  box-shadow: 0 5px 12px rgba(43, 134, 197, 0.18);
+}
+
+.schedule-editor-day-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.schedule-editor-day-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.schedule-editor-day-heading h2 {
+  margin: 0;
+  color: #173f58;
+  font-size: 1.5rem;
+}
+
+.schedule-editor-copy-controls {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+}
+
+.schedule-editor-copy-controls .schedule-editor-field {
+  min-width: 150px;
+}
+
+.schedule-editor-copy {
+  min-height: 48px;
+  white-space: nowrap;
+}
+
+.schedule-editor-events {
+  display: grid;
+  gap: 12px;
+}
+
+.schedule-editor-event {
+  display: grid;
+  grid-template-columns: minmax(135px, 0.8fr) minmax(220px, 1.7fr) minmax(118px, 0.7fr) minmax(118px, 0.7fr) auto;
+  align-items: end;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid #d3e1e9;
+  border-radius: 14px;
+  background: #fbfdfe;
+}
+
+.schedule-editor-event legend {
+  grid-column: 1 / -1;
+  padding: 0 4px;
+  color: #173f58;
+  font-weight: 900;
+}
+
+.schedule-editor-event-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.schedule-editor-row-action,
+.schedule-editor-remove {
+  min-height: 48px;
+  white-space: nowrap;
+}
+
+.schedule-editor-remove {
+  border: 2px solid #cc8994;
+  background: #fff;
+  color: var(--circ-danger);
+  font-weight: 850;
+}
+
+.schedule-editor-remove:hover {
+  border-color: var(--circ-danger);
+  background: #fff3f5;
+}
+
+.schedule-editor-add-actions {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.schedule-editor-add {
+  min-height: 48px;
+  border-color: #9ec4dc;
+  background: #f2f8fc;
+  color: #214e69;
+  font-weight: 850;
+}
+
+.schedule-editor-empty {
+  padding: 24px;
+  border: 2px dashed #aac8da;
+  border-radius: 14px;
+  background: #f6fafc;
+  text-align: center;
+}
+
+.schedule-editor-empty h3 {
+  margin: 0 0 6px;
+  color: #173f58;
+}
+
+.schedule-editor-empty p {
+  max-width: 62ch;
+  margin: 0 auto;
+  color: #526a79;
+  line-height: 1.5;
+}
+
+.schedule-editor-errors {
+  padding: 14px 16px;
+  border: 2px solid #bd5a69;
+  border-radius: 12px;
+  background: #fff2f4;
+  color: #711d2d;
+}
+
+.schedule-editor-errors :first-child {
+  margin-top: 0;
+}
+
+.schedule-editor-errors :last-child {
+  margin-bottom: 0;
+}
+
+.schedule-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 18px;
+  border-top: 1px solid #dce8ef;
+}
+
+.schedule-editor-actions button {
+  min-width: 150px;
+  min-height: 50px;
+}
+
+.schedule-editor-actions .primary-action {
+  border-color: var(--circ-command-blue-dark);
+  background: var(--circ-command-blue);
+  color: #fff;
+}
+
+.schedule-editor-advanced {
+  overflow: clip;
+  border: 1px solid #d5e2e9;
+  border-radius: 12px;
+  background: #f8fbfc;
+}
+
+.schedule-editor-advanced > summary {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 10px 14px;
+  color: #496373;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.schedule-editor-advanced[open] > summary {
+  border-bottom: 1px solid #d5e2e9;
+}
+
+.schedule-editor-advanced-content {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.schedule-editor-file-label {
+  font-weight: 800;
+}
+
+.schedule-editor-backup-input {
+  min-height: 48px;
+  max-width: 100%;
+}
+
+/* Live runner: timers and immediate controls are the whole command surface. */
+.experience-runner {
+  width: min(100%, 1160px);
+  max-width: 1160px;
+}
+
+.experience-runner .runner-command-bar,
+.runner-student-view .runner-command-bar {
+  position: sticky;
+  z-index: 40;
+  top: calc(8px + env(safe-area-inset-top));
+  display: grid;
+  grid-template-columns: minmax(155px, 0.65fr) minmax(330px, 1.45fr) minmax(400px, 1.35fr);
+  align-items: center;
+  gap: clamp(14px, 2.2vw, 34px);
+  width: 100vw;
+  margin: 0 calc(50% - 50vw) 16px;
+  padding: 12px max(18px, calc((100vw - 1160px) / 2 + 24px));
+  border: 0;
+  border-radius: 0;
+  background: var(--circ-command-blue);
+  color: #fff;
+  box-shadow: 0 9px 24px rgba(13, 68, 103, 0.24);
+}
+
+.runner-command-step {
+  min-width: 0;
+  padding: 0;
+  color: #eef9ff;
+}
+
+.runner-command-step span {
+  display: block;
+  margin-bottom: 3px;
+  color: #d9effc;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.runner-command-step strong {
+  display: block;
+  overflow: hidden;
+  color: #fff;
+  font-size: clamp(1rem, 1.8vw, 1.3rem);
+  line-height: 1.12;
+  text-overflow: ellipsis;
+}
+
+.runner-command-timers {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.8fr);
+  align-items: center;
+  gap: 0;
+}
+
+.runner-command-bar .runner-timer-card {
+  min-width: 0;
+  padding: 0 clamp(14px, 2vw, 26px);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #fff;
+  box-shadow: none;
+  text-align: left;
+}
+
+.runner-command-bar .runner-timer-card:first-child {
+  padding-left: 0;
+}
+
+.runner-command-bar .runner-timer-card + .runner-timer-card {
+  border-left: 1px solid rgba(255, 255, 255, 0.42);
+}
+
+.runner-command-bar .runner-timer-label {
+  color: #e5f4fc;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.runner-command-bar .runner-step-timer {
+  border: 0;
+  background: transparent;
+  color: #fff;
+}
+
+.runner-command-bar .runner-timer-value,
+.runner-command-bar [data-runner-timer="step"] {
+  color: #fff;
+  font-size: clamp(3.1rem, 5.2vw, 4.9rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 950;
+  line-height: 0.9;
+  letter-spacing: -0.055em;
+}
+
+.runner-command-bar [data-runner-timer="class"] {
+  color: #fff;
+  font-size: clamp(1.9rem, 3vw, 2.75rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+.runner-command-controls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(82px, 1fr));
+  gap: 8px;
+}
+
+.runner-command-controls .runner-control,
+.runner-command-controls .runner-primary-control,
+.runner-command-controls .runner-next {
+  min-width: 0;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  background: #fff;
+  color: #174a6c;
+  box-shadow: 0 4px 10px rgba(13, 58, 88, 0.15);
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.runner-command-controls .runner-control:hover,
+.runner-command-controls .runner-primary-control:hover,
+.runner-command-controls .runner-next:hover {
+  border-color: #d6effd;
+  background: #eaf6fd;
+  color: #113d5a;
+  transform: none;
+}
+
+.runner-command-controls .runner-safe-landing {
+  border-color: #d6effd;
+  background: #f4faff;
+}
+
+.runner-heading {
+  margin: 0 0 14px;
+  border-color: #d5e3eb;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(22, 72, 104, 0.07);
+}
+
+.runner-heading h1 {
+  color: #12344a;
+}
+
+.runner-schedule {
+  border: 1px solid #bcd5e4;
+  background: var(--circ-command-blue-soft);
+  color: #174663;
+}
+
+.runner-focus-layout {
+  grid-template-columns: minmax(350px, 0.82fr) minmax(480px, 1.18fr);
+  align-items: stretch;
+  gap: 16px;
+}
+
+.runner-step-card {
+  border-color: #d1e0e9;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(23, 71, 101, 0.1);
+}
+
+.runner-step-card > h2 {
+  color: #153d57;
+  font-size: clamp(1.65rem, 3vw, 2.55rem);
+  line-height: 1.08;
+}
+
+.runner-now-grid {
+  gap: 12px;
+}
+
+.runner-cue {
+  border-color: #d2e1ea;
+  background: #f8fbfd;
+}
+
+.runner-cue h3 {
+  color: #1c5f89;
+}
+
+.runner-student-card {
+  border: 2px solid #8fbfdd;
+  border-left-width: 7px;
+  background: #eef7fc;
+  color: #163b52;
+  box-shadow: none;
+}
+
+.runner-student-card ol,
+.runner-student-card ul,
+.runner-student-card p {
+  font-size: clamp(1rem, 1.4vw, 1.18rem);
+  line-height: 1.5;
+}
+
+.runner-student-card li {
+  margin-block: 8px;
+}
+
+.runner-student-card li::marker {
+  color: var(--circ-command-blue-dark);
+  font-weight: 950;
+}
+
+.runner-teacher-help,
+.runner-more-context {
+  border-color: #d1e0e9;
+  background: #fff;
+}
+
+.runner-teacher-help > summary,
+.runner-more-context > summary {
+  min-height: 44px;
+  color: #31566c;
+}
+
+.runner-focus-art {
+  width: 100%;
+  min-height: 470px;
+  border: 1px solid #bcd2df;
+  border-radius: 18px;
+  background: #dcecf5;
+  box-shadow: 0 12px 32px rgba(23, 71, 101, 0.13);
+  object-fit: cover;
+  object-position: center;
+}
+
+.runner-support-controls .runner-control {
+  min-height: 48px;
+  border-color: #9ec4dc;
+  background: #f2f8fc;
+  color: #214e69;
+}
+
+.runner-step-rail-wrap {
+  border-color: #d1e0e9;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(22, 72, 104, 0.07);
+}
+
+.runner-step-rail-item {
+  min-height: 70px;
+  border-color: #d5e2e9;
+  background: #f8fbfd;
+}
+
+.runner-step-rail-item.active,
+.runner-step-rail-item.ended {
+  border-color: var(--circ-command-blue);
+  background: var(--circ-command-blue-soft);
+  color: #173f58;
+  box-shadow: inset 0 -4px 0 var(--circ-command-blue);
+}
+
+.runner-step-rail-item.complete {
+  border-color: #bdd3aa;
+  background: var(--circ-success-soft);
+  color: #315623;
+  box-shadow: inset 0 -4px 0 var(--circ-success);
+}
+
+/* Green is reserved for small progress and success cues. */
+.setup-rail-item.current,
+.project-trail-step.current {
+  border-color: var(--circ-command-blue);
+  background: var(--circ-command-blue-soft);
+  color: #173f58;
+  box-shadow: none;
+}
+
+.independence-stage.active .stage-number {
+  background: var(--circ-success-soft);
+  color: #315623;
+  box-shadow: 0 0 0 3px rgba(120, 169, 77, 0.24);
+}
+
+.fast-finish-card {
+  border-color: #b9d3e3;
+  background: #fff;
+  box-shadow: 0 9px 24px rgba(22, 72, 104, 0.08);
+}
+
+.project-detail-actions .progress-action {
+  border-color: var(--circ-command-blue-dark);
+  background: var(--circ-command-blue);
+  color: #fff;
+}
+
+.progress-complete-note {
+  border-color: #a9c78f;
+  background: var(--circ-success-soft);
+  color: #315623;
+}
+
+.artifact-status-complete,
+.artifact-ready {
+  background: var(--circ-success-soft);
+  color: #315623;
+}
+
+@media (max-width: 1040px) {
+  .schedule-editor-calendar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .schedule-editor-event {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .schedule-editor-event legend,
+  .schedule-editor-event-actions {
+    grid-column: 1 / -1;
+  }
+
+  .schedule-editor-add-actions {
+    grid-template-columns: repeat(3, minmax(130px, 1fr));
+  }
+
+  .experience-runner .runner-command-bar,
+  .runner-student-view .runner-command-bar {
+    grid-template-columns: minmax(140px, 0.55fr) minmax(300px, 1.35fr);
+  }
+
+  .runner-command-controls {
+    grid-column: 1 / -1;
+  }
+
+  .runner-focus-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .runner-focus-art {
+    min-height: 0;
+    aspect-ratio: 16 / 9;
+  }
+}
+
+@media (max-width: 760px) {
+  .primary-nav {
+    width: 100%;
+    grid-template-columns: repeat(5, minmax(44px, 1fr));
+    gap: 0;
+  }
+
+  .primary-nav button {
+    min-width: 44px;
+    min-height: 48px;
+    padding: 7px 3px;
+    border-radius: 0;
+    font-size: clamp(0.64rem, 2.7vw, 0.76rem);
+  }
+
+  .welcome-view {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "copy" "art";
+    gap: 24px;
+    padding: 28px 20px;
+    border-radius: 20px;
+  }
+
+  .welcome-copy h1 {
+    max-width: 11ch;
+    font-size: clamp(2.35rem, 13vw, 3.8rem);
+  }
+
+  .welcome-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .welcome-actions .welcome-primary {
+    grid-column: auto;
+  }
+
+  .welcome-maker {
+    width: min(100%, 390px);
+    max-height: 42vh;
+  }
+
+  .schedule-editor {
+    gap: 18px;
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .schedule-editor-calendar,
+  .schedule-editor-event,
+  .schedule-editor-add-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .schedule-editor-calendar h2,
+  .schedule-editor-event legend,
+  .schedule-editor-event-actions {
+    grid-column: auto;
+  }
+
+  .schedule-editor-day-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .schedule-editor-copy-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .schedule-editor-copy-controls .schedule-editor-field {
+    min-width: 0;
+  }
+
+  .schedule-editor-event-actions,
+  .schedule-editor-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .schedule-editor-actions button {
+    min-width: 0;
+  }
+
+  .experience-runner .runner-command-bar,
+  .runner-student-view .runner-command-bar {
+    top: calc(8px + env(safe-area-inset-top));
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9px;
+    margin-bottom: 10px;
+    padding: calc(9px + env(safe-area-inset-top)) 12px 10px;
+  }
+
+  .runner-command-step {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+  }
+
+  .runner-command-step span {
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .runner-command-step strong {
+    font-size: 1rem;
+    white-space: nowrap;
+  }
+
+  .runner-command-timers {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  }
+
+  .runner-command-bar .runner-timer-card {
+    padding: 0 10px;
+  }
+
+  .runner-command-bar .runner-timer-value,
+  .runner-command-bar [data-runner-timer="step"] {
+    font-size: clamp(2.7rem, 15vw, 4rem);
+  }
+
+  .runner-command-bar [data-runner-timer="class"] {
+    font-size: clamp(1.75rem, 9vw, 2.45rem);
+  }
+
+  .runner-command-controls {
+    grid-column: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .runner-command-controls .runner-control,
+  .runner-command-controls .runner-primary-control,
+  .runner-command-controls .runner-next {
+    min-height: 48px;
+  }
+
+  .runner-heading {
+    padding: 14px;
+  }
+
+  .runner-focus-layout {
+    gap: 12px;
+  }
+
+  .runner-step-card {
+    padding: 18px;
+  }
+
+  .runner-focus-art {
+    border-radius: 14px;
+  }
+}
+
+@media (max-width: 420px) {
+  .schedule-editor-tabs {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .schedule-editor-tab {
+    min-width: 44px;
+    padding-inline: 3px;
+    font-size: 0.76rem;
+  }
+
+  .runner-command-bar .runner-timer-label {
+    font-size: 0.64rem;
+    letter-spacing: 0.05em;
+  }
+
+  .runner-command-controls .runner-control,
+  .runner-command-controls .runner-primary-control,
+  .runner-command-controls .runner-next {
+    padding-inline: 5px;
+    font-size: 0.8rem;
+  }
+}
+
+/* Grade 6 announcement studio */
+.announcements-feature {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 22px;
+  margin: 0 0 22px;
+  padding: clamp(20px, 4vw, 32px);
+  border: 2px solid var(--circ-command-blue);
+  border-radius: 22px;
+  background: linear-gradient(135deg, #ffffff 0%, var(--circ-command-blue-soft) 100%);
+  box-shadow: 0 10px 26px rgba(20, 83, 123, 0.1);
+}
+
+.announcements-feature h2 {
+  margin-bottom: 7px;
+  color: #123d59;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+}
+
+.announcements-feature p { max-width: 68ch; }
+
+.announcements-feature-note {
+  margin-bottom: 0;
+  color: var(--secondary);
+  font-size: 0.9rem;
+}
+
+.announcements-feature-action {
+  min-width: 210px;
+  border-color: var(--circ-command-blue-dark);
+  background: var(--circ-command-blue);
+  color: #ffffff;
+}
+
+.announcements {
+  display: grid;
+  gap: 18px;
+  width: min(100%, 1120px);
+  margin: 0 auto;
+}
+
+.announcements-header,
+.announcements-crew,
+.announcements-details,
+.announcements-script,
+.announcements-workflow {
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid #cfdee7;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 7px 20px rgba(25, 73, 102, 0.07);
+}
+
+.announcements-header {
+  border: 2px solid var(--circ-command-blue);
+  background: linear-gradient(135deg, #ffffff 0%, var(--circ-command-blue-soft) 100%);
+}
+
+.announcements-header > p:not(.eyebrow) { max-width: 75ch; }
+
+.announcements-local-notice,
+.announcements-local-status,
+.announcements-review-status {
+  margin: 12px 0 0;
+  padding: 11px 13px;
+  border: 1px solid #b8d2e2;
+  border-radius: 12px;
+  background: #f3f9fd;
+  color: #214f6b;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.announcements-local-status { margin: 0; }
+
+.announcements-errors {
+  padding: 16px 20px;
+  border: 1px solid var(--warning-border);
+  border-radius: 16px;
+  background: var(--warning);
+}
+
+.announcements-errors h2 { margin-bottom: 7px; }
+.announcements-errors ul { margin: 0; padding-left: 22px; }
+
+.announcements-role-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.announcements-role {
+  padding: 14px;
+  border: 1px solid #cbdde8;
+  border-radius: 14px;
+  background: #f7fbfd;
+}
+
+.announcements-role h3 {
+  margin-bottom: 5px;
+  color: var(--circ-command-blue-dark);
+  font-size: 0.95rem;
+}
+
+.announcements-role p {
+  margin: 0;
+  color: var(--secondary);
+  font-size: 0.82rem;
+}
+
+.announcements-details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.announcements-details h2 { grid-column: 1 / -1; }
+
+.announcements-script {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.announcements-script > h2,
+.announcements-script > p,
+.announcements-script-field:first-of-type,
+.announcements-script-field:last-of-type {
+  grid-column: 1 / -1;
+}
+
+.announcements-field {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+}
+
+.announcements-label {
+  color: #173f58;
+  font-weight: 800;
+}
+
+.announcements-field small {
+  color: var(--secondary);
+  font-size: 0.8rem;
+}
+
+.announcements-input,
+.announcements-textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 12px;
+  border: 1px solid #aac6d7;
+  border-radius: 11px;
+  background: #ffffff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.announcements-textarea {
+  min-height: 112px;
+  resize: vertical;
+}
+
+.announcements-input:focus-visible,
+.announcements-textarea:focus-visible {
+  outline: 3px solid #101820;
+  outline-offset: 3px;
+}
+
+.announcements-phase-line {
+  color: var(--circ-command-blue-dark);
+  font-weight: 850;
+  word-spacing: 12px;
+}
+
+.announcements-workflow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.announcements-workflow > h2,
+.announcements-workflow > p {
+  grid-column: 1 / -1;
+}
+
+.announcements-phase {
+  min-width: 0;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid #bfd5e2;
+  border-radius: 14px;
+  background: #f8fbfd;
+}
+
+.announcements-phase legend {
+  padding: 0 6px;
+  color: var(--circ-command-blue-dark);
+  font-weight: 900;
+}
+
+.announcements-check-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  margin: 8px 0;
+  color: #27495e;
+  font-size: 0.88rem;
+}
+
+.announcements-check {
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--circ-command-blue-dark);
+}
+
+.announcements-check-row.is-locked {
+  color: #75848e;
+}
+
+.announcements-review-status { grid-column: 1 / -1; }
+
+.announcements-actions {
+  position: sticky;
+  z-index: 8;
+  bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid #bad2e1;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 24px rgba(21, 72, 102, 0.14);
+  backdrop-filter: blur(10px);
+}
+
+.announcements-go-live {
+  margin-left: auto;
+  border-color: var(--circ-command-blue-dark);
+  background: var(--circ-command-blue);
+  color: #ffffff;
+}
+
+.announcements-go-live[disabled] {
+  border-color: #c8d1d7;
+  background: #e8edf0;
+  color: #6d7c85;
+  cursor: not-allowed;
+}
+
+.announcements-live {
+  display: grid;
+  gap: 20px;
+  width: min(100%, 1040px);
+  min-height: calc(100vh - 48px);
+  margin: 0 auto;
+  padding: clamp(20px, 4vw, 42px);
+  border-radius: 24px;
+  background: linear-gradient(145deg, #ffffff 0%, #edf7fc 100%);
+  box-shadow: 0 14px 34px rgba(20, 74, 108, 0.12);
+}
+
+.announcements-live-header {
+  padding-bottom: 18px;
+  border-bottom: 3px solid var(--circ-command-blue);
+}
+
+.announcements-live-header h1 {
+  font-size: clamp(2.1rem, 6vw, 4.6rem);
+}
+
+.announcements-live-script {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.announcements-live-section {
+  padding: clamp(18px, 3vw, 30px);
+  border: 1px solid #bcd4e3;
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.announcements-live-section h2 {
+  margin-bottom: 8px;
+  color: var(--circ-command-blue-dark);
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.announcements-live-section p {
+  margin: 0;
+  color: #12364d;
+  font-size: clamp(1.25rem, 3vw, 2rem);
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: pre-wrap;
+}
+
+.announcements-live-opening,
+.announcements-live-closing {
+  grid-column: 1 / -1;
+}
+
+.announcements-live-exit {
+  justify-self: start;
+}
+
+@media (max-width: 900px) {
+  .announcements-role-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .announcements-workflow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 660px) {
+  .announcements-feature,
+  .announcements-details,
+  .announcements-script,
+  .announcements-workflow,
+  .announcements-live-script {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .announcements-feature-action {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .announcements-details h2,
+  .announcements-script > h2,
+  .announcements-script > p,
+  .announcements-script-field:first-of-type,
+  .announcements-script-field:last-of-type,
+  .announcements-workflow > h2,
+  .announcements-workflow > p,
+  .announcements-review-status,
+  .announcements-live-opening,
+  .announcements-live-closing {
+    grid-column: 1;
+  }
+
+  .announcements-actions {
+    position: static;
+    display: grid;
+  }
+
+  .announcements-actions button,
+  .announcements-go-live {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 440px) {
+  .announcements-role-grid { grid-template-columns: minmax(0, 1fr); }
+  .announcements-header,
+  .announcements-crew,
+  .announcements-details,
+  .announcements-script,
+  .announcements-workflow { padding: 16px; }
+  .announcements-live { padding: 17px; border-radius: 18px; }
+}
+
 .runner-heading {
   display: grid;
   margin: 14px 0;
@@ -2781,4 +4179,417 @@ button:disabled {
   }
 
   .runner-step-rail-item { scroll-snap-align: center; }
+}
+
+/* Final runner overrides. These follow every legacy runner rule. */
+.experience-runner {
+  width: min(100%, 1160px);
+  max-width: 1160px;
+}
+
+.experience-runner .runner-command-bar,
+.runner-student-view .runner-command-bar {
+  position: sticky;
+  z-index: 40;
+  top: calc(8px + env(safe-area-inset-top));
+  display: grid;
+  grid-template-columns: minmax(155px, 0.65fr) minmax(330px, 1.45fr) minmax(400px, 1.35fr);
+  align-items: center;
+  gap: clamp(14px, 2.2vw, 34px);
+  width: 100vw;
+  margin: 0 calc(50% - 50vw) 16px;
+  padding: 12px max(18px, calc((100vw - 1160px) / 2 + 24px));
+  border: 0;
+  border-radius: 0;
+  background: var(--circ-command-blue);
+  color: #fff;
+  box-shadow: 0 9px 24px rgba(13, 68, 103, 0.24);
+}
+
+.runner-command-step {
+  min-width: 0;
+  padding: 0;
+  color: #eef9ff;
+}
+
+.runner-command-step span {
+  display: block;
+  margin-bottom: 3px;
+  color: #d9effc;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.runner-command-step strong {
+  display: block;
+  overflow: hidden;
+  color: #fff;
+  font-size: clamp(1rem, 1.8vw, 1.3rem);
+  line-height: 1.12;
+  text-overflow: ellipsis;
+}
+
+.runner-command-timers {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.8fr);
+  align-items: center;
+  gap: 0;
+}
+
+.runner-command-bar .runner-timer-card {
+  min-width: 0;
+  padding: 0 clamp(14px, 2vw, 26px);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #fff;
+  box-shadow: none;
+  text-align: left;
+}
+
+.runner-command-bar .runner-timer-card:first-child {
+  padding-left: 0;
+}
+
+.runner-command-bar .runner-timer-card + .runner-timer-card {
+  border-left: 1px solid rgba(255, 255, 255, 0.42);
+}
+
+.runner-command-bar .runner-timer-label {
+  color: #e5f4fc;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.runner-command-bar .runner-step-timer {
+  border: 0;
+  background: transparent;
+  color: #fff;
+}
+
+.runner-command-bar .runner-timer-value,
+.runner-command-bar [data-runner-timer="step"] {
+  color: #fff;
+  font-size: clamp(3.1rem, 5.2vw, 4.9rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 950;
+  line-height: 0.9;
+  letter-spacing: -0.055em;
+}
+
+.runner-command-bar [data-runner-timer="class"] {
+  color: #fff;
+  font-size: clamp(1.9rem, 3vw, 2.75rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+.runner-command-controls,
+.runner-controls.runner-command-controls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(82px, 1fr));
+  gap: 8px;
+}
+
+.runner-command-controls .runner-control,
+.runner-command-controls .runner-primary-control,
+.runner-command-controls .runner-next {
+  min-width: 0;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  background: #fff;
+  color: #174a6c;
+  box-shadow: 0 4px 10px rgba(13, 58, 88, 0.15);
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.runner-command-controls .runner-control:hover,
+.runner-command-controls .runner-primary-control:hover,
+.runner-command-controls .runner-next:hover {
+  border-color: #d6effd;
+  background: #eaf6fd;
+  color: #113d5a;
+  transform: none;
+}
+
+.runner-heading {
+  margin: 0 0 14px;
+  border-color: #d5e3eb;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(22, 72, 104, 0.07);
+}
+
+.runner-heading h1 {
+  color: #12344a;
+}
+
+.runner-schedule {
+  border: 1px solid #bcd5e4;
+  background: var(--circ-command-blue-soft);
+  color: #174663;
+}
+
+.runner-focus-layout {
+  grid-template-columns: minmax(350px, 0.82fr) minmax(480px, 1.18fr);
+  align-items: stretch;
+  gap: 16px;
+}
+
+.runner-step-card {
+  border-color: #d1e0e9;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(23, 71, 101, 0.1);
+}
+
+.runner-step-card > h2 {
+  color: #153d57;
+  font-size: clamp(1.65rem, 3vw, 2.55rem);
+  line-height: 1.08;
+}
+
+.runner-now-grid {
+  gap: 12px;
+}
+
+.runner-cue {
+  border-color: #d2e1ea;
+  background: #f8fbfd;
+}
+
+.runner-cue h3 {
+  color: #1c5f89;
+}
+
+.runner-student-card {
+  border: 2px solid #8fbfdd;
+  border-left-width: 7px;
+  background: #eef7fc;
+  color: #163b52;
+  box-shadow: none;
+}
+
+.runner-student-card ol,
+.runner-student-card ul,
+.runner-student-card p {
+  font-size: clamp(1rem, 1.4vw, 1.18rem);
+  line-height: 1.5;
+}
+
+.runner-student-card li {
+  margin-block: 8px;
+}
+
+.runner-student-card li::marker {
+  color: var(--circ-command-blue-dark);
+  font-weight: 950;
+}
+
+.runner-teacher-help,
+.runner-more-context {
+  border-color: #d1e0e9;
+  background: #fff;
+}
+
+.runner-teacher-help > summary,
+.runner-more-context > summary {
+  min-height: 44px;
+  color: #31566c;
+}
+
+.runner-focus-art {
+  width: 100%;
+  min-height: 470px;
+  border: 1px solid #bcd2df;
+  border-radius: 18px;
+  background: #dcecf5;
+  box-shadow: 0 12px 32px rgba(23, 71, 101, 0.13);
+  object-fit: cover;
+  object-position: center;
+}
+
+.runner-support-controls .runner-control {
+  min-height: 48px;
+  border-color: #9ec4dc;
+  background: #f2f8fc;
+  color: #214e69;
+}
+
+.runner-step-rail-wrap {
+  border-color: #d1e0e9;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(22, 72, 104, 0.07);
+}
+
+.runner-step-rail-item {
+  min-height: 70px;
+  border-color: #d5e2e9;
+  background: #f8fbfd;
+}
+
+.runner-step-rail-item.active,
+.runner-step-rail-item.ended {
+  border-color: var(--circ-command-blue);
+  background: var(--circ-command-blue-soft);
+  color: #173f58;
+  box-shadow: inset 0 -4px 0 var(--circ-command-blue);
+}
+
+.runner-step-rail-item.complete {
+  border-color: #bdd3aa;
+  background: var(--circ-success-soft);
+  color: #315623;
+  box-shadow: inset 0 -4px 0 var(--circ-success);
+}
+
+/* Green is reserved for small progress and success cues. */
+.setup-rail-item.current,
+.project-trail-step.current {
+  border-color: var(--circ-command-blue);
+  background: var(--circ-command-blue-soft);
+  color: #173f58;
+  box-shadow: none;
+}
+
+.independence-stage.active .stage-number {
+  background: var(--circ-success-soft);
+  color: #315623;
+  box-shadow: 0 0 0 3px rgba(120, 169, 77, 0.24);
+}
+
+.fast-finish-card {
+  border-color: #b9d3e3;
+  background: #fff;
+  box-shadow: 0 9px 24px rgba(22, 72, 104, 0.08);
+}
+
+.project-detail-actions .progress-action {
+  border-color: var(--circ-command-blue-dark);
+  background: var(--circ-command-blue);
+  color: #fff;
+}
+
+.progress-complete-note {
+  border-color: #a9c78f;
+  background: var(--circ-success-soft);
+  color: #315623;
+}
+
+@media (max-width: 1040px) {
+  .experience-runner .runner-command-bar,
+  .runner-student-view .runner-command-bar {
+    grid-template-columns: minmax(140px, 0.55fr) minmax(300px, 1.35fr);
+  }
+
+  .runner-command-controls,
+  .runner-controls.runner-command-controls {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(4, minmax(82px, 1fr));
+  }
+
+  .runner-focus-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .runner-focus-art {
+    min-height: 0;
+    aspect-ratio: 16 / 9;
+  }
+}
+
+@media (max-width: 760px) {
+  .experience-runner .runner-command-bar,
+  .runner-student-view .runner-command-bar {
+    top: calc(8px + env(safe-area-inset-top));
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9px;
+    margin-bottom: 10px;
+    padding: calc(9px + env(safe-area-inset-top)) 12px 10px;
+    border-radius: 0;
+  }
+
+  .runner-command-step {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+  }
+
+  .runner-command-step span {
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .runner-command-step strong {
+    font-size: 1rem;
+    white-space: nowrap;
+  }
+
+  .runner-command-timers {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  }
+
+  .runner-command-bar .runner-timer-card {
+    padding: 0 10px;
+  }
+
+  .runner-command-bar .runner-timer-value,
+  .runner-command-bar [data-runner-timer="step"] {
+    font-size: clamp(2.7rem, 15vw, 4rem);
+  }
+
+  .runner-command-bar [data-runner-timer="class"] {
+    font-size: clamp(1.75rem, 9vw, 2.45rem);
+  }
+
+  .runner-command-controls,
+  .runner-controls.runner-command-controls {
+    grid-column: auto;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .runner-command-controls .runner-control,
+  .runner-command-controls .runner-primary-control,
+  .runner-command-controls .runner-next {
+    min-height: 48px;
+  }
+
+  .runner-heading {
+    padding: 14px;
+  }
+
+  .runner-focus-layout {
+    gap: 12px;
+  }
+
+  .runner-step-card {
+    padding: 18px;
+  }
+
+  .runner-focus-art {
+    border-radius: 14px;
+  }
+}
+
+@media (max-width: 420px) {
+  .runner-command-bar .runner-timer-label {
+    font-size: 0.64rem;
+    letter-spacing: 0.05em;
+  }
+
+  .runner-command-controls .runner-control,
+  .runner-command-controls .runner-primary-control,
+  .runner-command-controls .runner-next {
+    padding-inline: 5px;
+    font-size: 0.8rem;
+  }
 }

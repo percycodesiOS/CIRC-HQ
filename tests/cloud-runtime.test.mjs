@@ -280,6 +280,7 @@ function harness({
   const invalidations = [];
   const routes = [];
   const routeActions = Object.fromEntries([
+    "openSchedule",
     "openToday",
     "previewExperience",
     "openSetupHelp",
@@ -405,8 +406,79 @@ test("file preview and confirmation stay local until the explicit upload gate", 
   await actions.confirmPlanPreview();
 
   assert.equal(app.state.plan.teachers[0].name, "Teacher Example");
-  assert.equal(app.controller.getSetupModel().current, "room");
+  assert.equal(app.controller.getSetupModel().current, "sync");
   assert.equal(app.cloud.calls.some(({ kind }) => kind === "save-private"), false);
+});
+
+test("roomless explicit upload backs up and verifies all private domains without shared access", async () => {
+  const app = harness({
+    initialState: stateFixture({ plan: planFixture() }),
+    cloud: fakeCloudClient({
+      roomMembership: { status: "not-member", membership: null, room: null }
+    })
+  });
+  const actions = app.controller.getSetupActions();
+  app.cloud.emitAuth({ uid: "teacher-uid", displayName: "Teacher Example", email: "teacher@example.invalid" });
+  await actions.useAccount();
+  await actions.confirmPlanPreview();
+
+  assert.equal(app.controller.getSetupModel().current, "sync");
+  assert.deepEqual(app.controller.getSetupModel().completed, ["account", "teacher", "schedule"]);
+  assert.deepEqual(await actions.uploadAndVerify(), { status: "verified" });
+  assert.deepEqual(app.cloud.calls.filter(({ kind }) => kind === "save-private").map(({ domain }) => domain), [
+    "plan", "progress", "preferences", "content"
+  ]);
+  assert.deepEqual(app.store.loadDeviceMetadata().lastVerifiedRevisions, {
+    plan: 1,
+    progress: 1,
+    preferences: 1,
+    content: 1,
+    sharedArtifact: 0
+  });
+  assert.equal(app.store.loadDeviceMetadata().uploadAuthorized, true);
+  assert.equal(app.store.loadDeviceMetadata().lastVerifiedAt, NOW);
+  assert.ok(app.storage.getItem("circHQ.k6.backup.v1"));
+  assert.equal(app.cloud.calls.some(({ kind }) => kind === "load-shared"), false);
+  assert.equal(app.cloud.calls.some(({ kind }) => kind === "save-shared"), false);
+  app.controller.destroy();
+});
+
+test("Schedule opens through the runtime without touching storage or cloud", () => {
+  const app = harness();
+  const beforeStorage = [...app.storage.values.entries()];
+  const beforeCloudCalls = app.cloud.calls.length;
+
+  app.controller.getSetupActions().openSchedule();
+
+  assert.equal(app.routes.at(-1), "openSchedule");
+  assert.deepEqual([...app.storage.values.entries()], beforeStorage);
+  assert.equal(app.cloud.calls.length, beforeCloudCalls);
+  app.controller.destroy();
+});
+
+test("an editor-built local plan returns to confirmation without a file import", async () => {
+  const app = harness();
+  const actions = app.controller.getSetupActions();
+  app.cloud.emitAuth({ uid: "teacher-uid", displayName: "Teacher Example", email: "teacher@example.invalid" });
+  await actions.useAccount();
+
+  const editedState = stateFixture({ plan: planFixture("Editor Teacher") });
+  app.commitState(editedState);
+  assert.deepEqual(
+    await app.controller.afterLocalCommit({ domains: ["plan"], state: app.state }),
+    { status: "pending" }
+  );
+
+  const previewModel = app.controller.getSetupModel();
+  assert.equal(previewModel.current, "schedule");
+  assert.equal(previewModel.plan.status, "preview");
+  assert.equal(previewModel.plan.teacherName, "Editor Teacher");
+  assert.equal(app.cloud.calls.some(({ kind }) => kind === "save-private"), false);
+
+  assert.deepEqual(await actions.confirmPlanPreview(), { status: "confirmed" });
+  assert.equal(app.controller.getSetupModel().current, "sync");
+  assert.equal(app.store.loadDeviceMetadata().planConfirmed, true);
+  app.controller.destroy();
 });
 
 test("explicit upload backs up locally and verifies four private domains in fixed order", async () => {
@@ -419,7 +491,7 @@ test("explicit upload backs up locally and verifies four private domains in fixe
   const invitation = await actions.createRoom();
 
   assert.deepEqual(invitation, { inviteCode: VALID_INVITE_CODE });
-  assert.equal(app.controller.getSetupModel().current, "upload");
+  assert.equal(app.controller.getSetupModel().current, "sync");
   assert.equal(app.controller.getSetupModel().room.inviteCode, invitation.inviteCode);
   assert.equal(serializedStorage(app.storage).includes(invitation.inviteCode), false);
   assert.equal(serializedStorage(app.storage).includes(invitation.inviteCode.replaceAll("-", "")), false);
@@ -431,7 +503,7 @@ test("explicit upload backs up locally and verifies four private domains in fixe
   assert.deepEqual(app.cloud.calls.filter(({ kind }) => kind === "save-private").map(({ domain }) => domain), [
     "plan", "progress", "preferences", "content"
   ]);
-  assert.equal(app.controller.getSetupModel().current, "complete");
+  assert.equal(app.controller.getSetupModel().current, "ready");
   assert.equal(app.controller.getSetupModel().sync.status, "verified");
   assert.equal(app.store.loadDeviceMetadata().uploadAuthorized, true);
   assert.equal(app.store.loadDeviceMetadata().lastVerifiedAt, NOW);
@@ -478,7 +550,7 @@ test("malformed room-creation results fail closed before local room state is com
     const beforeMetadata = app.store.loadDeviceMetadata();
 
     assert.deepEqual(await actions.createRoom(), { status: "denied" }, label);
-    assert.equal(app.controller.getSetupModel().current, "room", label);
+    assert.equal(app.controller.getSetupModel().current, "sync", label);
     assert.equal(app.controller.getSetupModel().room.inviteCode, undefined, label);
     assert.deepEqual(app.state, beforeState, label);
     assert.deepEqual(app.store.loadDeviceMetadata(), beforeMetadata, label);
@@ -673,7 +745,7 @@ test("a returning verified teacher merges admitted cloud data and restores the s
   cloud.emitAuth({ uid: "teacher-uid", displayName: "Returning Teacher", email: "returning@example.invalid" });
   await settle();
 
-  assert.equal(app.controller.getSetupModel().current, "complete");
+  assert.equal(app.controller.getSetupModel().current, "ready");
   assert.equal(app.controller.getSyncPresentation().label, "CIRC Cloud verified");
   assert.deepEqual(app.controller.getRoomPresentation(), {
     status: "ready",
@@ -684,6 +756,26 @@ test("a returning verified teacher merges admitted cloud data and restores the s
   });
   assert.deepEqual(cloud.calls.filter(({ kind }) => kind === "load-private").map(({ uid }) => uid), ["teacher-uid"]);
   assert.equal(cloud.calls.some(({ kind }) => kind === "save-private"), false);
+  app.controller.destroy();
+});
+
+test("a returning verified teacher needs no room to complete private sync", async () => {
+  const state = stateFixture({ plan: planFixture("Roomless Teacher") });
+  const cloud = fakeCloudClient({
+    privateRemote: completeRemote(state),
+    roomMembership: { status: "not-member", membership: null, room: null }
+  });
+  const app = harness({ initialState: state, cloud });
+  authorizeDevice(app, { tenantId: null, roomId: null });
+
+  cloud.emitAuth({ uid: "teacher-uid", displayName: "Roomless Teacher", email: "roomless@example.invalid" });
+  await settle();
+
+  assert.equal(app.controller.getSetupModel().current, "ready");
+  assert.equal(app.controller.getSyncPresentation().status, "verified");
+  assert.equal(app.controller.getRoomPresentation().status, "missing");
+  assert.equal(cloud.calls.some(({ kind }) => kind === "load-shared"), false);
+  assert.equal(cloud.calls.some(({ kind }) => kind === "save-shared"), false);
   app.controller.destroy();
 });
 
@@ -820,6 +912,76 @@ test("shared handoffs use only the room transaction and admit its verified pair"
   assert.equal(app.state.sharedArtifacts[TECH_TERRARIUM_ARTIFACT_ID].visits.length, 1);
   assert.equal(app.store.loadDeviceMetadata().pendingSharedHandoff, null);
   assert.equal(app.store.loadDeviceMetadata().lastVerifiedRevisions.sharedArtifact, 2);
+  app.controller.destroy();
+});
+
+test("untrusted or absent room context cannot load or write a shared artifact", async () => {
+  const cases = [
+    ["absent", { status: "not-member", membership: null, room: null }],
+    ["untrusted", {
+      status: "member",
+      membership: {
+        uid: "teacher-uid",
+        tenantId: "tenant-safe",
+        roomId: "room-safe",
+        role: "teacher",
+        trusted: false
+      },
+      room: { tenantId: "tenant-safe", roomId: "room-safe", name: "Untrusted Room" }
+    }]
+  ];
+
+  for (const [label, roomMembership] of cases) {
+    const state = stateFixture({ plan: planFixture() });
+    const cloud = fakeCloudClient({ privateRemote: completeRemote(state), roomMembership });
+    const app = harness({ initialState: state, cloud });
+    authorizeDevice(app, { tenantId: "tenant-safe", roomId: "room-safe" });
+    cloud.emitAuth({ uid: "teacher-uid", displayName: "Teacher Example", email: "teacher@example.invalid" });
+    await settle();
+
+    const result = await app.controller.afterSharedHandoff({
+      handoff: { handoff: "ready", eventId: EVENT_ID, visitDate: "2026-09-01", nowIso: NOW }
+    });
+
+    assert.deepEqual(result, { status: "blocked" }, label);
+    assert.equal(cloud.calls.some(({ kind }) => kind === "load-shared"), false, label);
+    assert.equal(cloud.calls.some(({ kind }) => kind === "save-shared"), false, label);
+    assert.equal(app.store.loadDeviceMetadata().pendingSharedHandoff, null, label);
+    assert.equal(app.store.loadDeviceMetadata().pendingDomains.includes("sharedArtifact"), false, label);
+    app.controller.destroy();
+  }
+});
+
+test("room loss preserves a pending shared handoff while private retry still syncs", async () => {
+  const state = stateFixture({ plan: planFixture() });
+  const cloud = fakeCloudClient({
+    privateRemote: completeRemote(state),
+    roomMembership: { status: "not-member", membership: null, room: null }
+  });
+  const app = harness({ initialState: state, cloud });
+  const pendingSharedHandoff = {
+    artifactId: TECH_TERRARIUM_ARTIFACT_ID,
+    expectedRevision: 1,
+    handoff: "ready",
+    eventId: EVENT_ID,
+    visitDate: "2026-09-01",
+    nowIso: NOW
+  };
+  authorizeDevice(app, {
+    tenantId: "tenant-safe",
+    roomId: "room-safe",
+    pendingDomains: ["progress", "sharedArtifact"],
+    pendingSharedHandoff
+  });
+  cloud.emitAuth({ uid: "teacher-uid", displayName: "Teacher Example", email: "teacher@example.invalid" });
+  await settle();
+
+  assert.deepEqual(await app.controller.syncNow(), { status: "pending" });
+  assert.equal(cloud.calls.some(({ kind, domain }) => kind === "save-private" && domain === "progress"), true);
+  assert.equal(cloud.calls.some(({ kind }) => kind === "load-shared"), false);
+  assert.equal(cloud.calls.some(({ kind }) => kind === "save-shared"), false);
+  assert.deepEqual(app.store.loadDeviceMetadata().pendingDomains, ["sharedArtifact"]);
+  assert.deepEqual(app.store.loadDeviceMetadata().pendingSharedHandoff, pendingSharedHandoff);
   app.controller.destroy();
 });
 
@@ -972,7 +1134,7 @@ test("returning verification stays closed when the required shared pair cannot l
     await settle();
 
     assert.equal(app.controller.getSyncPresentation().status, expectedStatus, sharedStatus);
-    assert.notEqual(app.controller.getSetupModel().current, "complete", sharedStatus);
+    assert.notEqual(app.controller.getSetupModel().current, "ready", sharedStatus);
     assert.notEqual(app.controller.getRoomPresentation().status, "ready", sharedStatus);
     app.controller.destroy();
   }

@@ -127,7 +127,7 @@ function actionsDouble(overrides = {}) {
     "continueWithGoogle",
     "useAccount",
     "useDifferentAccount",
-    "choosePlanFile",
+    "openSchedule",
     "confirmPlanPreview",
     "createRoom",
     "redeemInvite",
@@ -153,12 +153,12 @@ function actionsDouble(overrides = {}) {
 
 function completeModel(overrides = {}) {
   return model({
-    current: "complete",
-    completed: ["account", "teacher", "plan", "room", "upload", "verify"],
-    account: { status: "confirmed", displayName: "Kenny", maskedEmail: "k***@example.com" },
+    current: "ready",
+    completed: ["account", "teacher", "schedule", "sync", "verify"],
+    account: { status: "confirmed", displayName: "Teacher Alpha", maskedEmail: "t***@example.com" },
     plan: {
       status: "confirmed",
-      teacherName: "Kenny",
+      teacherName: "Teacher Alpha",
       cycleDayCount: 5,
       eventCount: 12,
       dateRange: "August 20, 2026 to June 4, 2027",
@@ -185,12 +185,12 @@ test("account setup presents one mature current action and a temporary demo", ()
 
 test("setup rail marks known prior steps and keeps the current action first", () => {
   const { actions } = actionsDouble();
-  const view = buildSetupView(model({ current: "plan", completed: ["account", "teacher"] }), actions, { document: documentDouble });
+  const view = buildSetupView(model({ current: "schedule", completed: ["account", "teacher"] }), actions, { document: documentDouble });
   const rail = findAll(view, (node) => node.tagName === "ol" && node.hasAttribute("aria-label"))[0];
   assert.ok(rail);
   assert.equal(findAll(rail, (node) => node.hasAttribute("aria-current") && node.getAttribute("aria-current") === "step").length, 1);
   const html = serialize(view);
-  assert.ok(html.indexOf("Choose private teacher plan") < html.indexOf("Setup help"));
+  assert.ok(html.indexOf("Build your schedule") < html.indexOf("Setup help"));
 });
 
 test("390px setup puts the current primary control before the detailed rail and focus query finds it", () => {
@@ -211,14 +211,14 @@ test("teacher step displays only the supplied safe account fields and wires both
   const view = buildSetupView(model({
     current: "teacher",
     completed: ["account"],
-    account: { status: "observed", displayName: "Kenny", maskedEmail: "k***@example.com" }
+    account: { status: "observed", displayName: "Teacher Alpha", maskedEmail: "t***@example.com" }
   }), actions, { document: documentDouble });
   const buttons = findAll(view, (node) => node.tagName === "button");
   buttons.find((node) => node.textContent === "Use this account").click();
   buttons.find((node) => node.textContent === "Use a different account").click();
   assert.deepEqual(calls.map(([name]) => name), ["useAccount", "useDifferentAccount"]);
-  assert.match(textOf(view), /Kenny/);
-  assert.match(textOf(view), /k\*\*\*@example\.com/);
+  assert.match(textOf(view), /Teacher Alpha/);
+  assert.match(textOf(view), /t\*\*\*@example\.com/);
   assert.doesNotMatch(textOf(view), /uid|accessToken/i);
 });
 
@@ -233,15 +233,30 @@ test("pending account state does not imply authentication completion", () => {
   assert.match(textOf(view), /waiting for Google|observed/i);
 });
 
-test("plan step keeps local preview separate from cloud upload", () => {
+test("missing schedule offers a plain language builder without a file picker", () => {
   const { actions, calls } = actionsDouble();
   const view = buildSetupView(model({
-    current: "plan",
+    current: "schedule",
     completed: ["account", "teacher"],
-    account: { status: "confirmed", displayName: "Kenny", maskedEmail: "k***@example.com" },
+    account: { status: "confirmed", displayName: "Teacher Alpha", maskedEmail: "t***@example.com" }
+  }), actions, { document: documentDouble });
+
+  findAll(view, (node) => node.tagName === "button" && node.textContent === "Build my schedule")[0].click();
+
+  assert.deepEqual(calls, [["openSchedule"]]);
+  assert.equal(findAll(view, (node) => node.tagName === "input" && node.getAttribute("type") === "file").length, 0);
+  assert.doesNotMatch(textOf(view), /JSON|schema|migration/i);
+});
+
+test("schedule step summarizes a local preview and keeps it separate from cloud sync", () => {
+  const { actions, calls } = actionsDouble();
+  const view = buildSetupView(model({
+    current: "schedule",
+    completed: ["account", "teacher"],
+    account: { status: "confirmed", displayName: "Teacher Alpha", maskedEmail: "t***@example.com" },
     plan: {
       status: "preview",
-      teacherName: "Kenny",
+      teacherName: "Teacher Alpha",
       cycleDayCount: 5,
       eventCount: 12,
       dateRange: "August 20, 2026 to June 4, 2027",
@@ -249,25 +264,24 @@ test("plan step keeps local preview separate from cloud upload", () => {
       warnings: ["One event needs review"]
     }
   }), actions, { document: documentDouble });
-  const picker = findAll(view, (node) => node.tagName === "input" && node.getAttribute("type") === "file")[0];
-  picker.files = [{ name: "private-plan.json" }];
-  picker.listeners.get("change")?.({ currentTarget: picker });
-  findAll(view, (node) => node.tagName === "button" && node.textContent === "Confirm plan preview")[0].click();
-  assert.deepEqual(calls.map(([name]) => name), ["choosePlanFile", "confirmPlanPreview"]);
+  findAll(view, (node) => node.tagName === "button" && node.textContent === "Use this schedule")[0].click();
+  assert.deepEqual(calls.map(([name]) => name), ["confirmPlanPreview"]);
   assert.equal(calls.some(([name]) => name === "uploadAndVerify"), false);
-  assert.match(textOf(view), /does not upload|private teacher information/i);
+  assert.match(textOf(view), /Teacher Alpha|5|12|August 20, 2026/);
   assert.match(textOf(view), /One event needs review/);
+  assert.equal(findAll(view, (node) => node.tagName === "input" && node.getAttribute("type") === "file").length, 0);
+  assert.doesNotMatch(textOf(view), /JSON|schema|migration/i);
 });
 
-test("cloud-found plan still has an explicit current confirmation action", () => {
+test("cloud-found schedule has an explicit saved schedule action", () => {
   const { actions, calls } = actionsDouble();
   const view = buildSetupView(model({
-    current: "plan",
+    current: "schedule",
     completed: ["account", "teacher"],
-    account: { status: "confirmed", displayName: "Kenny", maskedEmail: "k***@example.com" },
+    account: { status: "confirmed", displayName: "Teacher Alpha", maskedEmail: "t***@example.com" },
     plan: {
       status: "cloud-found",
-      teacherName: "Kenny",
+      teacherName: "Teacher Alpha",
       cycleDayCount: 5,
       eventCount: 12,
       dateRange: "August 20, 2026 to June 4, 2027",
@@ -275,66 +289,25 @@ test("cloud-found plan still has an explicit current confirmation action", () =>
       warnings: []
     }
   }), actions, { document: documentDouble });
-  assert.match(textOf(view), /Plan found in CIRC Cloud/);
-  findAll(view, (node) => node.tagName === "button" && node.textContent === "Use plan found in CIRC Cloud")[0].click();
+  findAll(view, (node) => node.tagName === "button" && node.textContent === "Use saved cloud schedule")[0].click();
   assert.deepEqual(calls, [["confirmPlanPreview"]]);
+  assert.doesNotMatch(textOf(view), /JSON|schema|migration/i);
 });
 
-test("room invitation input is transient and cleared after redemption", () => {
+test("private sync and verification expose only their own current mutation", () => {
   const { actions, calls } = actionsDouble();
-  const view = buildSetupView(model({
-    current: "room",
-    completed: ["account", "teacher", "plan"],
-    room: { status: "missing", name: null, role: null }
-  }), actions, { document: documentDouble });
-  const input = findAll(view, (node) => node.tagName === "input" && node.getAttribute("type") === "text")[0];
-  input.value = "RAW-INVITE-CODE";
-  findAll(view, (node) => node.tagName === "button" && node.textContent === "Join CIRC room")[0].click();
-  assert.deepEqual(calls, [["redeemInvite", "RAW-INVITE-CODE"]]);
-  assert.equal(input.value, "");
-  assert.doesNotMatch(serialize(view), /RAW-INVITE-CODE/);
-});
-
-test("empty invitation submission gives an explicit safe status", () => {
-  const { actions, calls } = actionsDouble();
-  const view = buildSetupView(model({ current: "room", completed: ["account", "teacher", "plan"] }), actions, { document: documentDouble });
-  findAll(view, (node) => node.tagName === "button" && node.textContent === "Join CIRC room")[0].click();
-  assert.deepEqual(calls, []);
-  assert.match(textOf(view), /Enter the one-time invitation code/);
-});
-
-test("room owner sees the transient invitation after the room step rerenders", () => {
-  const { actions } = actionsDouble();
-  const view = buildSetupView(model({
-    current: "upload",
-    completed: ["account", "teacher", "plan", "room"],
-    room: {
-      status: "owner",
-      name: "Shared CIRC Room",
-      role: "owner",
-      inviteCode: VALID_INVITE_CODE
-    }
-  }), actions, { document: documentDouble });
-
-  assert.match(textOf(view), new RegExp(VALID_INVITE_CODE));
-  const code = findAll(view, (node) => node.tagName === "code")[0];
-  assert.equal(code?.textContent, VALID_INVITE_CODE);
-  assert.match(textOf(view), /other teacher/i);
-  assert.match(textOf(view), /does not save raw invitation codes/i);
-});
-
-test("upload and verification steps expose only their own current mutation", () => {
-  const { actions, calls } = actionsDouble();
-  const upload = buildSetupView(model({ current: "upload", completed: ["account", "teacher", "plan", "room"] }), actions, { document: documentDouble });
-  findAll(upload, (node) => node.tagName === "button" && node.textContent === "Upload and verify")[0].click();
+  const sync = buildSetupView(model({ current: "sync", completed: ["account", "teacher", "schedule"] }), actions, { document: documentDouble });
+  findAll(sync, (node) => node.tagName === "button" && node.textContent === "Turn on private sync")[0].click();
   assert.deepEqual(calls, [["uploadAndVerify"]]);
-  const verify = buildSetupView(model({ current: "verify", completed: ["account", "teacher", "plan", "room", "upload"], sync: { status: "attention", lastVerifiedAt: null, pendingDomains: ["plan"], conflictDomains: [] } }), actions, { document: documentDouble });
+  assert.match(textOf(sync), /private teacher data/i);
+  assert.doesNotMatch(textOf(sync), /shared|room|artifact/i);
+  const verify = buildSetupView(model({ current: "verify", completed: ["account", "teacher", "schedule", "sync"], sync: { status: "attention", lastVerifiedAt: null, pendingDomains: ["plan"], conflictDomains: [] } }), actions, { document: documentDouble });
   const status = findAll(verify, (node) => node.getAttribute("role") === "status")[0];
   assert.equal(status.getAttribute("aria-live"), "polite");
   assert.match(textOf(status), /Sync needs attention/);
 });
 
-test("complete step shows summary and wires the three safe destinations", () => {
+test("ready step shows summary, explains optional room setup, and wires the safe destinations", () => {
   const { actions, calls } = actionsDouble();
   const view = buildSetupView(completeModel(), actions, { document: documentDouble });
   for (const label of ["Open Today", "Preview an experience", "Setup help"]) {
@@ -344,7 +317,21 @@ test("complete step shows summary and wires the three safe destinations", () => 
     assert.equal(findAll(view, (node) => node.tagName === "button" && node.textContent === label).length, 1);
   }
   assert.deepEqual(calls.map(([name]) => name), ["openToday", "previewExperience", "openSetupHelp"]);
-  assert.match(textOf(view), /Kenny|Cycle Day 2|CIRC Room|preserved/i);
+  assert.match(textOf(view), /Teacher Alpha|Cycle Day 2|preserved/i);
+  assert.match(textOf(view), /Room is optional|Setup help/i);
+});
+
+test("room controls appear only in optional setup help", () => {
+  const { actions } = actionsDouble();
+  for (const current of ["account", "teacher", "schedule", "sync", "verify", "ready"]) {
+    const completed = ["account", "teacher", "schedule", "sync", "verify"].slice(0, Math.max(0, ["account", "teacher", "schedule", "sync", "verify", "ready"].indexOf(current)));
+    const view = buildSetupView(model({ current, completed }), actions, { document: documentDouble });
+    assert.equal(findAll(view, (node) => node.tagName === "button" && ["Create CIRC room", "Join CIRC room"].includes(node.textContent)).length, 0);
+  }
+
+  const help = buildSetupHelpView(completeModel({ room: { status: "missing", name: null, role: null } }), actions, { document: documentDouble });
+  assert.match(textOf(help), /optional room/i);
+  assert.ok(findAll(help, (node) => node.tagName === "button" && node.textContent === "Create CIRC room")[0]);
 });
 
 test("demo help exposes one enabled exit and no mutation controls", () => {
@@ -410,9 +397,9 @@ test("plan conflict controls stay disabled when no plan conflict exists", () => 
 test("invalid setup model and missing callbacks fail closed", () => {
   const { actions } = actionsDouble();
   assert.throws(() => buildSetupView(model({ mode: "unknown" }), actions, { document: documentDouble }), /setup-model-invalid/);
-  assert.throws(() => buildSetupView(model({ current: "plan", completed: ["teacher", "account"] }), actions, { document: documentDouble }), /setup-model-invalid/);
+  assert.throws(() => buildSetupView(model({ current: "schedule", completed: ["teacher", "account"] }), actions, { document: documentDouble }), /setup-model-invalid/);
   const missing = { ...actions };
-  delete missing.exitDemo;
+  delete missing.openSchedule;
   assert.throws(() => buildSetupHelpView(model({ mode: "demo" }), missing, { document: documentDouble }), /setup-actions-invalid/);
   assert.throws(() => buildSetupView(model({ notice: { kind: "error", text: { raw: "unsafe" } } }), actions, { document: documentDouble }), /setup-model-invalid/);
   assert.throws(() => buildSetupView(model({ notice: { kind: "error", text: "safe", raw: "unsafe" } }), actions, { document: documentDouble }), /setup-model-invalid/);

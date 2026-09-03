@@ -1,5 +1,16 @@
 import { admitLocalState, buildBoardProjection } from "./model/access.js";
 import { buildAdminPlanDocument } from "./model/admin-plan.js";
+import {
+  clearLocalAnnouncementDraft,
+  evaluateAnnouncementDraft,
+  loadLocalAnnouncementDraft,
+  resetAnnouncementDraft,
+  saveLocalAnnouncementDraft,
+  setAnnouncementCheck,
+  setAnnouncementTeacherReview,
+  updateAnnouncementDetails,
+  updateAnnouncementSection
+} from "./model/announcements.js";
 import { EXPERIENCE_TIMING_PLANS } from "./model/experience-timing-plans.js";
 import {
   advanceExperienceRunnerClock,
@@ -9,6 +20,17 @@ import {
   validateExperienceRunner
 } from "./model/experience-runner.js";
 import { PROJECTS, getProjectByNumber } from "./model/project-catalog.js";
+import {
+  addScheduleEvent,
+  compileScheduleDraft,
+  copyScheduleDay,
+  createBlankScheduleDraft,
+  createScheduleDraftFromPlan,
+  duplicateScheduleEvent,
+  editScheduleEvent,
+  removeScheduleEvent
+} from "./model/schedule-editor.js";
+import { generateEventId } from "./model/schema-admission.js";
 import {
   TECH_TERRARIUM_ARTIFACT_ID,
   createTechTerrariumArtifact,
@@ -22,7 +44,12 @@ import { createCloudRuntimeController } from "./runtime/cloud-runtime.js";
 import { createBrowserFirebaseClient, createFirebaseClient } from "./storage/firebase-adapter.js";
 import { LocalStore } from "./storage/local-store.js";
 import { buildBoardView } from "./ui/board.js";
+import {
+  buildAnnouncementsLiveView,
+  buildAnnouncementsWorkflow
+} from "./ui/announcements.js";
 import { buildRoomView } from "./ui/room.js";
+import { buildScheduleEditor } from "./ui/schedule-editor.js";
 import { advanceProjectProgress, buildProjectHomeView } from "./ui/project-home.js";
 import {
   applyPlanImport,
@@ -187,9 +214,15 @@ function welcomeRoute(actions) {
     text: presentation.setupAction,
     attributes: { type: "button" }
   });
-  setup.addEventListener("click", actions.openSetup);
-  const preview = element("button", {
+  setup.addEventListener("click", actions.openSchedule);
+  const sync = element("button", {
     className: "secondary-action welcome-secondary",
+    text: presentation.syncAction,
+    attributes: { type: "button" }
+  });
+  sync.addEventListener("click", actions.openCloudSetup);
+  const preview = element("button", {
+    className: "welcome-preview-action",
     text: presentation.previewAction,
     attributes: { type: "button" }
   });
@@ -211,7 +244,8 @@ function welcomeRoute(actions) {
       element("p", { className: "eyebrow", text: presentation.eyebrow }),
       element("h1", { text: presentation.title }),
       element("p", { className: "welcome-description", text: presentation.description }),
-      element("div", { className: "welcome-actions" }, [setup, preview])
+      element("div", { className: "welcome-actions" }, [setup, sync, preview]),
+      element("p", { className: "welcome-privacy", text: "Schedules stay private to the signed-in teacher." })
     ])
   ]);
 }
@@ -763,9 +797,7 @@ function experienceRunnerRoute(project, runner, actions, artifactContext = null)
     "runner-control runner-primary-control",
     () => actions.applyRunnerAction(ready ? "start" : paused ? "resume" : "pause")
   );
-  const controls = actions.previewOnly
-    ? []
-    : detourActive
+  const controls = detourActive
       ? [
           actionButton("Add 2 minutes", "runner-control", () => actions.applyRunnerAction("add-detour-time")),
           actionButton("Return to build", "runner-control runner-primary-control", () => actions.applyRunnerAction("return-to-build")),
@@ -779,7 +811,7 @@ function experienceRunnerRoute(project, runner, actions, artifactContext = null)
             actionButton("Previous", "runner-control", () => actions.applyRunnerAction("previous")),
             actionButton(lastStep ? "Finish Lesson" : "Next Step", "runner-control runner-next", () => actions.applyRunnerAction(lastStep ? "finish" : "next"))
           ];
-  const supportControls = actions.previewOnly || paused || ready || detourActive
+  const supportControls = paused || ready || detourActive
     ? []
     : [actionButton("Question Detour", "runner-control runner-detour-control", () => actions.applyRunnerAction("start-detour"))];
   const teacherDirections = runnerTeacherDirections(step);
@@ -920,9 +952,12 @@ function buildToday(model, actions, options) {
   if (options.artifactContext) {
     children.push(sharedArtifactCard(options.artifactContext, actions));
   }
-  children.push(buildIndependencePath(projectView));
-  children.push(buildProjectTrail(projectView, actions));
-  children.push(buildFastFinish(projectView));
+  children.push(element("details", { className: "today-plan-ahead" }, [
+    element("summary", { text: "Plan ahead" }),
+    buildIndependencePath(projectView),
+    buildProjectTrail(projectView, actions),
+    buildFastFinish(projectView)
+  ]));
 
   if (presentation.dashboard) {
     children.push(buildTimeline(presentation.dashboard.timeline, actions.toggleTimeline));
@@ -1021,6 +1056,30 @@ function projectsRoute(actions) {
         element("h1", { text: "All 36 Experiences" }),
         element("p", { className: "date-line", text: "Thirty-six separate experiences for grades 5 and 6" })
       ])
+    ]),
+    element("section", {
+      className: "announcements-feature",
+      attributes: { "aria-labelledby": "announcements-feature-heading" }
+    }, [
+      element("div", { className: "announcements-feature-copy" }, [
+        element("p", { className: "section-kicker", text: "Featured Grade 6 tool" }),
+        element("h2", {
+          text: "Grade 6 Morning Announcements",
+          attributes: { id: "announcements-feature-heading" }
+        }),
+        element("p", {
+          text: "A clear rite of passage workflow for preparing, rehearsing, reviewing, and delivering the school broadcast."
+        }),
+        element("p", {
+          className: "announcements-feature-note",
+          text: "The draft stays on this device. Add approved broadcast wording only, and keep student rosters somewhere private."
+        })
+      ]),
+      actionButton(
+        "Open announcement studio",
+        "primary-action announcements-feature-action",
+        actions.openAnnouncements
+      )
     ]),
     element("div", { className: "project-library" }, cards)
   ]);
@@ -1207,25 +1266,39 @@ function roomRoute(state, cloudPresentation = null) {
   ]);
 }
 
-function scheduleRoute(state, navigate) {
-  const plan = state.plan;
-  const teacherCount = Array.isArray(plan?.teachers) ? plan.teachers.length : 0;
-  const button = element("button", { className: "primary-action", text: "Open schedule settings", attributes: { type: "button" } });
-  button.addEventListener("click", () => navigate("settings"));
-  return element("section", { attributes: { "data-view": "schedule" } }, [
-    element("div", { className: "page-heading" }, [
-      element("div", {}, [
-        element("p", { className: "eyebrow", text: "The Playbook" }),
-        element("h1", { text: "Schedule" }),
-        element("p", { className: "date-line", text: teacherCount ? `${teacherCount} teacher schedule loaded` : "Schedule not loaded yet" })
+function scheduleRoute(context) {
+  const teacherButtons = context.teachers.length > 1
+    ? element("div", {
+        className: "schedule-teacher-switcher",
+        attributes: { "aria-label": "Choose teacher schedule" }
+      }, [
+        element("span", { text: "Editing schedule for" }),
+        ...context.teachers.map((teacher) => {
+          const button = element("button", {
+            className: "secondary-action",
+            text: teacher.name || "Teacher",
+            attributes: {
+              type: "button",
+              "aria-pressed": String(teacher.id === context.selectedTeacherId)
+            }
+          });
+          button.addEventListener("click", () => context.onSelectTeacher(teacher.id));
+          return button;
+        })
       ])
-    ]),
-    element("section", { className: "setup-card" }, [
-      element("h2", { text: "Safe schedule changes" }),
-      element("p", { text: "Preview imports and calendar changes in Settings before applying them." }),
-      button
-    ])
-  ]);
+    : null;
+  const status = context.status
+    ? element("p", {
+        className: "schedule-editor-status",
+        text: context.status,
+        attributes: { role: "status", "aria-live": "polite" }
+      })
+    : null;
+  const editor = buildScheduleEditor(context.editor, { document });
+  return element("section", {
+    className: "schedule-route",
+    attributes: { "data-view": "schedule" }
+  }, [teacherButtons, status, editor].filter(Boolean));
 }
 
 function recoveryRoute(context) {
@@ -1327,12 +1400,24 @@ function settingsRoute(context) {
     className: "import-message",
     text: readOnly
       ? "Read-only preview. Set up this device before importing or applying changes."
-      : context.privateSeedMessage || "Choose a supported teacher-plan JSON file to preview changes.",
+      : context.privateSeedMessage || "Choose a saved CIRC schedule backup to preview it.",
     attributes: { role: "status", "aria-live": "polite" }
   });
   const applyButton = element("button", {
     className: "primary-action",
     text: "Apply",
+    attributes: { type: "button", disabled: "" }
+  });
+  const calendarMessage = element("p", {
+    className: "calendar-change-message",
+    text: readOnly
+      ? "Set up this device before changing the calendar."
+      : "Choose a date and an action. Nothing changes until Save calendar change is selected.",
+    attributes: { role: "status", "aria-live": "polite" }
+  });
+  const calendarApplyButton = element("button", {
+    className: "primary-action calendar-change-apply",
+    text: "Save calendar change",
     attributes: { type: "button", disabled: "" }
   });
   const picker = element("input", {
@@ -1345,7 +1430,7 @@ function settingsRoute(context) {
   });
   const pickerLabel = element("label", {
     className: "file-picker-label",
-    text: "Choose teacher plan file",
+    text: "Choose CIRC schedule backup",
     attributes: { for: "teacher-plan-file" }
   });
 
@@ -1353,6 +1438,7 @@ function settingsRoute(context) {
     if (readOnly) return;
     context.previewToken = null;
     applyButton.setAttribute("disabled", "");
+    calendarApplyButton.setAttribute("disabled", "");
     const file = picker.files?.[0];
     if (!file) {
       importMessage.textContent = "No file selected. Existing local data was not changed.";
@@ -1365,9 +1451,10 @@ function settingsRoute(context) {
       if (!preview.ok) throw new Error("unsupported");
       context.previewToken = preview.previewToken;
       applyButton.removeAttribute("disabled");
-      importMessage.textContent = `Preview changes: ${preview.summary.teacherCount} teacher view(s), ${preview.summary.eventCount} scheduled event(s), ${preview.summary.addedCount} added, ${preview.summary.removedCount} removed, ${preview.summary.changedCount} changed.`;
+      calendarApplyButton.setAttribute("disabled", "");
+      importMessage.textContent = `Backup preview ready: ${preview.summary.teacherCount} teacher schedule(s) and ${preview.summary.eventCount} time block(s). Nothing has changed yet.`;
     } catch {
-      importMessage.textContent = "This file is unsupported or invalid. Existing local data was not changed. Check local migration options for a private v1 file.";
+      importMessage.textContent = "That backup could not be opened. The current schedule was not changed.";
     }
   });
 
@@ -1382,19 +1469,37 @@ function settingsRoute(context) {
     context.replaceState(result.state, { domains: ["plan"], alreadyPersisted: true });
     context.previewToken = null;
     applyButton.setAttribute("disabled", "");
-    importMessage.textContent = "Validated plan applied on this browser.";
+    calendarApplyButton.setAttribute("disabled", "");
+    importMessage.textContent = "Schedule backup restored on this browser.";
   });
 
   const stage = (preview) => {
+    if (readOnly) return;
     context.previewToken = preview.ok ? preview.previewToken : null;
+    applyButton.setAttribute("disabled", "");
     if (preview.ok) {
-      applyButton.removeAttribute("disabled");
-      importMessage.textContent = "Preview changes is ready. Select Apply to save it.";
+      calendarApplyButton.removeAttribute("disabled");
+      calendarMessage.textContent = "Calendar change ready for review. Select Save calendar change to keep it.";
     } else {
-      applyButton.setAttribute("disabled", "");
-      importMessage.textContent = "That change could not be previewed. Existing local data was not changed.";
+      calendarApplyButton.setAttribute("disabled", "");
+      calendarMessage.textContent = "That calendar change could not be prepared. Existing local data was not changed.";
     }
   };
+
+  calendarApplyButton.addEventListener("click", () => {
+    if (readOnly) return;
+    if (!context.previewToken) return;
+    const result = applyPlanImport(context.store, context.previewToken);
+    if (!result.ok) {
+      calendarMessage.textContent = "Saving needs the current calendar preview. Prepare the change again.";
+      return;
+    }
+    context.replaceState(result.state, { domains: ["plan"], alreadyPersisted: true });
+    context.previewToken = null;
+    applyButton.setAttribute("disabled", "");
+    calendarApplyButton.setAttribute("disabled", "");
+    calendarMessage.textContent = "Calendar change saved on this browser.";
+  });
 
   const closureDate = element("input", { attributes: { type: "date", "aria-label": "Closure date" } });
   const closureButton = element("button", { text: "Add closure", attributes: { type: "button" } });
@@ -1446,60 +1551,70 @@ function settingsRoute(context) {
   });
   scheduleButton.addEventListener("click", () => context.navigate("schedule"));
 
-  const cloudHelpButton = element("button", {
+  const syncSetupButton = element("button", {
     className: "secondary-action",
-    text: "Open Setup help",
+    text: "Open sync setup",
     attributes: { type: "button" }
   });
-  cloudHelpButton.addEventListener("click", context.openSetupHelp);
+  syncSetupButton.addEventListener("click", () => context.navigate("setup"));
 
-  return element("section", {}, [
-    element("div", { className: "page-heading" }, [
-      element("div", {}, [
-        element("p", { className: "eyebrow", text: "The K-6 Playbook" }),
-        element("h1", { text: "Teacher Setup" }),
-        element("p", { className: "date-line", text: "Local setup and compatibility" })
-      ])
-    ]),
-    element("div", { className: "settings-grid" }, [
+  const advancedBackup = element("details", { className: "schedule-editor-advanced" }, [
+    element("summary", { text: "Advanced backup and restore" }),
+    element("div", { className: "advanced-settings-body" }, [
       element("section", {}, [
-        element("h2", { text: "Import schedule" }),
+        element("h3", { text: "Restore a saved schedule" }),
         importMessage,
         pickerLabel,
         picker,
         applyButton
       ]),
       element("section", {}, [
-        element("h2", { text: "Schedule" }),
-        element("p", { text: "Review the currently loaded schedule without adding it to primary navigation." }),
+        element("h3", { text: "Save a backup" }),
+        element("p", { text: "Download a safety copy before a major change." }),
+        exportButton
+      ])
+    ])
+  ]);
+
+  return element("section", {}, [
+    element("div", { className: "page-heading" }, [
+      element("div", {}, [
+        element("p", { className: "eyebrow", text: "The Playbook" }),
+        element("h1", { text: "Settings" }),
+        element("p", { className: "date-line", text: "Schedule, private sync, and safe backups" })
+      ])
+    ]),
+    element("div", { className: "settings-grid" }, [
+      element("section", {}, [
+        element("h2", { text: "Your schedule" }),
+        element("p", { text: "Add classes, duties, lunch, and prep with a simple form." }),
         scheduleButton
       ]),
       element("section", {}, [
+        element("h2", { text: "Private sync" }),
+        element("p", { text: context.syncPresentation.label }),
+        element("p", { className: "settings-note", text: "Sign in once on each device so the same teacher plan follows you." }),
+        syncSetupButton
+      ]),
+      element("section", {}, [
         element("h2", { text: "Calendar overrides" }),
+        element("p", { text: "Record a closing, makeup day, cycle change, or one-day event." }),
         element("div", { className: "settings-row" }, [closureDate, closureButton]),
         element("div", { className: "settings-row" }, [makeupDate, makeupStatus, makeupButton]),
         element("div", { className: "settings-row" }, [cycleDate, cycleDay, cycleButton]),
-        element("div", { className: "settings-row" }, [specialDate, specialLabel, specialButton])
-      ]),
-      element("section", {}, [
-        element("h2", { text: "Backup" }),
-        element("p", { text: "Export a complete local backup before a major change." }),
-        exportButton
-      ]),
-      element("section", {}, [
-        element("h2", { text: "Cloud activation status" }),
-        element("p", { text: context.syncPresentation.label }),
-        cloudHelpButton
+        element("div", { className: "settings-row" }, [specialDate, specialLabel, specialButton]),
+        element("div", { className: "calendar-change-review" }, [calendarMessage, calendarApplyButton])
       ]),
       element("section", {}, [
         element("h2", { text: "Weather resource" }),
-        element("p", { text: "Forecast data is provided by Open-Meteo when available." }),
+        element("p", { text: "Bus-duty weather uses Open-Meteo when a forecast is available." }),
         element("a", {
           className: "attribution-link",
           text: "Open-Meteo attribution",
           attributes: { href: "https://open-meteo.com/", target: "_blank", rel: "noreferrer" }
         })
-      ])
+      ]),
+      advancedBackup
     ])
   ]);
 }
@@ -1510,7 +1625,7 @@ export function renderApp(root, services = {}) {
   const loaded = store.load();
   let state = loaded.state;
   let recoveryStatus = loaded.status;
-  let route = recoveryStatus === "unrecoverable" ? "recovery" : state.plan ? "today" : "setup";
+  let route = recoveryStatus === "unrecoverable" ? "recovery" : state.plan ? "today" : "welcome";
   let selectedTeacherId =
     services.teacherId ??
     state.preferences?.teacherId ??
@@ -1528,6 +1643,13 @@ export function renderApp(root, services = {}) {
   let previewRunner = null;
   let setupImportAllowed = false;
   let privateSeedMessage = "";
+  let scheduleDraft = null;
+  let scheduleTeacherId = null;
+  let scheduleSelectedCycleDay = 1;
+  let scheduleCopyTargetDay = 2;
+  let scheduleErrors = [];
+  let scheduleStatus = "";
+  let scheduleReturnRoute = null;
   let timelineExpanded = false;
   let pendingArtifactHandoff = null;
   let lastBoundaryKey = "";
@@ -1542,6 +1664,14 @@ export function renderApp(root, services = {}) {
   const navSnapshots = navButtons.map((button) => snapshotAttributes(button));
 
   const now = () => services.clock?.now?.() ?? new Date();
+  const announcementStorage = services.announcementStorage ?? globalThis.window?.localStorage ?? null;
+  const loadedAnnouncement = loadLocalAnnouncementDraft(announcementStorage, {
+    date: localDateKey(now())
+  });
+  let announcementDraft = loadedAnnouncement.draft;
+  let announcementStatus = loadedAnnouncement.status === "invalid"
+    ? "The saved announcement draft could not be read. A fresh local draft is open, and the unreadable saved value was left untouched."
+    : "";
 
   function adoptPersistedState(nextState) {
     state = admitLocalState(nextState);
@@ -1602,6 +1732,10 @@ export function renderApp(root, services = {}) {
         route = "setup-help";
         render();
       },
+      openSchedule: () => {
+        scheduleReturnRoute = "setup";
+        navigate("schedule");
+      },
       enterDemo: () => {
         previewOnly = true;
         configuredPreview = false;
@@ -1610,7 +1744,7 @@ export function renderApp(root, services = {}) {
       },
       exitDemo: () => {
         previewOnly = !state.plan;
-        route = "setup";
+        route = state.plan ? "today" : "welcome";
       },
       returnToSetup: () => {
         route = "setup";
@@ -1735,7 +1869,6 @@ export function renderApp(root, services = {}) {
 
   function reconcileRunner() {
     const runner = selectedRunner();
-    if (previewOnly) return { runner, changed: false };
     if (!runner || (runner.timer.status !== "running" && runner.timer.status !== "step-expired")) {
       return { runner, changed: false };
     }
@@ -1789,7 +1922,6 @@ export function renderApp(root, services = {}) {
   }
 
   function applyRunnerAction(action) {
-    if (previewOnly) return;
     const { runner } = reconcileRunner();
     if (!runner) return;
     if (action === "finish") {
@@ -1971,7 +2103,7 @@ export function renderApp(root, services = {}) {
   }
 
   function setNavigation() {
-    const activeRoute = ["project-teacher", "project-student"].includes(route)
+    const activeRoute = ["project-teacher", "project-student", "announcements", "announcements-live"].includes(route)
       ? "projects"
       : route;
     for (const button of navButtons) {
@@ -2098,9 +2230,334 @@ export function renderApp(root, services = {}) {
     render();
   }
 
+  function updateAnnouncementDraft(update, { rerender = true } = {}) {
+    try {
+      const wasApproved = announcementDraft.teacherReview?.approved === true;
+      announcementDraft = update(announcementDraft);
+      announcementStatus = "Changes are local to this device. Choose Save local draft when ready.";
+      if (rerender || wasApproved) render();
+    } catch (error) {
+      announcementStatus = error instanceof Error ? error.message : "The announcement draft could not be updated.";
+      render();
+    }
+  }
+
+  function saveAnnouncementDraft() {
+    try {
+      announcementDraft = saveLocalAnnouncementDraft(announcementStorage, announcementDraft);
+      announcementStatus = "Saved on this device only.";
+    } catch (error) {
+      announcementStatus = error instanceof Error ? error.message : "The local announcement draft could not be saved.";
+    }
+    render();
+  }
+
+  function clearAnnouncementDraft() {
+    const message = "Start a blank announcement draft? The current local draft will be removed from this device.";
+    const confirmed = typeof services.confirmClearAnnouncement === "function"
+      ? Boolean(services.confirmClearAnnouncement(message))
+      : typeof globalThis.window?.confirm === "function"
+        ? globalThis.window.confirm(message)
+        : false;
+    if (!confirmed) return;
+    try {
+      clearLocalAnnouncementDraft(announcementStorage);
+      announcementDraft = resetAnnouncementDraft(announcementDraft, { date: localDateKey(now()) });
+      announcementStatus = "Blank local draft ready.";
+    } catch (error) {
+      announcementStatus = error instanceof Error
+        ? error.message
+        : "The local announcement draft could not be cleared on this device.";
+    }
+    render();
+  }
+
+  function openAnnouncementBroadcast() {
+    if (!evaluateAnnouncementDraft(announcementDraft).canGoLive) {
+      announcementStatus = "Finish preparation and rehearsal, then record teacher approval before going live.";
+      render();
+      return;
+    }
+    announcementDraft = setAnnouncementCheck(
+      announcementDraft,
+      "go-live",
+      "broadcastComplete",
+      true
+    );
+    try {
+      announcementDraft = saveLocalAnnouncementDraft(announcementStorage, announcementDraft);
+      announcementStatus = "Broadcast marked complete in this local draft.";
+    } catch {
+      announcementStatus = "Broadcast view is ready. Local storage is unavailable, so this update was not saved.";
+    }
+    navigate("announcements-live");
+  }
+
+  function announcementWorkflow() {
+    return buildAnnouncementsWorkflow({
+      draft: announcementDraft,
+      status: announcementStatus,
+      callbacks: {
+        onDetailChange: (field, value) => updateAnnouncementDraft(
+          (draft) => updateAnnouncementDetails(draft, { [field]: value }),
+          { rerender: false }
+        ),
+        onSectionChange: (section, value) => updateAnnouncementDraft(
+          (draft) => updateAnnouncementSection(draft, section, value),
+          { rerender: false }
+        ),
+        onChecklistChange: (phaseId, itemId, complete) => updateAnnouncementDraft(
+          (draft) => setAnnouncementCheck(draft, phaseId, itemId, complete)
+        ),
+        onTeacherReviewChange: (approved) => updateAnnouncementDraft(
+          (draft) => setAnnouncementTeacherReview(draft, approved)
+        ),
+        onSaveLocalDraft: saveAnnouncementDraft,
+        onClearLocalDraft: clearAnnouncementDraft,
+        onGoLive: openAnnouncementBroadcast
+      }
+    }, { document });
+  }
+
+  function newPrivateTeacherId() {
+    const supplied = services.generateTeacherId?.();
+    if (typeof supplied === "string" && supplied.trim()) return supplied;
+    return generateEventId().replace(/^event-/, "teacher-");
+  }
+
+  function resetScheduleEditor() {
+    scheduleDraft = null;
+    scheduleTeacherId = null;
+    scheduleSelectedCycleDay = 1;
+    scheduleCopyTargetDay = 2;
+    scheduleErrors = [];
+    scheduleStatus = "";
+    scheduleReturnRoute = null;
+  }
+
+  function ensureScheduleEditor() {
+    if (scheduleDraft) return;
+    if (state.plan) {
+      scheduleDraft = createScheduleDraftFromPlan(state.plan);
+      scheduleTeacherId = scheduleDraft.teachers.find(({ id }) => id === selectedTeacherId)?.id ??
+        scheduleDraft.teachers[0].id;
+    } else {
+      scheduleTeacherId = newPrivateTeacherId();
+      scheduleDraft = createBlankScheduleDraft({
+        teacherId: scheduleTeacherId,
+        teacherName: "",
+        calendar: {
+          anchorDate: "",
+          anchorDay: 1,
+          lastDate: "",
+          noSchool: [],
+          conditionalMakeup: [],
+          overrides: {}
+        }
+      });
+    }
+  }
+
+  function scheduleTeacher() {
+    ensureScheduleEditor();
+    return scheduleDraft.teachers.find(({ id }) => id === scheduleTeacherId) ?? scheduleDraft.teachers[0];
+  }
+
+  function scheduleUiDraft() {
+    const teacher = scheduleTeacher();
+    return {
+      teacherName: teacher.name ?? "",
+      firstSchoolDate: scheduleDraft.calendar.anchorDate,
+      lastSchoolDate: scheduleDraft.calendar.lastDate,
+      anchorCycleDay: scheduleDraft.calendar.anchorDay,
+      days: teacher.days
+    };
+  }
+
+  function noteScheduleEdit(message = "Unsaved changes") {
+    scheduleErrors = [];
+    scheduleStatus = message;
+  }
+
+  function updateScheduleTeacherName(value) {
+    const next = structuredClone(scheduleDraft);
+    const teacher = next.teachers.find(({ id }) => id === scheduleTeacherId);
+    if (!teacher) return;
+    teacher.name = value;
+    scheduleDraft = next;
+    noteScheduleEdit();
+  }
+
+  function updateScheduleCalendar(field, value) {
+    const next = structuredClone(scheduleDraft);
+    next.calendar[field] = value;
+    scheduleDraft = next;
+    noteScheduleEdit();
+  }
+
+  function addScheduleItem(day, type) {
+    const labels = {
+      teach: "Class",
+      prep: "Prep",
+      lunch: "Lunch",
+      support: "Support",
+      duty: "Duty"
+    };
+    scheduleDraft = addScheduleEvent(scheduleDraft, {
+      teacherId: scheduleTeacherId,
+      cycleDay: day,
+      event: { type, label: labels[type] ?? "Schedule item", start: "", end: "" }
+    });
+    noteScheduleEdit("New schedule item added. Add its time and name.");
+    render();
+  }
+
+  function updateScheduleItem(day, eventId, field, value) {
+    scheduleDraft = editScheduleEvent(scheduleDraft, {
+      teacherId: scheduleTeacherId,
+      cycleDay: day,
+      eventId,
+      changes: { [field]: value }
+    });
+    noteScheduleEdit();
+  }
+
+  function duplicateScheduleItem(day, eventId) {
+    scheduleDraft = duplicateScheduleEvent(scheduleDraft, {
+      teacherId: scheduleTeacherId,
+      cycleDay: day,
+      eventId
+    });
+    noteScheduleEdit("Copy added. Change its name or time before saving.");
+    render();
+  }
+
+  function removeScheduleItem(day, eventId) {
+    scheduleDraft = removeScheduleEvent(scheduleDraft, {
+      teacherId: scheduleTeacherId,
+      cycleDay: day,
+      eventId
+    });
+    noteScheduleEdit("Schedule item removed. Save changes when the day looks right.");
+    render();
+  }
+
+  function copyScheduleToDay(sourceDay, targetDay) {
+    const teacher = scheduleTeacher();
+    const targetHasItems = (teacher.days[String(targetDay)] ?? []).length > 0;
+    if (targetHasItems) {
+      const prompt = `Replace every item on Day ${targetDay} with a copy of Day ${sourceDay}?`;
+      const accepted = typeof services.confirmScheduleCopy === "function"
+        ? services.confirmScheduleCopy(prompt)
+        : typeof window.confirm === "function" && window.confirm(prompt);
+      if (!accepted) return;
+    }
+    scheduleDraft = copyScheduleDay(scheduleDraft, {
+      teacherId: scheduleTeacherId,
+      sourceDay,
+      targetDay
+    });
+    scheduleSelectedCycleDay = targetDay;
+    scheduleCopyTargetDay = targetDay === 5 ? 1 : targetDay + 1;
+    noteScheduleEdit(`Day ${sourceDay} copied to Day ${targetDay}.`);
+    render();
+  }
+
+  function selectScheduleTeacher(teacherId) {
+    if (!scheduleDraft?.teachers?.some((teacher) => teacher.id === teacherId)) return;
+    scheduleTeacherId = teacherId;
+    scheduleSelectedCycleDay = 1;
+    scheduleCopyTargetDay = 2;
+    scheduleErrors = [];
+    scheduleStatus = "";
+    render();
+  }
+
+  function saveScheduleEditor() {
+    const result = compileScheduleDraft(scheduleDraft);
+    if (!result.ok) {
+      scheduleErrors = result.errors.map(({ message }) => message);
+      scheduleStatus = "Nothing was saved. Fix the highlighted schedule details.";
+      render();
+      return;
+    }
+    const nextState = structuredClone(state);
+    nextState.plan = result.value;
+    nextState.preferences = { ...nextState.preferences, teacherId: scheduleTeacherId };
+    nextState.updatedAt = now().toISOString();
+    selectedTeacherId = scheduleTeacherId;
+    const returnRoute = scheduleReturnRoute;
+    resetScheduleEditor();
+    replaceState(nextState, { domains: ["plan", "preferences"], alreadyPersisted: false });
+    if (returnRoute === "setup") {
+      route = "setup";
+      render();
+    }
+  }
+
+  async function stageScheduleBackup(file) {
+    try {
+      const text = await (services.readFileText ? services.readFileText(file) : file.text());
+      const parsed = JSON.parse(text);
+      const candidate = parsed?.format === "playbook.teacherPlan.v2" ? parsed : parsed?.plan;
+      scheduleDraft = createScheduleDraftFromPlan(candidate);
+      scheduleTeacherId = scheduleDraft.teachers[0].id;
+      scheduleSelectedCycleDay = 1;
+      scheduleCopyTargetDay = 2;
+      scheduleErrors = [];
+      scheduleStatus = "Backup opened for review. Nothing changes until Save schedule is selected.";
+    } catch {
+      scheduleErrors = ["That CIRC backup could not be opened. The current schedule was not changed."];
+      scheduleStatus = "";
+    }
+    render();
+  }
+
+  function scheduleEditorContext() {
+    ensureScheduleEditor();
+    return {
+      teachers: scheduleDraft.teachers,
+      selectedTeacherId: scheduleTeacherId,
+      onSelectTeacher: selectScheduleTeacher,
+      status: scheduleStatus,
+      editor: {
+        draft: scheduleUiDraft(),
+        selectedCycleDay: scheduleSelectedCycleDay,
+        copyTargetDay: scheduleCopyTargetDay,
+        errors: scheduleErrors,
+        callbacks: {
+          onTeacherNameChange: updateScheduleTeacherName,
+          onFirstSchoolDateChange: (value) => updateScheduleCalendar("anchorDate", value),
+          onLastSchoolDateChange: (value) => updateScheduleCalendar("lastDate", value),
+          onAnchorCycleDayChange: (value) => updateScheduleCalendar("anchorDay", value),
+          onSelectCycleDay: (day) => {
+            scheduleSelectedCycleDay = day;
+            scheduleCopyTargetDay = day === 5 ? 1 : day + 1;
+            render();
+          },
+          onAddEvent: addScheduleItem,
+          onEventChange: updateScheduleItem,
+          onDuplicateEvent: duplicateScheduleItem,
+          onRemoveEvent: removeScheduleItem,
+          onCopyTargetChange: (day) => {
+            scheduleCopyTargetDay = day;
+          },
+          onCopyDay: copyScheduleToDay,
+          onSave: saveScheduleEditor,
+          onCancel: () => {
+            const hasPlan = Boolean(state.plan);
+            resetScheduleEditor();
+            navigate(hasPlan ? "today" : "welcome");
+          },
+          onRestoreBackup: stageScheduleBackup
+        }
+      }
+    };
+  }
+
   function completeRecoveryRestore(nextState) {
     recoveryStatus = "primary";
-    route = nextState.plan ? "today" : "setup";
+    route = nextState.plan ? "today" : "welcome";
     navButtons.forEach((button, index) => restoreAttributes(button, navSnapshots[index]));
     replaceState(nextState, {
       domains: ["plan", "progress", "preferences", "content"],
@@ -2136,6 +2593,15 @@ export function renderApp(root, services = {}) {
     navigate("settings");
   }
 
+  function openSchedule() {
+    scheduleReturnRoute = null;
+    navigate("schedule");
+  }
+
+  function openCloudSetup() {
+    navigate("setup");
+  }
+
   function render() {
     if (recoveryStatus === "unrecoverable") {
       root.replaceChildren(recoveryRoute({
@@ -2167,6 +2633,9 @@ export function renderApp(root, services = {}) {
       openConfiguredPreview,
       openPreview,
       openSetup,
+      openSchedule,
+      openAnnouncements: () => navigate("announcements"),
+      openCloudSetup,
       applyRunnerAction,
       chooseArtifactHandoff,
       confirmArtifactHandoff,
@@ -2183,7 +2652,8 @@ export function renderApp(root, services = {}) {
       previewOnly
     };
     let view;
-    if (route === "setup") {
+    if (route === "welcome") view = welcomeRoute(actions);
+    else if (route === "setup") {
       view = buildSetupView(runtime.getSetupModel(), runtime.getSetupActions(), { document });
     }
     else if (route === "setup-help") {
@@ -2205,6 +2675,19 @@ export function renderApp(root, services = {}) {
       view = boardRoute(board, navigate);
     }
     else if (route === "projects") view = projectsRoute(actions);
+    else if (route === "announcements") view = announcementWorkflow();
+    else if (route === "announcements-live") {
+      if (evaluateAnnouncementDraft(announcementDraft).canGoLive) {
+        view = buildAnnouncementsLiveView({
+          draft: announcementDraft,
+          onExit: () => navigate("announcements")
+        }, { document });
+      } else {
+        route = "announcements";
+        announcementStatus = "Teacher review is required before the broadcast view can open.";
+        view = announcementWorkflow();
+      }
+    }
     else if (route === "project-teacher") {
       view = teacherProjectRoute(
         getProjectByNumber(selectedProjectNumber) ?? projectView.currentProject,
@@ -2233,7 +2716,7 @@ export function renderApp(root, services = {}) {
         runner
       );
     }
-    else if (route === "schedule") view = scheduleRoute(state, navigate);
+    else if (route === "schedule") view = scheduleRoute(scheduleEditorContext());
     else if (route === "room") view = roomRoute(state, runtime.getRoomPresentation());
     else {
       const context = {
@@ -2282,7 +2765,12 @@ export function renderApp(root, services = {}) {
         })
       : null;
     root.replaceChildren(...[recoveryNotice, view].filter(Boolean));
-    setBoardShell(route === "board" || route === "project-student" || route === "experience-runner");
+    setBoardShell(
+      route === "board" ||
+      route === "project-student" ||
+      route === "experience-runner" ||
+      route === "announcements-live"
+    );
     setNavigation();
     announceBoundary(model);
     const currentTime = now();

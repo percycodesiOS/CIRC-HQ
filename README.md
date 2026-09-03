@@ -1,89 +1,109 @@
-# CIRC HQ | The K-6 Playbook
+# CIRC HQ | The Playbook
 
-CIRC HQ is the calm teacher operating system for the CIRC room. It combines the current class, schedule-aware class clock, lesson runner, recovery tools, and shared-project handoff in one browser-local workspace.
+CIRC HQ is a calm, teacher-first workspace for running a CIRC day. It keeps the schedule, current class, schedule-aware class clock, step clock, recovery controls, and shared-project handoff in one place.
 
-- Product: CIRC HQ, The K-6 Playbook
+- Product: CIRC HQ | The Playbook
 - Repository: `percycodesiOS/CIRC-HQ`
 - Intended release URL: `https://percycodesios.github.io/CIRC-HQ/`
-- Current content: The current reviewed content is Grades 5-6, Playbook A only.
+- Current content: one shared 36-experience Grades 5-6 yearly path
 
-The K-6 Playbook is the product direction and catalog architecture. This release does not contain complete K-6 content. K-4 and Playbook B are not present.
+The separate Playbook A and Playbook B source documents remain source material. This release does not publish those raw documents or claim that any unreviewed chemical, heat, wiring, or restricted-tool activity is classroom-ready. It also makes no claim that kindergarten through fourth-grade content is complete.
 
-The URL above is the intended release URL. It is not described as live until a separately authorized push, a matching GitHub Pages build, an HTTP 200 response, and clean-browser acceptance all succeed for the same approved commit.
+The intended release URL is not called live until an authorized push, matching GitHub Pages deploy verification, an HTTP 200 response, and clean-browser acceptance all succeed for the same approved commit.
 
-## First use and the class runner
+## First use
 
-On a browser with no validated teacher plan, CIRC HQ opens the guided setup at **Get CIRC HQ ready**. Setup connects one private teacher account, loads that teacher's schedule, and joins one shared CIRC room. **Continue with Google** uses the Google popup flow when the release's Firebase Console and authorized-domain gates are complete. **Explore a temporary demo** is memory-only and says clearly that nothing in the demo is saved or synced.
+The normal first action is **Set up my schedule**. The ordinary schedule editor is the primary setup surface and does not require a plan file.
 
-Choose a private teacher-plan JSON file to preview it on this device. Selecting a file does not upload it. The teacher reviews the admitted summary and confirms it before the separate **Upload and verify** action can write cloud data. Setup Help provides safe status, **Sync now**, local-backup export, replacement-plan preview, sign-out, and recovery guidance without identifiers or raw error text.
+1. Enter the teacher name.
+2. Enter the first and last school days.
+3. Choose the cycle day for the first school day.
+4. Open Day 1 through Day 5 and add classes, prep, lunch, support, and duties in the order they happen.
+5. Save the schedule.
 
-The live path is deliberate:
+CIRC HQ puts each day's entries in time order. The schedule can be edited later from **Schedule**. A teacher can copy one cycle day to another and then adjust only what changed.
 
-1. **Open class runner** creates a Ready runner. Ready clocks are stationary.
-2. **Start Class** is the only action that starts the clocks.
-3. **Pause** stops an active class, and **Resume** continues an already active or paused class.
+The welcome screen also offers two optional paths:
 
-Open class runner creates a Ready runner, Ready clocks are stationary, and Start Class is the only action that starts the clocks.
+- **Sign in to sync** opens private account setup.
+- **Preview a lesson** opens a working memory-only lesson. Nothing from Preview is saved or synced, and it has a direct exit.
 
-When a teaching event is current, the class clock uses the scheduled event end, so starting late preserves the real time remaining. Without a current teaching event, the reviewed 35-minute plan is used.
+## Five main destinations
 
-The runner keeps the teacher view compact with short **Say**, **Do**, **Students**, **Done when**, **If stuck**, **Finished early**, and **Return to the build** cues. These compact cues keep the next action visible. Longer objective, materials, safety, and teacher context stay under **More context**.
+- **Today** shows what is happening now, what comes next, the active duty warning, and the current lesson launcher.
+- **Playbooks** opens the 36 reviewed experiences and their teacher plans.
+- **Schedule** opens the ordinary five-day schedule editor.
+- **Room** opens optional shared-room and classroom-resource tools.
+- **Settings** contains private sync, calendar overrides, weather attribution, and advanced backup and restore.
 
-**Question Detour** keeps the real class clock running while holding the current work step and using a separate three-minute discussion clock. The teacher can return to the build, add two minutes, or enter **Safe Landing**. Safe Landing moves to the first cleanup step without changing the physical artifact. The reviewed Core, Improve, Contribute, Explore, and Reset ladder provides consistent early-finish guidance.
+The normal teaching path does not require Settings, a backup file, or Room.
 
-Student directions and Board remain projection-safe. They do not receive teacher script, setup controls, private schedule labels, teacher identity, or shared-artifact history.
+## Private sync and Room are optional
 
-## Import each private schedule once
+CIRC HQ remains usable locally without an account. Private sync is optional. It begins only after explicit Google sign-in, and an explicit cloud write is required before private schedule data is uploaded.
 
-Teacher-plan files are local and private. Kenny and Tammy each import their own one-teacher private file into their own browser. Schedules remain outside Git and the Pages artifact. Do not commit, publicly share, or copy them into this repository.
+Each authenticated teacher has a UID-scoped private cloud namespace. Teachers sign in separately, and each teacher retains a separate private schedule and progress record. A failed or blocked sign-in does not erase the usable local schedule.
 
-For hosted static use:
+Room is optional. Shared room artifacts and room progress are available only to trusted members of the selected room. Joining or creating a room is not required to build a schedule, open Today, browse Playbooks, or run a class.
 
-1. Open Teacher Setup on the intended hosted site.
-2. Choose that teacher's supported private plan file.
-3. Review the local validation preview.
-4. Confirm the preview, then choose **Upload and verify** only when the private and shared boundaries are correct.
-5. Confirm the displayed Cycle Day before relying on the schedule.
+Board and Student remain account-free. They receive no direct cloud-write path and no private teacher identity, schedule metadata, setup controls, or shared-artifact history.
 
-The validated plan is stored only in that browser origin. Tammy's calendar reuse is an explicit same-district assumption, so the displayed Cycle Day must be checked after her import.
+## Run a class
 
-For local private-seed use, point the local server to private files that remain outside this repository:
+The runner lifecycle is deliberate:
 
-```powershell
-$env:PLAYBOOK_PRIVATE_PLAN = "<ABSOLUTE_PATH_TO_PRIVATE_PLAN>"
-node scripts/dev-server.mjs
-```
+1. **Open class runner** creates a Ready runner.
+2. Ready clocks are stationary.
+3. **Start class** is the only action that starts the clocks.
+4. **Pause** stops an active runner.
+5. **Resume** continues the same runner.
+6. **Previous**, **+1 min**, and **Next Step** change only the active lesson state requested by the teacher.
 
-Then open `http://127.0.0.1:4273/`. The private seed route is local-only, read-only, and sent with no-store responses. A current v2 plan does not require migration options. The hosted site does not expose local private-seed routes.
+Open class runner creates a Ready runner. Ready clocks are stationary. Start class is the only action that starts the clocks.
 
-Browser origins are isolated. The hosted site, `http://127.0.0.1:4273/`, and `http://localhost:4273/` each keep separate local data. Export a local backup before a major change.
+When a teaching event is current, the class clock uses the scheduled event end. Starting late therefore preserves the real time remaining. Without a current teaching event, the reviewed 35-minute lesson duration is used.
+
+The command bar keeps the current step timer dominant and the total class timer visible. A step reaching zero does not advance automatically. The teacher chooses the next action.
+
+The teacher view uses compact cues to keep current directions short and visible. Student directions remain separate from teacher action and teacher help. Longer objectives, materials, safety notes, and additional context stay under **More context**. The reviewed lesson structure also provides consistent early-finish guidance.
+
+**Question Detour** holds the current work step while the real class clock continues. The teacher can return to the build, add discussion time, or choose **Safe Landing**. Safe Landing moves to the first cleanup step without changing the physical artifact.
+
+## Current Playbook content
+
+The live catalog contains one shared sequence of 36 reviewed Grades 5-6 experiences. The same experience can support fifth and sixth grade while the teacher adjusts delivery, pacing, and examples for the students in the room.
+
+Each reviewed experience includes a 35-minute path with explicit student directions, teacher actions, timing, cleanup, and an exit check. Outdoor, water, cutting, electrical, and optional tool activities retain their specific safety steps.
+
+The current catalog does not publish the separate raw Playbook A and Playbook B source documents. It also does not claim complete kindergarten through fourth-grade content.
 
 ## Shared Tech Terrarium authority
 
-Each authenticated teacher has a UID-scoped private cloud namespace. Shared Tech Terrarium artifacts and room progress are available only to trusted members of the selected room. Room invitation redemption is one-time and transactional. Board and Student remain account-free and have no direct cloud-write path.
+Playbook progress, physical-artifact progress, and the current class visit are separate records.
 
-Playbook progress, artifact progress, and the current class visit are separate. **Ready**, **Repeat**, and **Park** each require **Confirm** before the artifact is saved. The first choice and Cancel write nothing. Timer expiry, Question Detour, Safe Landing, lesson completion, and project completion never advance the physical artifact automatically.
+**Ready**, **Repeat**, and **Park** each require **Confirm** before a shared-artifact change is saved. Choosing an option without Confirm writes nothing. Cancel writes nothing. Timer expiry, Question Detour, Safe Landing, lesson completion, and project completion never advance the physical artifact automatically.
 
 Ready, Repeat, and Park each require Confirm.
 
-## Privacy, records, and service boundaries
+## Privacy and data boundaries
 
-CIRC HQ has no grades, gradebook, student accounts, rosters, or performance records. It also stores no aliases, scores, percentages, or individual student data. Grades 5-6 means grade levels only.
+CIRC HQ has no grades, gradebook, student accounts, rosters, or performance records. It also has no student submissions, analytics, or advertising. Grades 5-6 identifies grade levels only.
 
-The repository contains the public client configuration for the separate configured Firebase project used by CIRC HQ. That configuration is only public client identification. It is not proof that Google Auth is enabled, Firestore exists in `nam5` production mode, rules are deployed, `percycodesios.github.io` is an authorized domain, Pages is live, or a private plan has been uploaded. Those remain Task 9 evidence gates.
+Private schedules remain outside Git and the GitHub Pages artifact. The repository contains public client configuration for the separate configured Firebase project used by CIRC HQ. It is not an administrator credential. Configuration in Git is not proof that Google Auth is enabled, Firestore rules are deployed, the intended domain is authorized, private sync has succeeded, or the intended Pages release has been verified.
 
-Offline, signed-out, popup-blocked, denied, partial, and conflict states preserve usable local teaching and show safe recovery guidance. Local storage remains the offline cache and recovery layer. The live runner stays on the device that starts the class and displays **This device is running the class**; it never becomes a shared cloud timer.
+Offline, signed-out, popup-blocked, denied, partial, and conflict states preserve usable local teaching and safe recovery guidance. The live runner stays on the device that starts the class. It never becomes a shared cloud timer.
 
-CIRC HQ includes no grades, rosters, student accounts, student submissions, analytics, advertising, Firebase Hosting cutover, billing change, or CyberGrader reuse. CyberGrader remains a separate product with separate data and security boundaries.
+CyberGrader remains a separate product with separate data and security boundaries.
 
-## Known limits
+The old Mission Control repository and site remain separate, unchanged, and outside this release.
 
-- Cloud setup depends on the remaining Console, authorized-domain, rules, Pages, and live smoke-test gates.
-- Kenny and Tammy authenticate separately and each retains a private UID-scoped plan and progress namespace.
-- Local teaching remains usable when sign-in, network, rules, or cloud reads and writes fail.
-- There is no student performance system.
-- Current reviewed content is Grades 5-6, Playbook A only, not complete K-6 content.
-- The old Mission Control repository and site remain separate, unchanged, and outside this release.
+## Advanced backup and restore
+
+Backup and restore remain available under the collapsed **Advanced backup** or **Advanced backup and restore** section. They are recovery tools, not normal setup.
+
+A teacher can export a local safety copy before a major change. Restoring a CIRC backup requires a deliberate file choice and confirmation. Ordinary schedule creation and editing never require a file.
+
+Browser origins remain separate. The intended hosted site, `http://127.0.0.1:4273/`, and `http://localhost:4273/` each keep their own local browser data.
 
 ## Local development
 
@@ -96,9 +116,7 @@ node scripts/dev-server.mjs
 
 3. Open `http://127.0.0.1:4273/`.
 
-The server binds only to `127.0.0.1` and exposes the exact reviewed public runtime manifest, including the browser Firebase client and its reviewed cloud modules. It does not expose tests, docs, internal files, rules, package metadata, the locked legacy classroom file, or private source files.
-
-The root `_config.yml` separately excludes nonruntime documentation, tests, scripts, Firebase metadata and rules, the locked legacy file, and inactive source modules from the GitHub Pages artifact. `_config.yml` and `.superpowers` are Jekyll-hidden. Publication remains fail-closed if a candidate is private, hidden, unsupported, or outside the reviewed manifest.
+The development server binds only to `127.0.0.1` and exposes the reviewed public runtime allowlist. It does not intentionally expose tests, internal documentation, Firebase rules, package metadata, the locked legacy classroom snapshot, or private schedule files.
 
 ## Verify a public candidate
 
@@ -107,8 +125,8 @@ npm test
 npm run verify
 ```
 
-The verifier runs 16 fail-closed gates. It checks the recursive Git candidate set, Jekyll publication boundary, runtime imports, entrypoint identity, locked legacy and asset bytes, the sanitized Firebase example and exact public Firebase config lock, typography, credentials, local path disclosures in every tracked text candidate, privacy sentinels, runtime policy, DOM sinks, server allowlist, JavaScript syntax, and the complete Node test suite. It prints gate names and counts without printing matched private content.
+Verification checks the public candidate boundary, runtime imports, entrypoint identity, locked legacy and asset bytes, Firebase configuration locks, typography, credentials, local path disclosures, privacy sentinels, DOM sinks, server allowlist, JavaScript syntax, and the complete Node test suite.
 
 ## Publication status
 
-Repository creation, remote configuration, push, GitHub Pages activation, Firebase Console provider and rules work, and live-site confirmation are separate external actions. Local verification and a committed public config do not make the intended URL live or prove that cloud setup has succeeded. No private data is uploaded by this repository change.
+Repository work, commit creation, push, GitHub Pages deployment, Firebase Console changes, private cloud writes, and live-site confirmation are separate actions. Local tests or a committed candidate do not make the intended URL live. This documentation change performs no deployment and uploads no private teacher data.

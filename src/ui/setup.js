@@ -3,11 +3,10 @@ import { isRoomInviteDisplayCode } from "../storage/room-sync.js";
 const SETUP_STEPS = Object.freeze([
   ["account", "Connect account"],
   ["teacher", "Confirm teacher"],
-  ["plan", "Load teacher plan"],
-  ["room", "Join CIRC room"],
-  ["upload", "Confirm cloud upload"],
+  ["schedule", "Set schedule"],
+  ["sync", "Turn on private sync"],
   ["verify", "Verify CIRC Cloud"],
-  ["complete", "Ready for Today"]
+  ["ready", "Ready for Today"]
 ]);
 
 const STEP_IDS = new Set(SETUP_STEPS.map(([id]) => id));
@@ -15,7 +14,7 @@ const ACTION_NAMES = Object.freeze([
   "continueWithGoogle",
   "useAccount",
   "useDifferentAccount",
-  "choosePlanFile",
+  "openSchedule",
   "confirmPlanPreview",
   "createRoom",
   "redeemInvite",
@@ -342,7 +341,7 @@ function accountStep(documentRef, model, actions) {
   const children = [
     element(documentRef, "h1", { text: "Get CIRC HQ ready" }),
     element(documentRef, "p", {
-      text: "Setup connects one private teacher account, loads that teacher's schedule, and joins one shared CIRC room."
+      text: "Setup connects one private teacher account, builds that teacher's schedule, and turns on private sync."
     })
   ];
   if (model.account?.status === "pending") {
@@ -381,36 +380,26 @@ function teacherStep(documentRef, model, actions) {
   return children;
 }
 
-function planStep(documentRef, model, actions) {
-  const children = [element(documentRef, "h1", { text: "Choose private teacher plan" })];
+function scheduleStep(documentRef, model, actions) {
+  const children = [element(documentRef, "h1", { text: "Build your schedule" })];
   if (model.plan.status === "cloud-found") {
-    children.push(element(documentRef, "p", { className: "setup-current-status", text: "Plan found in CIRC Cloud" }));
+    children.push(element(documentRef, "p", { className: "setup-current-status", text: "Saved schedule found in CIRC Cloud" }));
     children.push(planSummary(documentRef, model.plan));
-  } else {
+  } else if (model.plan.status === "missing") {
     children.push(element(documentRef, "p", {
-      text: "Choose a private teacher-plan JSON file to preview it on this device. Selecting a file does not upload it."
+      text: "Add the school day in plain language. Enter classes, prep, lunch, and duty times on the next screen."
     }));
-    const input = element(documentRef, "input", {
-      attributes: { id: "setup-plan-file", type: "file", accept: "application/json,.json" }
-    });
-    input.addEventListener("change", () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      actions.choosePlanFile(file);
-      previewStatus.textContent = "Private teacher plan preview selected. It has not been uploaded.";
-    });
-    children.push(element(documentRef, "label", { className: "setup-file-label", text: "Choose private teacher plan file", attributes: { for: "setup-plan-file" } }));
-    children.push(input);
+    children.push(button(documentRef, "Build my schedule", "primary-action setup-primary-action", actions.openSchedule));
   }
   if (model.plan.status === "preview" || model.plan.status === "confirmed") {
     children.push(planSummary(documentRef, model.plan));
     if (model.plan.warnings.length) children.push(list(documentRef, model.plan.warnings, "setup-warning-list"));
   }
   if (model.plan.status === "preview") {
-    children.push(button(documentRef, "Confirm plan preview", "primary-action setup-primary-action", actions.confirmPlanPreview));
+    children.push(button(documentRef, "Use this schedule", "primary-action setup-primary-action", actions.confirmPlanPreview));
   }
   if (model.plan.status === "cloud-found") {
-    children.push(button(documentRef, "Use plan found in CIRC Cloud", "primary-action setup-primary-action", actions.confirmPlanPreview));
+    children.push(button(documentRef, "Use saved cloud schedule", "primary-action setup-primary-action", actions.confirmPlanPreview));
   }
   const previewStatus = statusRegion(documentRef, planStatusLabel(model.plan.status), "setup-plan-status");
   children.push(previewStatus);
@@ -453,30 +442,16 @@ function boundaryCard(documentRef, title, items, className) {
   ]);
 }
 
-function uploadStep(documentRef, model, actions) {
-  const children = [
-    element(documentRef, "h1", { text: "Confirm cloud upload" }),
-    element(documentRef, "p", { text: "Review exactly what will remain private, what will be shared with the selected room, and what stays on this device." }),
-  ];
-  if (model.room.inviteCode) {
-    children.push(element(documentRef, "section", { className: "setup-invite-card" }, [
-      element(documentRef, "h2", { text: "Give this code directly to the other teacher" }),
-      element(documentRef, "code", {
-        className: "setup-invite-code",
-        text: model.room.inviteCode
-      }),
-      element(documentRef, "p", { text: "Copy it now before continuing, refreshing, or signing out. CIRC HQ does not save raw invitation codes." })
-    ]));
-  }
-  children.push(
+function syncStep(documentRef, model, actions) {
+  return [
+    element(documentRef, "h1", { text: "Turn on private sync" }),
+    element(documentRef, "p", { text: "Keep this teacher's private teacher data available on trusted devices signed in with the same school account." }),
     element(documentRef, "div", { className: "setup-boundaries" }, [
       boundaryCard(documentRef, "Private to the signed-in teacher", PRIVATE_BOUNDARY, "setup-boundary-private"),
-      boundaryCard(documentRef, "Shared with the selected room", SHARED_BOUNDARY, "setup-boundary-shared"),
-      boundaryCard(documentRef, "Not uploaded in this release", NOT_UPLOADED_BOUNDARY, "setup-boundary-excluded")
+      boundaryCard(documentRef, "Stays on this device", NOT_UPLOADED_BOUNDARY, "setup-boundary-excluded")
     ]),
-    button(documentRef, "Upload and verify", "primary-action setup-primary-action", actions.uploadAndVerify)
-  );
-  return children;
+    button(documentRef, "Turn on private sync", "primary-action setup-primary-action", actions.uploadAndVerify)
+  ];
 }
 
 function verifyStep(documentRef, model) {
@@ -491,17 +466,17 @@ function verifyStep(documentRef, model) {
   ];
 }
 
-function completeStep(documentRef, model, actions) {
+function readyStep(documentRef, model, actions) {
   return [
     element(documentRef, "h1", { text: "CIRC HQ is ready" }),
     element(documentRef, "dl", { className: "setup-complete-summary" }, [
       summaryRow(documentRef, "Teacher", model.plan.teacherName ?? model.account?.displayName),
       summaryRow(documentRef, "Current cycle day", model.currentCycleDay),
       summaryRow(documentRef, "Private plan", planStatusLabel(model.plan.status)),
-      summaryRow(documentRef, "CIRC room", roomStatusLabel(model.room)),
       summaryRow(documentRef, "Last verified sync", model.sync.lastVerifiedAt),
       summaryRow(documentRef, "Local backup", backupStatusLabel(model.localBackup.status))
     ]),
+    element(documentRef, "p", { text: "Room is optional. Create or join one later from Setup help." }),
     element(documentRef, "div", { className: "setup-complete-actions" }, [
       button(documentRef, "Open Today", "primary-action setup-primary-action", actions.openToday),
       button(documentRef, "Preview an experience", "secondary-action", actions.previewExperience)
@@ -533,6 +508,10 @@ function setupHelp(documentRef, model, actions) {
       summaryRow(documentRef, "CIRC room", roomStatusLabel(model.room)),
       summaryRow(documentRef, "Last verified sync", model.sync.lastVerifiedAt),
       summaryRow(documentRef, "Local backup", backupStatusLabel(model.localBackup.status))
+    ]),
+    element(documentRef, "section", { className: "setup-help-room" }, [
+      element(documentRef, "h2", { text: "Optional room" }),
+      ...roomStep(documentRef, model, actions).slice(1)
     ]),
     pending.length ? element(documentRef, "section", { className: "setup-help-pending" }, [
       element(documentRef, "h2", { text: "Pending sync" }),
@@ -592,11 +571,10 @@ export function buildSetupView(model, actions, options = {}) {
   let content;
   if (model.current === "account") content = accountStep(documentRef, model, actions);
   else if (model.current === "teacher") content = teacherStep(documentRef, model, actions);
-  else if (model.current === "plan") content = planStep(documentRef, model, actions);
-  else if (model.current === "room") content = roomStep(documentRef, model, actions);
-  else if (model.current === "upload") content = uploadStep(documentRef, model, actions);
+  else if (model.current === "schedule") content = scheduleStep(documentRef, model, actions);
+  else if (model.current === "sync") content = syncStep(documentRef, model, actions);
   else if (model.current === "verify") content = verifyStep(documentRef, model);
-  else content = completeStep(documentRef, model, actions);
+  else content = readyStep(documentRef, model, actions);
   content.push(button(documentRef, "Setup help", "setup-help-action secondary-action", actions.openSetupHelp));
   return buildFrame(documentRef, model, content);
 }

@@ -2,6 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { renderApp, runnerStepIconFile } from "../src/app.js";
+import {
+  ANNOUNCEMENT_LOCAL_STORAGE_KEY,
+  createAnnouncementDraft,
+  setAnnouncementCheck,
+  setAnnouncementTeacherReview,
+  updateAnnouncementSection
+} from "../src/model/announcements.js";
 import { EXPERIENCE_TIMING_PLANS } from "../src/model/experience-timing-plans.js";
 import {
   advanceExperienceRunnerClock,
@@ -204,6 +211,35 @@ function runningLastStepRunner() {
     });
   }
   return runner;
+}
+
+function keyValueStorage(entries = {}) {
+  const values = new Map(Object.entries(entries));
+  const writes = [];
+  return {
+    values,
+    writes,
+    getItem: (key) => values.has(key) ? values.get(key) : null,
+    setItem: (key, value) => {
+      writes.push([key, value]);
+      values.set(key, value);
+    },
+    removeItem: (key) => values.delete(key)
+  };
+}
+
+function approvedAnnouncementDraft() {
+  let draft = createAnnouncementDraft({ date: "2026-09-03" });
+  draft = updateAnnouncementSection(draft, "opening", "Good morning from the Grade 6 crew.");
+  draft = updateAnnouncementSection(draft, "weather", "Sunny and mild today.");
+  draft = updateAnnouncementSection(draft, "closing", "Have a thoughtful day.");
+  for (const itemId of ["crewAssigned", "scriptReady", "factsChecked"]) {
+    draft = setAnnouncementCheck(draft, "prepare", itemId, true);
+  }
+  for (const itemId of ["fullRead", "timingChecked", "pronunciationsChecked"]) {
+    draft = setAnnouncementCheck(draft, "rehearse", itemId, true);
+  }
+  return setAnnouncementTeacherReview(draft, true);
 }
 
 function runningStepRunner(stepIndex = 6) {
@@ -419,7 +455,7 @@ function stateWithoutPlan() {
   return state;
 }
 
-test("a device without a plan starts on mature guided setup", async () => {
+test("a device without a plan starts on a calm teacher-first welcome", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   const root = new FakeNode("main");
@@ -440,12 +476,13 @@ test("a device without a plan starts on mature guided setup", async () => {
     await controller.ready;
 
     const rendered = textOf(root);
-    assert.match(rendered, /Get CIRC HQ ready/);
-    assert.match(rendered, /Continue with Google/);
-    assert.match(rendered, /Explore a temporary demo/);
-    assert.doesNotMatch(rendered, /Set up this device|Preview without saving/);
+    assert.match(rendered, /CIRC HQ/);
+    assert.match(rendered, /Set up my schedule/);
+    assert.match(rendered, /Sign in to sync/);
+    assert.match(rendered, /Preview a lesson/);
+    assert.doesNotMatch(rendered, /teacher-plan|JSON|setup progress|schema|migration/i);
     const makerImages = findAll(root, (node) =>
-      node.tagName === "img" && node.getAttribute("src") === "assets/tech-terrarium-hero.webp"
+      node.tagName === "img" && node.getAttribute("src") === "assets/circ-hq-maker.webp"
     );
     assert.equal(makerImages.length, 1);
     assert.equal(controller.previewOnly, true);
@@ -457,7 +494,7 @@ test("a device without a plan starts on mature guided setup", async () => {
   }
 });
 
-test("temporary demo performs no durable or cloud work and has a direct exit", async () => {
+test("welcome lesson preview performs no durable work and returns cleanly", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   const root = new FakeNode("main");
@@ -490,24 +527,23 @@ test("temporary demo performs no durable or cloud work and has a direct exit", a
     await controller.ready;
 
     const preview = findAll(root, (node) =>
-      node.tagName === "button" && node.textContent === "Explore a temporary demo"
+      node.tagName === "button" && node.textContent === "Preview a lesson"
     );
     assert.equal(preview.length, 1);
     preview[0].click();
 
     assert.equal(controller.previewOnly, true);
-    assert.match(textOf(root), /Temporary CIRC HQ demo/);
-    const exit = findAll(root, (node) =>
-      node.tagName === "button" && node.textContent === "Exit demo and set up CIRC HQ"
-    );
-    assert.equal(exit.length, 1);
+    assert.match(textOf(root), /Preview only\. Nothing is saved\./);
+    assert.equal(findAll(root, (node) =>
+      node.tagName === "button" && textOf(node) === "Preview experience"
+    ).length, 1);
     assert.equal(saveCount, 0);
     assert.deepEqual(state, original);
     assert.equal(state.plan, null);
     assert.deepEqual(state.experienceRunners, {});
     assert.deepEqual(state.teacherProgress, {});
-    exit[0].click();
-    assert.match(textOf(root), /Get CIRC HQ ready/);
+    controller.navigate("welcome");
+    assert.match(textOf(root), /Set up my schedule/);
     controller.destroy();
   } finally {
     globalThis.document = previousDocument;
@@ -549,6 +585,11 @@ test("guided setup exposes no plan or teaching mutation before account confirmat
     });
     await controller.ready;
 
+    const syncSetup = findAll(root, (node) =>
+      node.tagName === "button" && node.textContent === "Sign in to sync"
+    );
+    assert.equal(syncSetup.length, 1);
+    syncSetup[0].click();
     assert.match(textOf(root), /Continue with Google/);
     assert.equal(findAll(root, (node) =>
       node.tagName === "input" && node.getAttribute("type") === "file"
@@ -595,7 +636,7 @@ test("guided setup exposes no plan or teaching mutation before account confirmat
   }
 });
 
-test("temporary demo to Teacher Setup remains read-only and cannot Apply an import", async () => {
+test("lesson preview to Settings remains read-only and cannot Apply a backup", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   const root = new FakeNode("main");
@@ -631,7 +672,7 @@ test("temporary demo to Teacher Setup remains read-only and cannot Apply an impo
     await controller.ready;
 
     findAll(root, (node) =>
-      node.tagName === "button" && node.textContent === "Explore a temporary demo"
+      node.tagName === "button" && node.textContent === "Preview a lesson"
     )[0].click();
     controller.navigate("settings");
     const picker = findAll(root, (node) =>
@@ -655,7 +696,7 @@ test("temporary demo to Teacher Setup remains read-only and cannot Apply an impo
   }
 });
 
-test("Teacher Setup retains access to the Schedule route", async () => {
+test("Settings retains access to the plain-language Schedule route", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   const root = new FakeNode("main");
@@ -676,13 +717,14 @@ test("Teacher Setup retains access to the Schedule route", async () => {
     await controller.ready;
     controller.navigate("settings");
 
-    assert.match(textOf(root), /Teacher Setup/);
+    assert.match(textOf(root), /Settings/);
+    assert.match(textOf(root), /Schedule, private sync, and safe backups/);
     const schedule = findAll(root, (node) =>
       node.tagName === "button" && node.textContent === "Open Schedule"
     );
     assert.equal(schedule.length, 1);
     schedule[0].click();
-    assert.match(textOf(root), /Schedule/);
+    assert.match(textOf(root), /Teacher schedule|Build your five-day schedule/);
     controller.destroy();
   } finally {
     globalThis.document = previousDocument;
@@ -826,7 +868,7 @@ test("app readiness waits for the first auth observation and its authorized clou
   }
 });
 
-test("late cloud preload remains suspended throughout demo and resumes only after exit", async () => {
+test("late cloud preload may observe auth while lesson preview remains read-only", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   const root = new FakeNode("main");
@@ -834,8 +876,9 @@ test("late cloud preload remains suspended throughout demo and resumes only afte
   const calls = [];
   const cloudClient = {
     status: "ready",
-    observeAuth() {
+    observeAuth(listener) {
       calls.push("observe");
+      listener(null);
       return () => calls.push("unsubscribe");
     }
   };
@@ -855,17 +898,16 @@ test("late cloud preload remains suspended throughout demo and resumes only afte
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     findAll(root, (node) =>
-      node.tagName === "button" && node.textContent === "Explore a temporary demo"
+      node.tagName === "button" && node.textContent === "Preview a lesson"
     )[0].click();
     cloudPreload.resolve(cloudClient);
     await controller.ready;
 
-    assert.deepEqual(calls, []);
-    assert.match(textOf(root), /Temporary CIRC HQ demo/);
-    findAll(root, (node) =>
-      node.tagName === "button" && node.textContent === "Exit demo and set up CIRC HQ"
-    )[0].click();
     assert.deepEqual(calls, ["observe"]);
+    assert.equal(controller.previewOnly, true);
+    assert.match(textOf(root), /Preview only\. Nothing is saved\./);
+    controller.navigate("welcome");
+    assert.match(textOf(root), /Set up my schedule/);
     controller.destroy();
   } finally {
     globalThis.document = previousDocument;
@@ -900,7 +942,7 @@ test("a validated localhost plan import leaves guided Setup for Today", async ()
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
 
-    assert.match(textOf(root), /Get CIRC HQ ready/);
+    assert.match(textOf(root), /Set up my schedule/);
     await controller.ready;
     assert.match(textOf(root), /Today/);
     assert.doesNotMatch(textOf(root), /Set up this device|Preview without saving/);
@@ -1243,8 +1285,7 @@ test("Preview, no plan, no current event, and a current non-teaching event canno
       });
       await controller.ready;
       if (scenario === "preview") {
-        findAll(root, (node) => node.tagName === "button" && textOf(node) === "Explore a temporary demo")[0].click();
-        findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview an experience")[0].click();
+        findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview a lesson")[0].click();
         findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview experience")[0].click();
       } else {
         findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
@@ -1419,6 +1460,120 @@ test("Year Map route exposes all 36 choices without private schedule content", a
   assert.equal(findAll(root, (node) => node.tagName === "a" && /classroom-legacy\.html/.test(node.getAttribute("href") ?? "")).length, 0);
 });
 
+test("Playbooks features the Grade 6 announcements studio without adding a sixth primary route", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const header = new FakeNode("header");
+  header.className = "site-header";
+  const navButtons = ["today", "projects", "schedule", "room", "settings"].map((route) => {
+    const button = new FakeNode("button");
+    button.dataset = { route };
+    button.setAttribute("data-route", route);
+    header.append(button);
+    return button;
+  });
+  const announcementStorage = keyValueStorage();
+  globalThis.document = fakeDocument({ header, navButtons });
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    scrollTo: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: memoryStore(stateWithActiveEvent("teach")),
+      announcementStorage,
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-09-03T08:00:00-04:00") }
+    });
+    await controller.ready;
+    controller.navigate("projects");
+
+    assert.match(textOf(root), /Grade 6 Morning Announcements/);
+    assert.match(textOf(root), /rite of passage/i);
+    assert.equal(findAll(root, (node) => /\bproject-library-card\b/.test(node.className)).length, 36);
+    assert.equal(navButtons.length, 5);
+    assert.equal(navButtons.some((button) => button.dataset.route === "announcements"), false);
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open announcement studio")[0].click();
+    assert.match(textOf(root), /Run today's broadcast/);
+    assert.match(textOf(root), /Nothing is uploaded or shared by this screen/);
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Save local draft")[0].click();
+    assert.equal(announcementStorage.writes.length, 1);
+    assert.equal(announcementStorage.writes[0][0], ANNOUNCEMENT_LOCAL_STORAGE_KEY);
+    assert.equal(JSON.parse(announcementStorage.writes[0][1]).scope, "local-only");
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Go live")[0].click();
+    assert.match(textOf(root), /Run today's broadcast/);
+    assert.doesNotMatch(textOf(root), /Good morning from the Grade 6 crew/);
+    controller.destroy();
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("only a teacher-approved announcement draft can enter the student-safe broadcast view", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const header = new FakeNode("header");
+  header.className = "site-header";
+  const navButtons = ["today", "projects", "schedule", "room", "settings"].map((route) => {
+    const button = new FakeNode("button");
+    button.dataset = { route };
+    button.setAttribute("data-route", route);
+    header.append(button);
+    return button;
+  });
+  const draft = approvedAnnouncementDraft();
+  const announcementStorage = keyValueStorage({
+    [ANNOUNCEMENT_LOCAL_STORAGE_KEY]: JSON.stringify(draft)
+  });
+  globalThis.document = fakeDocument({ header, navButtons });
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    scrollTo: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: memoryStore(stateWithActiveEvent("teach")),
+      announcementStorage,
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-09-03T08:00:00-04:00") }
+    });
+    await controller.ready;
+    controller.navigate("announcements");
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Go live")[0].click();
+
+    assert.equal(findAll(root, (node) => node.getAttribute("data-view") === "announcements-live").length, 1);
+    assert.match(textOf(root), /Good morning from the Grade 6 crew\./);
+    assert.match(textOf(root), /Sunny and mild today\./);
+    assert.match(textOf(root), /Have a thoughtful day\./);
+    assert.doesNotMatch(textOf(root), /Teacher reviews|Daily crew roles|local draft|PRIVATE_/i);
+    assert.equal(header.hasAttribute("hidden"), true);
+    assert.equal(navButtons[1].getAttribute("aria-current"), "page");
+    assert.equal(JSON.parse(announcementStorage.values.get(ANNOUNCEMENT_LOCAL_STORAGE_KEY)).checklist["go-live"].broadcastComplete, true);
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Exit broadcast view")[0].click();
+    assert.equal(header.hasAttribute("hidden"), false);
+    assert.match(textOf(root), /Run today's broadcast/);
+    controller.destroy();
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
 test("teacher and student project routes separate teacher language from Board-safe directions", async () => {
   const state = stateWithActiveEvent("teach");
   const teacherRoot = await renderRoute(state, "project-teacher");
@@ -1526,6 +1681,94 @@ test("Open class runner opens one live runner and Student directions keeps its t
     exit[0].click();
     assert.match(textOf(root), /Open class runner/);
     assert.doesNotMatch(textOf(root), /Student directions Step \d+ of \d+/);
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("the ordinary Schedule route is an editable five-day form with no programming-file language", async () => {
+  const root = await renderRoute(stateWithoutPlan(), "schedule");
+  const rendered = textOf(root);
+
+  for (const label of [
+    "Teacher name",
+    "First school day",
+    "Last school day",
+    "Day 1",
+    "Day 2",
+    "Day 3",
+    "Day 4",
+    "Day 5",
+    "Add class",
+    "Save schedule"
+  ]) {
+    assert.match(rendered, new RegExp(label, "i"), label);
+  }
+  assert.doesNotMatch(rendered, /teacher-plan|\.json|schema|migration/i);
+  const advanced = findAll(root, (node) => node.tagName === "details" && /advanced/i.test(textOf(node)))[0];
+  assert.ok(advanced);
+  assert.equal(advanced.hasAttribute("open"), false);
+});
+
+test("a teacher can build and save a first schedule without uploading a file", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  let saved = stateWithoutPlan();
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false }),
+    scrollTo: () => {}
+  };
+  try {
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({ state: structuredClone(saved), error: null, status: "primary" }),
+        save: (nextState) => {
+          saved = structuredClone(nextState);
+          return structuredClone(saved);
+        }
+      },
+      generateTeacherId: () => "teacher-private-stable",
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
+    });
+    await controller.ready;
+    controller.navigate("schedule");
+
+    const inputNamed = (name) => findAll(root, (node) => node.getAttribute?.("name") === name)[0];
+    for (const [name, value] of [
+      ["teacher-name", "Teacher Alpha"],
+      ["first-school-date", "2026-08-20"],
+      ["last-school-date", "2027-06-04"]
+    ]) {
+      const input = inputNamed(name);
+      input.value = value;
+      input.listeners.get("input")?.({ currentTarget: input });
+    }
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Add class")[0].click();
+    const label = findAll(root, (node) => node.getAttribute?.("name")?.startsWith("event-label-"))[0];
+    const start = findAll(root, (node) => node.getAttribute?.("name")?.startsWith("event-start-"))[0];
+    const end = findAll(root, (node) => node.getAttribute?.("name")?.startsWith("event-end-"))[0];
+    for (const [input, value] of [[label, "Grade 5 CIRC"], [start, "09:00"], [end, "09:35"]]) {
+      input.value = value;
+      input.listeners.get("input")?.({ currentTarget: input });
+    }
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Save schedule")[0].click();
+
+    assert.equal(saved.plan.teachers[0].id, "teacher-private-stable");
+    assert.equal(saved.plan.teachers[0].days[1][0].label, "Grade 5 CIRC");
+    assert.equal(saved.preferences.teacherId, "teacher-private-stable");
+    assert.match(textOf(root), /Today/);
+    assert.match(textOf(root), /Grade 5 CIRC/);
+    assert.doesNotMatch(textOf(root), /teacher-plan|\.json|schema|migration/i);
+    controller.destroy();
   } finally {
     globalThis.document = previousDocument;
     globalThis.window = previousWindow;
@@ -2174,7 +2417,7 @@ test("opening same-project running and paused runners preserves their active lif
   }
 });
 
-test("temporary demo opens an in-memory preview runner that cannot save or complete", async () => {
+test("temporary demo opens a working in-memory preview runner that cannot save or complete", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   const root = new FakeNode("main");
@@ -2202,8 +2445,7 @@ test("temporary demo opens an in-memory preview runner that cannot save or compl
     });
     await controller.ready;
 
-    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Explore a temporary demo")[0].click();
-    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview an experience")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview a lesson")[0].click();
     const preview = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview experience");
     assert.equal(preview.length, 1);
     preview[0].click();
@@ -2211,32 +2453,74 @@ test("temporary demo opens an in-memory preview runner that cannot save or compl
     assert.match(textOf(root), /Class timer/);
     assert.equal(saveCount, 0);
     assert.equal(state.experienceRunners["local:default"], undefined);
-    assert.doesNotMatch(textOf(root), /Complete experience and move to next|Mark final experience complete|Finish Lesson/);
+    assert.match(textOf(root), /Start class/);
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Start class")[0].click();
+    assert.match(textOf(root), /Pause/);
+    assert.match(textOf(root), /\+1 min/);
+    assert.match(textOf(root), /Next Step/);
+    assert.equal(saveCount, 0);
+    assert.equal(state.experienceRunners["local:default"], undefined);
+    assert.doesNotMatch(textOf(root), /Complete experience and move to next|Mark final experience complete/);
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Student directions")[0].click();
     assert.match(textOf(root), /Preview only/);
     assert.equal(saveCount, 0);
     assert.equal(state.experienceRunners["local:default"], undefined);
-    for (const label of [
-      "Start class",
-      "Pause",
-      "Resume",
-      "+1 minute",
-      "Previous",
-      "Next Step",
-      "Finish Lesson",
-      "Question Detour",
-      "Add 2 minutes",
-      "Return to build",
-      "Safe Landing"
-    ]) {
-      assert.equal(
-        findAll(root, (node) => node.tagName === "button" && textOf(node) === label).length,
-        0,
-        label
-      );
-    }
     assert.doesNotMatch(textOf(root), /Complete experience and move to next|Mark final experience complete|Lesson complete/);
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("temporary demo clocks advance in memory without writing local state", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithoutPlan();
+  let saveCount = 0;
+  let tick = null;
+  let currentTime = new Date("2026-08-20T09:10:00-04:00");
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: (callback) => {
+      tick = callback;
+      return 1;
+    },
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    const controller = renderApp(root, {
+      store: {
+        load: () => ({ state, error: null }),
+        save: (nextState) => {
+          saveCount += 1;
+          return structuredClone(nextState);
+        }
+      },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => currentTime }
+    });
+    await controller.ready;
+
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview a lesson")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview experience")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Start class")[0].click();
+    assert.equal(typeof tick, "function");
+
+    currentTime = new Date("2026-08-20T09:10:05-04:00");
+    tick();
+
+    const stepTimer = findAll(root, (node) => node.getAttribute?.("data-runner-timer") === "step")[0];
+    const classTimer = findAll(root, (node) => node.getAttribute?.("data-runner-timer") === "class")[0];
+    assert.equal(textOf(stepTimer), "2:55");
+    assert.equal(textOf(classTimer), "34:55");
+    assert.equal(saveCount, 0);
+    assert.equal(state.experienceRunners["local:default"], undefined);
+    controller.destroy();
   } finally {
     globalThis.document = previousDocument;
     globalThis.window = previousWindow;
@@ -2769,6 +3053,32 @@ test("Settings announces import and apply results as a polite status", async () 
   assert.equal(messages[0].getAttribute("aria-live"), "polite");
 });
 
+test("calendar overrides show their review and save action without opening advanced backup", async () => {
+  const root = await renderRoute(stateWithActiveEvent("teach"), "settings");
+  const messages = findAll(root, (node) => /\bcalendar-change-message\b/.test(node.className));
+  const saveButtons = findAll(root, (node) =>
+    node.tagName === "button" && node.textContent === "Save calendar change"
+  );
+  const advanced = findAll(root, (node) =>
+    node.tagName === "details" && /\bschedule-editor-advanced\b/.test(node.className)
+  )[0];
+
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0].getAttribute("role"), "status");
+  assert.equal(messages[0].getAttribute("aria-live"), "polite");
+  assert.equal(saveButtons.length, 1);
+  assert.equal(findAll(advanced, (node) => /\bcalendar-change-message\b/.test(node.className)).length, 0);
+
+  const closureDate = findAll(root, (node) =>
+    node.tagName === "input" && node.getAttribute("aria-label") === "Closure date"
+  )[0];
+  closureDate.value = "2026-09-04";
+  findAll(root, (node) => node.tagName === "button" && node.textContent === "Add closure")[0].click();
+
+  assert.match(messages[0].textContent, /Calendar change ready for review/);
+  assert.equal(saveButtons[0].hasAttribute("disabled"), false);
+});
+
 test("the completed final project stays reviewable without another completion action", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
@@ -3247,7 +3557,7 @@ test("unrecoverable state stays visibly locked until a valid full-state backup i
       "preferences",
       "content"
     ]);
-    assert.match(textOf(root), /Get CIRC HQ ready|Continue with Google/);
+    assert.match(textOf(root), /Set up my schedule|Sign in to sync/);
     assert.doesNotMatch(textOf(root), /unrecoverable|do not clear.*site data/i);
     controller.destroy();
   } finally {
@@ -3359,7 +3669,7 @@ test("configured Preview lesson is in memory, exits cleanly, then live runner st
   }
 });
 
-test("Teacher Setup file chooser has a visible associated name when enabled and in disabled Preview", async () => {
+test("Settings backup chooser has a visible associated name when enabled and in disabled Preview", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
   globalThis.document = fakeDocument();
@@ -3381,13 +3691,13 @@ test("Teacher Setup file chooser has a visible associated name when enabled and 
       });
       await controller.ready;
       if (!configured) {
-        findAll(root, (node) => node.tagName === "button" && textOf(node) === "Explore a temporary demo")[0].click();
+        findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview a lesson")[0].click();
       }
       controller.navigate("settings");
       const input = findAll(root, (node) => node.tagName === "input" && node.getAttribute("type") === "file")[0];
       const labels = findAll(root, (node) =>
         node.tagName === "label" &&
-        textOf(node) === "Choose teacher plan file" &&
+        textOf(node) === "Choose CIRC schedule backup" &&
         node.getAttribute("for") === input.getAttribute("id")
       );
       assert.equal(labels.length, 1, configured ? "enabled" : "preview");
