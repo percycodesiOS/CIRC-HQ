@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { renderApp, runnerStepIconFile } from "../src/app.js";
 import {
+  ANNOUNCEMENT_ARCHIVE_STORAGE_KEY,
   ANNOUNCEMENT_LOCAL_STORAGE_KEY,
   createAnnouncementDraft,
   setAnnouncementCheck,
@@ -1504,9 +1505,11 @@ test("Playbooks features the Grade 6 announcements studio without adding a sixth
     assert.match(textOf(root), /Nothing is uploaded or shared by this screen/);
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Save local draft")[0].click();
-    assert.equal(announcementStorage.writes.length, 1);
-    assert.equal(announcementStorage.writes[0][0], ANNOUNCEMENT_LOCAL_STORAGE_KEY);
-    assert.equal(JSON.parse(announcementStorage.writes[0][1]).scope, "local-only");
+    assert.equal(announcementStorage.writes.length, 2);
+    assert.deepEqual(new Set(announcementStorage.writes.map(([key]) => key)),
+      new Set([ANNOUNCEMENT_LOCAL_STORAGE_KEY, ANNOUNCEMENT_ARCHIVE_STORAGE_KEY]));
+    assert.equal(JSON.parse(announcementStorage.values.get(ANNOUNCEMENT_LOCAL_STORAGE_KEY)).scope, "local-only");
+    assert.equal(JSON.parse(announcementStorage.values.get(ANNOUNCEMENT_ARCHIVE_STORAGE_KEY)).drafts["2026-09-03"].date, "2026-09-03");
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Go live")[0].click();
     assert.match(textOf(root), /Run today's broadcast/);
@@ -1577,12 +1580,107 @@ test("the ECMS outline preserves a saved custom draft on cancel and replaces onl
     dateInput.listeners.get("input")({ currentTarget: dateInput });
     assert.match(field("script-opening").value, /Friday, October 16, 2026/);
     action("Save local draft").click();
-    assert.equal(announcementStorage.writes.length, 1);
-    assert.equal(announcementStorage.writes[0][0], ANNOUNCEMENT_LOCAL_STORAGE_KEY);
-    const saved = JSON.parse(announcementStorage.writes[0][1]);
+    assert.equal(announcementStorage.writes.length, 2);
+    const saved = JSON.parse(announcementStorage.values.get(ANNOUNCEMENT_LOCAL_STORAGE_KEY));
+    const datedCopies = JSON.parse(announcementStorage.values.get(ANNOUNCEMENT_ARCHIVE_STORAGE_KEY)).drafts;
+    assert.deepEqual(datedCopies[original.date], original);
+    assert.deepEqual(datedCopies["2026-10-16"], saved);
     assert.equal(saved.scope, "local-only");
     assert.equal(saved.teacherReview.approved, false);
     assert.match(saved.script.pledgeSchoolItems, /at least 20 seconds/);
+    assert.equal(scheduleWrites.length, 0);
+  } finally {
+    controller?.destroy();
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("weekly scripts survive app reload and explicit Load protects unsaved changes without storage writes", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const announcementStorage = keyValueStorage({ unrelated: "keep" });
+  const scheduleWrites = [];
+  const confirmations = [];
+  let allowLoad = false;
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1, clearInterval: () => {}, scrollTo: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  let controller;
+  try {
+    const services = {
+      store: {
+        load: () => ({ state: stateWithActiveEvent("teach"), error: null }),
+        save: (state) => { scheduleWrites.push(state); return state; }
+      },
+      announcementStorage, loadPrivateSeed: false, weatherService: {},
+      confirmLoadAnnouncement: (message) => { confirmations.push(message); return allowLoad; },
+      confirmClearAnnouncement: () => true,
+      clock: { now: () => new Date("2026-09-14T08:00:00-04:00") }
+    };
+    const field = (name) => findAll(root, (node) => node.getAttribute("name") === name)[0];
+    const action = (label) => findAll(root, (node) => node.tagName === "button" && textOf(node) === label)[0];
+    const load = (date) => findAll(root, (node) => node.getAttribute("aria-label") === `Load broadcast ${date}`)[0].click();
+    const edit = (name, value) => {
+      const input = field(name);
+      input.value = value;
+      input.listeners.get("input")({ currentTarget: input });
+    };
+    controller = renderApp(root, services);
+    await controller.ready;
+    controller.navigate("announcements");
+    for (let day = 14; day <= 18; day += 1) {
+      edit("announcement-date", `2026-09-${day}`);
+      edit("script-opening", `Approved opening for September ${day}.`);
+      edit("script-closing", `Closing for September ${day}.`);
+      action("Save local draft").click();
+    }
+    assert.match(textOf(root), /Saved a dated copy for 2026-09-18 in this browser/);
+    const copies = JSON.parse(announcementStorage.values.get(ANNOUNCEMENT_ARCHIVE_STORAGE_KEY)).drafts;
+    assert.equal(Object.keys(copies).length, 5);
+    controller.destroy();
+    controller = renderApp(root, services);
+    await controller.ready;
+    controller.navigate("announcements");
+    assert.equal(field("announcement-date").value, "2026-09-18");
+    const storageBefore = new Map(announcementStorage.values);
+    const writesBefore = announcementStorage.writes.length;
+    for (const [date, copy] of Object.entries(copies)) {
+      load(date);
+      assert.equal(field("announcement-date").value, date);
+      assert.equal(field("script-opening").value, copy.script.opening);
+      assert.equal(field("script-closing").value, copy.script.closing);
+    }
+    assert.equal(confirmations.length, 0);
+    assert.deepEqual(announcementStorage.values, storageBefore);
+    assert.equal(announcementStorage.writes.length, writesBefore);
+    edit("script-opening", "Unsaved wording stays with this working draft.");
+    edit("announcement-date", "2026-09-14");
+    assert.equal(field("script-opening").value, "Unsaved wording stays with this working draft.");
+    load("2026-09-15");
+    assert.equal(confirmations.length, 1);
+    assert.match(confirmations[0], /Discard unsaved changes.*2026-09-15/);
+    assert.equal(field("script-opening").value, "Unsaved wording stays with this working draft.");
+    assert.equal(field("announcement-date").value, "2026-09-14");
+    assert.deepEqual(announcementStorage.values, storageBefore);
+    allowLoad = true;
+    load("2026-09-15");
+    assert.equal(confirmations.length, 2);
+    assert.equal(field("script-opening").value, copies["2026-09-15"].script.opening);
+    assert.equal(field("announcement-date").value, "2026-09-15");
+    assert.deepEqual(announcementStorage.values, storageBefore);
+    assert.equal(announcementStorage.writes.length, writesBefore);
+    action("Start a blank draft").click();
+    assert.equal(field("script-opening").value, "");
+    assert.equal(announcementStorage.values.has(ANNOUNCEMENT_LOCAL_STORAGE_KEY), false);
+    assert.equal(announcementStorage.values.get(ANNOUNCEMENT_ARCHIVE_STORAGE_KEY), storageBefore.get(ANNOUNCEMENT_ARCHIVE_STORAGE_KEY));
+    assert.equal(findAll(root, (node) => node.getAttribute("aria-label")?.startsWith("Load broadcast ")).length, 5);
+    assert.match(textOf(root), /Your dated saved scripts are unchanged/);
+    assert.equal(announcementStorage.values.get("unrelated"), "keep");
     assert.equal(scheduleWrites.length, 0);
   } finally {
     controller?.destroy();

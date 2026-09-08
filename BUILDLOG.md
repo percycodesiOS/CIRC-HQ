@@ -1,5 +1,13 @@
 # CIRC HQ - BUILDLOG
 
+## 2026-09-08 dated local announcement library
+
+- **Save local draft** now saves the working draft and a dated copy for the selected valid broadcast date. **Saved broadcast dates** provides an explicit Load action for each local copy, making Day 4 preparation of the following week possible without overwriting the other days.
+- Kept the legacy working-draft key and date-editing behavior. Load is read-only and confirms before replacing unsaved changes; Cancel preserves the current draft. Starting a blank draft removes only the working key. Existing saved checks and review are retained on Load, while real script or timing edits still invalidate approval.
+- Added one strictly validated, versioned browser-storage archive. Explicit saves re-read existing dates and preserve a valid legacy working date if needed. Malformed archives are left untouched; capacity refusal does not evict old dates; a failed working-key write attempts to restore the prior archive and reports any partial-save limit truthfully.
+- Made the current-browser/device boundary visible beside the saved list and in save feedback. No cloud sync, account, private schedule, rotation automation or broadcast-projection changes were added.
+- Model, UI and app-render coverage passes 105 of 105 tests, including five dates across reload, read-only Load, dirty-load cancel/accept, unchanged date editing, same-date updates, legacy preservation, blank-current retention, malformed records, storage failure rollback, capacity refusal and unrelated-key preservation. Independent browser and release verification are recorded separately by the release reviewer.
+
 ## 2026-09-08 optional Ehrman Crest replica lessons
 
 - Added three explicit Tech Terrarium lesson choices: Sort, Count, Plan; Aerial Layout & Dry Prototype; and September 11 Remember & Serve. Each uses seven steps totaling 35 minutes, separate student/teacher directions, cleanup and an exit handoff. The original catalog, annual modes and other 35 experiences remain intact.

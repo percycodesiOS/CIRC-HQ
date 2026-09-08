@@ -5,9 +5,12 @@ import {
   clearLocalAnnouncementDraft,
   evaluateAnnouncementDraft,
   hasAnnouncementScript,
+  loadArchivedAnnouncementDraft,
+  loadLocalAnnouncementArchive,
   loadLocalAnnouncementDraft,
   resetAnnouncementDraft,
   saveLocalAnnouncementDraft,
+  saveDatedAnnouncementDraft,
   setAnnouncementCheck,
   setAnnouncementTeacherReview,
   updateAnnouncementDetails,
@@ -1734,6 +1737,8 @@ export function renderApp(root, services = {}) {
     date: localDateKey(now())
   });
   let announcementDraft = loadedAnnouncement.draft;
+  let announcementSavedSnapshot = JSON.stringify(announcementDraft);
+  let announcementArchive = loadLocalAnnouncementArchive(announcementStorage);
   let announcementStatus = loadedAnnouncement.status === "invalid"
     ? "The saved announcement draft could not be read. A fresh local draft is open, and the unreadable saved value was left untouched."
     : "";
@@ -2325,16 +2330,39 @@ export function renderApp(root, services = {}) {
 
   function saveAnnouncementDraft() {
     try {
-      announcementDraft = saveLocalAnnouncementDraft(announcementStorage, announcementDraft);
-      announcementStatus = "Saved on this device only.";
+      announcementDraft = saveDatedAnnouncementDraft(announcementStorage, announcementDraft);
+      announcementSavedSnapshot = JSON.stringify(announcementDraft);
+      announcementStatus = `Saved a dated copy for ${announcementDraft.date} in this browser on this device only. Other saved dates are unchanged.`;
     } catch (error) {
       announcementStatus = error instanceof Error ? error.message : "The local announcement draft could not be saved.";
     }
+    announcementArchive = loadLocalAnnouncementArchive(announcementStorage);
+    render();
+  }
+
+  function loadAnnouncementDraft(date) {
+    try {
+      const saved = loadArchivedAnnouncementDraft(announcementStorage, date);
+      const currentSnapshot = JSON.stringify(announcementDraft);
+      if (JSON.stringify(saved) !== currentSnapshot && currentSnapshot !== announcementSavedSnapshot) {
+        const message = `Discard unsaved changes in the current draft and load the saved broadcast for ${date}? Cancel keeps your current draft.`;
+        const confirmed = typeof services.confirmLoadAnnouncement === "function"
+          ? services.confirmLoadAnnouncement(message) === true
+          : typeof window.confirm === "function" && window.confirm(message) === true;
+        if (!confirmed) return;
+      }
+      announcementDraft = saved;
+      announcementSavedSnapshot = JSON.stringify(saved);
+      announcementStatus = `Loaded the saved copy for ${date}. Save local draft keeps any edits and makes this the draft that opens after reload.`;
+    } catch (error) {
+      announcementStatus = error instanceof Error ? error.message : "The saved broadcast could not be loaded.";
+    }
+    announcementArchive = loadLocalAnnouncementArchive(announcementStorage);
     render();
   }
 
   function clearAnnouncementDraft() {
-    const message = "Start a blank announcement draft? The current local draft will be removed from this device.";
+    const message = "Start a blank announcement draft? The current working draft will be removed from this device. Your dated saved scripts will stay.";
     const confirmed = typeof services.confirmClearAnnouncement === "function"
       ? Boolean(services.confirmClearAnnouncement(message))
       : typeof globalThis.window?.confirm === "function"
@@ -2344,7 +2372,8 @@ export function renderApp(root, services = {}) {
     try {
       clearLocalAnnouncementDraft(announcementStorage);
       announcementDraft = resetAnnouncementDraft(announcementDraft, { date: localDateKey(now()) });
-      announcementStatus = "Blank local draft ready.";
+      announcementSavedSnapshot = JSON.stringify(announcementDraft);
+      announcementStatus = "Blank local draft ready. Your dated saved scripts are unchanged.";
     } catch (error) {
       announcementStatus = error instanceof Error
         ? error.message
@@ -2379,6 +2408,7 @@ export function renderApp(root, services = {}) {
     );
     try {
       announcementDraft = saveLocalAnnouncementDraft(announcementStorage, announcementDraft);
+      announcementSavedSnapshot = JSON.stringify(announcementDraft);
       announcementStatus = "Broadcast marked complete in this local draft.";
     } catch {
       announcementStatus = "Broadcast view is ready. Local storage is unavailable, so this update was not saved.";
@@ -2389,6 +2419,7 @@ export function renderApp(root, services = {}) {
   function announcementWorkflow() {
     return buildAnnouncementsWorkflow({
       draft: announcementDraft,
+      savedArchive: announcementArchive,
       status: announcementStatus,
       callbacks: {
         onDetailChange: (field, value) => updateAnnouncementDraft(
@@ -2406,6 +2437,7 @@ export function renderApp(root, services = {}) {
           (draft) => setAnnouncementTeacherReview(draft, approved)
         ),
         onSaveLocalDraft: saveAnnouncementDraft,
+        onLoadSavedDraft: loadAnnouncementDraft,
         onUseEcmsOutline: useEcmsAnnouncementOutline,
         onClearLocalDraft: clearAnnouncementDraft,
         onGoLive: openAnnouncementBroadcast

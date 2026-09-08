@@ -77,6 +77,7 @@ function callbacksDouble() {
     "onChecklistChange",
     "onTeacherReviewChange",
     "onSaveLocalDraft",
+    "onLoadSavedDraft",
     "onClearLocalDraft",
     "onGoLive"
   ];
@@ -278,6 +279,29 @@ test("local save and recovery feedback is announced without changing the draft",
 
   assert.equal(statuses.some((node) => textOf(node) === "Saved on this device only."), true);
   assert.deepEqual(draft, createAnnouncementDraft());
+});
+
+test("saved dates expose explicit load actions and keep the browser-only boundary visible", () => {
+  const { callbacks, calls } = callbacksDouble();
+  const draft = approvedDraft();
+  const savedArchive = { status: "saved", archive: { drafts: {
+    "2026-09-04": createAnnouncementDraft({ date: "2026-09-04" }),
+    "2026-09-03": draft
+  } } };
+  const view = buildAnnouncementsWorkflow({ draft, savedArchive, callbacks }, { document: documentDouble });
+  const loads = findAll(view, (node) => node.getAttribute("aria-label")?.startsWith("Load broadcast "));
+  assert.deepEqual(loads.map((node) => node.getAttribute("aria-label")), [
+    "Load broadcast 2026-09-03", "Load broadcast 2026-09-04"
+  ]);
+  assert.match(textOf(view), /2026-09-03 · Teacher approved/);
+  assert.match(textOf(view), /2026-09-04 · Needs teacher review/);
+  assert.match(textOf(view), /in this browser on this device and do not sync/);
+  loads[1].click();
+  assert.deepEqual(calls, [["onLoadSavedDraft", "2026-09-04"]]);
+  const invalid = buildAnnouncementsWorkflow({ draft, savedArchive: { ...savedArchive, status: "invalid" }, callbacks }, { document: documentDouble });
+  assert.match(textOf(invalid), /could not be read and was left untouched/);
+  assert.equal(findAll(invalid, (node) => node.getAttribute("aria-label")?.startsWith("Load broadcast ")).length, 0);
+  assert.doesNotMatch(textOf(buildAnnouncementsLiveView({ draft }, { document: documentDouble })), /Saved broadcast dates|Load broadcast/);
 });
 
 test("the live view rejects an unapproved draft and exposes only the approved broadcast script", () => {

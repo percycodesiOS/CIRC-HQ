@@ -191,6 +191,37 @@ export function buildAnnouncementsWorkflow(input, options = {}) {
   const assessment = evaluateAnnouncementDraft(draft);
   const script = draft?.script ?? {};
   const timing = draft?.timing ?? {};
+  const archiveStatus = input?.savedArchive?.status ?? "empty";
+  const savedDrafts = input?.savedArchive?.archive?.drafts ?? {};
+  const savedDates = Object.keys(savedDrafts).sort();
+  const savedLibrary = element(documentRef, "section", {
+    className: "announcements-details announcements-library",
+    attributes: { "aria-labelledby": "announcements-library-heading" }
+  }, [
+    element(documentRef, "h2", { text: "Saved broadcast dates", attributes: { id: "announcements-library-heading" } }),
+    element(documentRef, "p", {
+      text: "Prepare a week by choosing a broadcast date, editing the script, and choosing Save local draft for each day. Saving updates only that date. Changing the date edits the current draft; Load opens a saved copy. Saved scripts stay in this browser on this device and do not sync to another phone or computer."
+    }),
+    archiveStatus === "invalid" || archiveStatus === "unavailable"
+      ? element(documentRef, "p", {
+          text: archiveStatus === "invalid"
+            ? "The saved-script library could not be read and was left untouched. Your current draft remains open."
+            : "The saved-script library is unavailable on this device. Your current draft remains open.",
+          attributes: { role: "alert" }
+        })
+      : savedDates.length === 0
+        ? element(documentRef, "p", { text: "No dated scripts saved yet." })
+        : element(documentRef, "ul", { className: "announcements-saved-dates" }, savedDates.map((date) =>
+            element(documentRef, "li", {}, [
+              element(documentRef, "span", {
+                text: `${date} · ${evaluateAnnouncementDraft(savedDrafts[date]).canGoLive ? "Teacher approved" : "Needs teacher review"}`
+              }),
+              button(documentRef, "Load", "secondary-action", () => callbacks.onLoadSavedDraft?.(date), {
+                "aria-label": `Load broadcast ${date}`
+              })
+            ])
+          ))
+  ]);
 
   const details = element(documentRef, "section", {
     className: "announcements-details",
@@ -315,6 +346,7 @@ export function buildAnnouncementsWorkflow(input, options = {}) {
       attributes: { role: "status", "aria-live": "polite" }
     }) : null,
     errorsView(documentRef, assessment.errors),
+    savedLibrary,
     crewView(documentRef),
     details,
     scriptView,

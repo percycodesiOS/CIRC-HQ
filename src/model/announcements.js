@@ -2,6 +2,7 @@ export const GRADE_SIX_ANNOUNCEMENT_RESPONSIBILITY =
   "Grade 6 Morning Announcements is a rite-of-passage responsibility. Grade 6 students prepare, rehearse, deliver, and reset the broadcast with teacher supervision.";
 
 export const ANNOUNCEMENT_LOCAL_STORAGE_KEY = "circHQ.announcements.local.v1";
+export const ANNOUNCEMENT_ARCHIVE_STORAGE_KEY = "circHQ.announcements.archive.v1";
 
 export const ANNOUNCEMENT_CREW_ROLES = Object.freeze([
   Object.freeze({
@@ -80,6 +81,8 @@ const SCRIPT_SECTION_SET = new Set(SCRIPT_SECTIONS);
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_SCRIPT_LENGTH = 2000;
 const MAX_STORED_DRAFT_LENGTH = 15000;
+const MAX_ARCHIVE_LENGTH = 4_000_000;
+const MAX_ARCHIVE_DATES = 1000;
 const OUTLINE_PLACEHOLDER = /\[\[|\]\]/;
 
 function spokenAnnouncementDate(value) {
@@ -251,6 +254,122 @@ export function saveLocalAnnouncementDraft(storage, draft) {
   }
   const admitted = admitAnnouncementDraft(draft);
   storage.setItem(ANNOUNCEMENT_LOCAL_STORAGE_KEY, JSON.stringify(admitted));
+  return clone(admitted);
+}
+
+function emptyAnnouncementArchive() {
+  return { format: "circ.announcements.archive.v1", version: 1, scope: "local-only", drafts: {} };
+}
+
+function sameStoredShape(value, admitted) {
+  if (value === admitted) return true;
+  if (!value || !admitted || typeof value !== "object" || typeof admitted !== "object" ||
+      Array.isArray(value) || Array.isArray(admitted)) return false;
+  const keys = Object.keys(admitted);
+  return Object.keys(value).length === keys.length &&
+    keys.every((key) => Object.hasOwn(value, key) && sameStoredShape(value[key], admitted[key]));
+}
+
+function readAnnouncementArchive(storage) {
+  const fallback = (status, raw = null) => ({ archive: emptyAnnouncementArchive(), status, raw });
+  if (!storage || typeof storage.getItem !== "function") return fallback("unavailable");
+  let raw;
+  try {
+    raw = storage.getItem(ANNOUNCEMENT_ARCHIVE_STORAGE_KEY);
+  } catch {
+    return fallback("unavailable");
+  }
+  if (raw === null) return fallback("empty");
+  try {
+    if (typeof raw !== "string" || raw.length > MAX_ARCHIVE_LENGTH) throw new TypeError("archive-too-large");
+    const value = JSON.parse(raw);
+    requireRecord(value, "archive-invalid");
+    requireRecord(value.drafts, "archive-invalid");
+    if (value.format !== "circ.announcements.archive.v1" || value.version !== 1 || value.scope !== "local-only" ||
+        Object.keys(value.drafts).length > MAX_ARCHIVE_DATES) throw new TypeError("archive-invalid");
+    const archive = emptyAnnouncementArchive();
+    for (const date of Object.keys(value.drafts).sort()) {
+      if (!validCalendarDate(date)) throw new TypeError("archive-date-invalid");
+      const draft = admitAnnouncementDraft(value.drafts[date]);
+      if (draft.date !== date || !sameStoredShape(value.drafts[date], draft)) throw new TypeError("archive-draft-invalid");
+      archive.drafts[date] = draft;
+    }
+    if (!sameStoredShape(value, archive)) throw new TypeError("archive-invalid");
+    return { archive, status: "saved", raw };
+  } catch {
+    return fallback("invalid", raw);
+  }
+}
+
+export function loadLocalAnnouncementArchive(storage) {
+  const { archive, status } = readAnnouncementArchive(storage);
+  return { archive, status };
+}
+
+function requireUsableArchive(result) {
+  if (result.status === "invalid") {
+    throw new TypeError("Saved broadcast scripts could not be read and were left untouched. The current draft is still open.");
+  }
+  if (result.status === "unavailable") {
+    throw new TypeError("Saved broadcast scripts are unavailable on this device. The current draft is still open.");
+  }
+}
+
+export function loadArchivedAnnouncementDraft(storage, date) {
+  if (typeof date !== "string" || !validCalendarDate(date)) throw new TypeError("Choose a valid announcement date.");
+  const result = readAnnouncementArchive(storage);
+  requireUsableArchive(result);
+  if (!Object.hasOwn(result.archive.drafts, date)) throw new TypeError("No saved broadcast exists for that date on this device.");
+  return clone(result.archive.drafts[date]);
+}
+
+export function saveDatedAnnouncementDraft(storage, draft) {
+  const admitted = admitAnnouncementDraft(draft);
+  if (!validCalendarDate(admitted.date)) throw new TypeError("Choose a valid announcement date before saving a dated script.");
+  if (!storage || typeof storage.getItem !== "function" || typeof storage.setItem !== "function" ||
+      typeof storage.removeItem !== "function") {
+    throw new TypeError("Local announcement storage is unavailable on this device.");
+  }
+  // Read current storage for each save so another open tab's dated copies are retained.
+  const result = readAnnouncementArchive(storage);
+  requireUsableArchive(result);
+  let previousWorking;
+  try {
+    previousWorking = storage.getItem(ANNOUNCEMENT_LOCAL_STORAGE_KEY);
+  } catch {
+    throw new TypeError("The dated script could not be saved. Existing saved values were left untouched.");
+  }
+  const archive = result.archive;
+  // Preserve a legacy saved date when the teacher first saves a different day.
+  if (typeof previousWorking === "string" && previousWorking.length <= MAX_STORED_DRAFT_LENGTH) {
+    try {
+      const legacy = admitAnnouncementDraft(JSON.parse(previousWorking));
+      if (validCalendarDate(legacy.date) && !Object.hasOwn(archive.drafts, legacy.date)) archive.drafts[legacy.date] = legacy;
+    } catch {
+      // The existing working-draft loader already reports malformed legacy data.
+    }
+  }
+  archive.drafts[admitted.date] = admitted;
+  const archiveText = JSON.stringify(archive);
+  if (Object.keys(archive.drafts).length > MAX_ARCHIVE_DATES || archiveText.length > MAX_ARCHIVE_LENGTH) {
+    throw new TypeError("The local saved-script library is full. No dated copies were removed or overwritten.");
+  }
+  try {
+    storage.setItem(ANNOUNCEMENT_ARCHIVE_STORAGE_KEY, archiveText);
+  } catch {
+    throw new TypeError("The dated script could not be saved. Existing saved values were left untouched.");
+  }
+  try {
+    storage.setItem(ANNOUNCEMENT_LOCAL_STORAGE_KEY, JSON.stringify(admitted));
+  } catch {
+    try {
+      if (result.raw === null) storage.removeItem(ANNOUNCEMENT_ARCHIVE_STORAGE_KEY);
+      else storage.setItem(ANNOUNCEMENT_ARCHIVE_STORAGE_KEY, result.raw);
+    } catch {
+      throw new TypeError("The working draft could not be saved. A dated copy may have been saved; reload the saved-date list before trying again.");
+    }
+    throw new TypeError("The dated script could not be saved. Existing saved values were restored.");
+  }
   return clone(admitted);
 }
 

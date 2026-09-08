@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   ANNOUNCEMENT_CREW_ROLES,
   ANNOUNCEMENT_LOCAL_STORAGE_KEY,
+  ANNOUNCEMENT_ARCHIVE_STORAGE_KEY,
   ANNOUNCEMENT_WORKFLOW,
   GRADE_SIX_ANNOUNCEMENT_RESPONSIBILITY,
   admitAnnouncementDraft,
@@ -13,8 +14,11 @@ import {
   evaluateAnnouncementDraft,
   hasAnnouncementScript,
   loadLocalAnnouncementDraft,
+  loadLocalAnnouncementArchive,
+  loadArchivedAnnouncementDraft,
   resetAnnouncementDraft,
   saveLocalAnnouncementDraft,
+  saveDatedAnnouncementDraft,
   setAnnouncementCheck,
   setAnnouncementTeacherReview,
   updateAnnouncementDetails,
@@ -331,4 +335,101 @@ test("clearing removes only the isolated local draft key and reports denied stor
     }),
     /local announcement draft could not be cleared/i
   );
+});
+
+
+test("five dated broadcasts survive reload, same-date update, and clearing only the working draft", () => {
+  const storage = memoryStorage({ unrelated: "keep" });
+  const expected = {};
+  for (let day = 14; day <= 18; day += 1) {
+    let draft = updateAnnouncementDetails(readyForTeacherReview(), { date: `2026-09-${day}` });
+    draft = updateAnnouncementSection(draft, "weather", `Approved notice for September ${day}.`);
+    draft = setAnnouncementTeacherReview(draft, true);
+    expected[draft.date] = draft;
+    saveDatedAnnouncementDraft(storage, draft);
+  }
+  const reloaded = memoryStorage(Object.fromEntries(storage.values));
+  assert.equal(loadLocalAnnouncementArchive(reloaded).status, "saved");
+  assert.deepEqual(loadLocalAnnouncementArchive(reloaded).archive.drafts, expected);
+  const beforeReads = reloaded.writes.length;
+  for (const [date, draft] of Object.entries(expected)) {
+    assert.deepEqual(loadArchivedAnnouncementDraft(reloaded, date), draft);
+  }
+  assert.equal(reloaded.writes.length, beforeReads);
+  const changed = updateAnnouncementSection(expected["2026-09-16"], "closing", "A revised approved closing.");
+  saveDatedAnnouncementDraft(reloaded, changed);
+  expected[changed.date] = changed;
+  assert.deepEqual(loadLocalAnnouncementArchive(reloaded).archive.drafts, expected);
+  assert.equal(loadArchivedAnnouncementDraft(reloaded, changed.date).teacherReview.approved, false);
+  clearLocalAnnouncementDraft(reloaded);
+  assert.equal(reloaded.getItem(ANNOUNCEMENT_LOCAL_STORAGE_KEY), null);
+  assert.deepEqual(loadLocalAnnouncementArchive(reloaded).archive.drafts, expected);
+  assert.equal(reloaded.getItem("unrelated"), "keep");
+});
+
+test("archive save reads the latest dates and leaves malformed or mismatched records untouched", () => {
+  const storage = memoryStorage();
+  saveDatedAnnouncementDraft(storage, readyForTeacherReview());
+  const second = updateAnnouncementDetails(readyForTeacherReview(), { date: "2026-09-04" });
+  saveDatedAnnouncementDraft(storage, second);
+  assert.equal(Object.keys(loadLocalAnnouncementArchive(storage).archive.drafts).length, 2);
+  const healthy = JSON.parse(storage.getItem(ANNOUNCEMENT_ARCHIVE_STORAGE_KEY));
+  const mismatched = structuredClone(healthy);
+  mismatched.drafts["2026-09-03"].date = "2026-09-05";
+  const partial = structuredClone(healthy);
+  delete partial.drafts["2026-09-03"].script.opening;
+  for (const raw of ["{bad", JSON.stringify(mismatched), JSON.stringify(partial)]) {
+    const invalid = memoryStorage({ [ANNOUNCEMENT_ARCHIVE_STORAGE_KEY]: raw, [ANNOUNCEMENT_LOCAL_STORAGE_KEY]: "legacy untouched", unrelated: "keep" });
+    assert.equal(loadLocalAnnouncementArchive(invalid).status, "invalid");
+    assert.throws(() => saveDatedAnnouncementDraft(invalid, second), /left untouched/i);
+    assert.throws(() => loadArchivedAnnouncementDraft(invalid, second.date), /left untouched/i);
+    assert.equal(invalid.getItem(ANNOUNCEMENT_ARCHIVE_STORAGE_KEY), raw);
+    assert.equal(invalid.getItem(ANNOUNCEMENT_LOCAL_STORAGE_KEY), "legacy untouched");
+    assert.equal(invalid.writes.length, 0);
+  }
+  assert.throws(() => saveDatedAnnouncementDraft(storage, createAnnouncementDraft()), /Choose a valid announcement date/);
+  assert.throws(() => loadArchivedAnnouncementDraft(storage, "2026-02-30"), /Choose a valid announcement date/);
+});
+
+test("archive save failures preserve prior dated copies and the legacy working value", () => {
+  const original = memoryStorage();
+  saveDatedAnnouncementDraft(original, readyForTeacherReview());
+  const before = new Map(original.values);
+  const second = updateAnnouncementDetails(readyForTeacherReview(), { date: "2026-09-04" });
+  for (const failedKey of [ANNOUNCEMENT_ARCHIVE_STORAGE_KEY, ANNOUNCEMENT_LOCAL_STORAGE_KEY]) {
+    const storage = memoryStorage(Object.fromEntries(before));
+    const write = storage.setItem;
+    storage.setItem = (key, value) => { if (key === failedKey) throw new Error("storage-denied"); write(key, value); };
+    assert.throws(() => saveDatedAnnouncementDraft(storage, second), /could not be saved/i);
+    assert.deepEqual(storage.values, before);
+  }
+});
+
+test("legacy loading stays unchanged and the next dated save preserves its earlier date", () => {
+  const legacy = readyForTeacherReview();
+  const storage = memoryStorage({ [ANNOUNCEMENT_LOCAL_STORAGE_KEY]: JSON.stringify(legacy), unrelated: "keep" });
+  assert.deepEqual(loadLocalAnnouncementDraft(storage).draft, legacy);
+  assert.equal(loadLocalAnnouncementArchive(storage).status, "empty");
+  assert.equal(storage.writes.length, 0);
+  const next = updateAnnouncementDetails(legacy, { date: "2026-09-04" });
+  saveDatedAnnouncementDraft(storage, next);
+  assert.deepEqual(loadLocalAnnouncementArchive(storage).archive.drafts, { [legacy.date]: legacy, [next.date]: next });
+  assert.equal(storage.getItem("unrelated"), "keep");
+});
+
+test("a full dated library refuses another date without evicting or changing any saved value", () => {
+  const archive = { format: "circ.announcements.archive.v1", version: 1, scope: "local-only", drafts: {} };
+  for (let day = 0; day < 1000; day += 1) {
+    const date = new Date(Date.UTC(2023, 0, 1 + day)).toISOString().slice(0, 10);
+    archive.drafts[date] = createAnnouncementDraft({ date });
+  }
+  const storage = memoryStorage({
+    [ANNOUNCEMENT_ARCHIVE_STORAGE_KEY]: JSON.stringify(archive),
+    [ANNOUNCEMENT_LOCAL_STORAGE_KEY]: JSON.stringify(archive.drafts["2023-01-01"]), unrelated: "keep"
+  });
+  const before = new Map(storage.values);
+  assert.equal(loadLocalAnnouncementArchive(storage).status, "saved");
+  assert.throws(() => saveDatedAnnouncementDraft(storage, createAnnouncementDraft({ date: "2026-09-03" })), /library is full.*No dated copies were removed or overwritten/);
+  assert.deepEqual(storage.values, before);
+  assert.equal(storage.writes.length, 0);
 });
