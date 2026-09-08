@@ -1,8 +1,10 @@
 import { admitLocalState, buildBoardProjection } from "./model/access.js";
 import { buildAdminPlanDocument } from "./model/admin-plan.js";
 import {
+  applyEcmsAnnouncementOutline,
   clearLocalAnnouncementDraft,
   evaluateAnnouncementDraft,
+  hasAnnouncementScript,
   loadLocalAnnouncementDraft,
   resetAnnouncementDraft,
   saveLocalAnnouncementDraft,
@@ -2272,6 +2274,18 @@ export function renderApp(root, services = {}) {
     render();
   }
 
+  function useEcmsAnnouncementOutline() {
+    const hasScript = hasAnnouncementScript(announcementDraft);
+    if (hasScript) {
+      const message = "Replace the current script with the ECMS outline? The current wording will be replaced and preparation, rehearsal, and teacher approval will reset. Cancel keeps your draft.";
+      const confirmed = typeof services.confirmReplaceAnnouncement === "function"
+        ? services.confirmReplaceAnnouncement(message) === true
+        : typeof globalThis.window?.confirm === "function" && globalThis.window.confirm(message) === true;
+      if (!confirmed) return;
+    }
+    updateAnnouncementDraft((draft) => applyEcmsAnnouncementOutline(draft, { replaceExisting: hasScript }));
+  }
+
   function openAnnouncementBroadcast() {
     if (!evaluateAnnouncementDraft(announcementDraft).canGoLive) {
       announcementStatus = "Finish preparation and rehearsal, then record teacher approval before going live.";
@@ -2300,7 +2314,7 @@ export function renderApp(root, services = {}) {
       callbacks: {
         onDetailChange: (field, value) => updateAnnouncementDraft(
           (draft) => updateAnnouncementDetails(draft, { [field]: value }),
-          { rerender: false }
+          { rerender: field === "date" }
         ),
         onSectionChange: (section, value) => updateAnnouncementDraft(
           (draft) => updateAnnouncementSection(draft, section, value),
@@ -2313,6 +2327,7 @@ export function renderApp(root, services = {}) {
           (draft) => setAnnouncementTeacherReview(draft, approved)
         ),
         onSaveLocalDraft: saveAnnouncementDraft,
+        onUseEcmsOutline: useEcmsAnnouncementOutline,
         onClearLocalDraft: clearAnnouncementDraft,
         onGoLive: openAnnouncementBroadcast
       }

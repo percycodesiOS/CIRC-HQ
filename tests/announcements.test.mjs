@@ -7,9 +7,11 @@ import {
   ANNOUNCEMENT_WORKFLOW,
   GRADE_SIX_ANNOUNCEMENT_RESPONSIBILITY,
   admitAnnouncementDraft,
+  applyEcmsAnnouncementOutline,
   clearLocalAnnouncementDraft,
   createAnnouncementDraft,
   evaluateAnnouncementDraft,
+  hasAnnouncementScript,
   loadLocalAnnouncementDraft,
   resetAnnouncementDraft,
   saveLocalAnnouncementDraft,
@@ -46,6 +48,92 @@ function readyForTeacherReview() {
   }
   return draft;
 }
+
+test("the ECMS outline follows the approved two-announcer order with the full pledge and selected date", () => {
+  const original = createAnnouncementDraft({ date: "2026-10-15", targetMinutes: 4 });
+  const draft = applyEcmsAnnouncementOutline(original);
+  const script = Object.values(draft.script).join("\n");
+  const orderedCues = [
+    "Good morning, ECMS! Today is Thursday, October 15, 2026.",
+    "cycle day [[CYCLE DAY]]", "Announcer 1: My name is [[ANNOUNCER 1 FIRST NAME]]", "Announcer 2: And my name is [[ANNOUNCER 2 FIRST NAME]]",
+    "Announcer 2: Please rise for a moment of silence, followed by the Pledge of Allegiance.", "at least 20 seconds",
+    "[Wait 5 seconds before Announcer 1 begins.]",
+    "Announcer 1: I pledge allegiance to the flag of the United States of America, and to the republic for which it stands, one nation under God, indivisible, with liberty and justice for all.",
+    "Announcer 2: Thank you. You may be seated.", "Announcer 1: Here are today's announcements.", "[[HEATHER'S REQUIRED NOTICES]]", "[[EMILY'S REQUIRED NOTICES]]",
+    "Announcer 2: For lunch today, we are having", "Announcer 1: A reminder:", "[[OPTIONAL REMINDER OR DELETE THIS LINE]]",
+    "Announcer 2: That's all for today's announcements.", "Announcer 1: Have a great day of learning, ECMS!"
+  ];
+  let position = -1;
+  for (const cue of orderedCues) {
+    const found = script.indexOf(cue);
+    assert.ok(found > position, `Ordered cue: ${cue}`);
+    position = found;
+  }
+  assert.equal(draft.timing.targetMinutes, 4);
+  assert.equal(script.split("[Wait 5 seconds before Announcer 1 begins.]").length - 1, 1);
+  assert.equal(script.split("[Pause silently for at least 20 seconds.]").length - 1, 1);
+  assert.equal(draft.scope, "local-only");
+  assert.equal(draft.teacherReview.approved, false);
+  assert.equal(hasAnnouncementScript(original), false);
+  assert.equal(hasAnnouncementScript(draft), true);
+  assert.throws(() => applyEcmsAnnouncementOutline(createAnnouncementDraft()), /Choose the announcement date/);
+});
+
+test("an outline cannot overwrite existing wording without explicit choice and never keeps prior approval", () => {
+  const original = setAnnouncementTeacherReview(readyForTeacherReview(), true);
+  const snapshot = structuredClone(original);
+  assert.throws(() => applyEcmsAnnouncementOutline(original), /Confirm before replacing/);
+  assert.throws(() => applyEcmsAnnouncementOutline(original, { replaceExisting: "false" }), /Confirm before replacing/);
+  assert.deepEqual(original, snapshot);
+  const replaced = applyEcmsAnnouncementOutline(original, { replaceExisting: true });
+  assert.equal(replaced.teacherReview.approved, false);
+  assert.equal(replaced.timing.rehearsalSeconds, null);
+  assert.equal(evaluateAnnouncementDraft(replaced).prepareComplete, false);
+  assert.equal(evaluateAnnouncementDraft(replaced).rehearseComplete, false);
+  assert.deepEqual(original, snapshot);
+});
+
+test("outline placeholders block teacher review and live even after all preparation checks are complete", () => {
+  let draft = applyEcmsAnnouncementOutline(readyForTeacherReview(), { replaceExisting: true });
+  for (const phase of ["prepare", "rehearse"]) {
+    for (const item of Object.keys(draft.checklist[phase])) draft = setAnnouncementCheck(draft, phase, item, true);
+  }
+  assert.equal(evaluateAnnouncementDraft(draft).reviewReady, false);
+  assert.equal(evaluateAnnouncementDraft(draft).errors.filter(({ code }) => code === "outline-placeholder-unresolved").length, 4);
+  assert.throws(() => setAnnouncementTeacherReview(draft, true), /Finish the script/);
+  assert.throws(() => setAnnouncementCheck(draft, "go-live", "broadcastComplete", true), /Teacher approval/);
+  for (const [section, text] of Object.entries(draft.script)) {
+    draft = updateAnnouncementSection(draft, section, text.replace(/\[\[[^\]]*\]\]/g, "Approved broadcast wording"));
+  }
+  assert.equal(evaluateAnnouncementDraft(draft).reviewReady, true);
+  draft = setAnnouncementTeacherReview(draft, true);
+  assert.equal(evaluateAnnouncementDraft(draft).canGoLive, true);
+  draft = updateAnnouncementSection(draft, "weather", "[[NEW REMINDER]]");
+  assert.equal(draft.teacherReview.approved, false);
+  assert.equal(evaluateAnnouncementDraft(draft).canGoLive, false);
+});
+
+test("selecting another date updates the generated ECMS date cue and preserves other edits", () => {
+  let draft = applyEcmsAnnouncementOutline(createAnnouncementDraft({ date: "2026-10-15" }));
+  draft = updateAnnouncementSection(draft, "closing", "A teacher-edited closing.");
+  draft = updateAnnouncementDetails(draft, { date: "2026-10-16" });
+  assert.match(draft.script.opening, /Friday, October 16, 2026/);
+  assert.doesNotMatch(draft.script.opening, /October 15/);
+  assert.equal(draft.script.closing, "A teacher-edited closing.");
+  draft = updateAnnouncementDetails(draft, { date: "" });
+  assert.match(draft.script.opening, /\[\[ANNOUNCEMENT DATE\]\]/);
+  draft = updateAnnouncementDetails(draft, { date: "2027-01-04" });
+  assert.match(draft.script.opening, /Monday, January 4, 2027/);
+  assert.equal(draft.teacherReview.approved, false);
+});
+
+test("partial and multiline outline markers cannot bypass teacher review", () => {
+  for (const unresolved of ["[[UNRESOLVED\nNOTICE]]", "[[UNRESOLVED NOTICE]", "[[UNRESOLVED NOTICE", "UNRESOLVED NOTICE]]"]) {
+    const draft = updateAnnouncementSection(readyForTeacherReview(), "weather", unresolved);
+    assert.equal(evaluateAnnouncementDraft(draft).reviewReady, false, unresolved);
+    assert.throws(() => setAnnouncementTeacherReview(draft, true), /Finish the script/, unresolved);
+  }
+});
 
 test("a new local draft is public-safe and contains no invented school or student facts", () => {
   const draft = createAnnouncementDraft();

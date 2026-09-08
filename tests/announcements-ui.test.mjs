@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  applyEcmsAnnouncementOutline,
   createAnnouncementDraft,
   setAnnouncementCheck,
   setAnnouncementTeacherReview,
@@ -71,6 +72,7 @@ function callbacksDouble() {
   const calls = [];
   const names = [
     "onDetailChange",
+    "onUseEcmsOutline",
     "onSectionChange",
     "onChecklistChange",
     "onTeacherReviewChange",
@@ -149,6 +151,9 @@ test("ordinary fields cover date, student-safe script sections, and timing witho
   }
   assert.match(textOf(view), /CIRC HQ does not invent pledge wording or school notices/i);
   assert.match(textOf(view), /Use only information approved for the school broadcast/i);
+  assert.ok(findByText(view, "span", "Special events"));
+  assert.match(textOf(view), /confirmed lunch information and special events approved for the broadcast/);
+  assert.doesNotMatch(textOf(view), /birthday/i);
 });
 
 test("the screen wires each editable control and local action to supplied callbacks", () => {
@@ -186,6 +191,27 @@ test("the screen wires each editable control and local action to supplied callba
     ["onSaveLocalDraft"],
     ["onClearLocalDraft"]
   ]);
+});
+
+test("the ECMS action is explicit and its unresolved editable script cannot enter review or live", () => {
+  const actions = callbacksDouble();
+  const empty = createAnnouncementDraft({ date: "2026-10-15" });
+  const view = buildAnnouncementsWorkflow({ draft: empty, callbacks: actions.callbacks }, { document: documentDouble });
+  findByText(view, "button", "Use ECMS outline").click();
+  assert.deepEqual(actions.calls, [["onUseEcmsOutline"]]);
+  assert.equal(empty.script.opening, "");
+
+  const draft = applyEcmsAnnouncementOutline(empty);
+  const outlined = buildAnnouncementsWorkflow({ draft, callbacks: actions.callbacks }, { document: documentDouble });
+  assert.match(findAll(outlined, (node) => node.getAttribute("name") === "script-opening")[0].value, /October 15, 2026/);
+  assert.match(findAll(outlined, (node) => node.getAttribute("name") === "script-pledge-school-items")[0].value, /HEATHER'S REQUIRED NOTICES/);
+  assert.match(textOf(outlined), /Resolve every \[\[placeholder\]\]/);
+  assert.match(textOf(outlined), /Go live shows the approved script, including speaker labels and pause cues/);
+  assert.match(textOf(outlined), /share or mirror that screen, the audience sees the same view/);
+  assert.match(textOf(outlined), /does not start the building's broadcast equipment/);
+  assert.equal(findAll(outlined, (node) => node.getAttribute("name") === "teacher-review")[0].hasAttribute("disabled"), true);
+  assert.equal(findByText(outlined, "button", "Go live").hasAttribute("disabled"), true);
+  assert.throws(() => buildAnnouncementsLiveView({ draft, onExit: () => {} }, { document: documentDouble }), /announcement-live-review-required/);
 });
 
 test("teacher review and go-live controls remain gated until the workflow says ready", () => {
@@ -266,6 +292,7 @@ test("the live view rejects an unapproved draft and exposes only the approved br
   const calls = [];
   let draft = approvedDraft();
   draft = updateAnnouncementSection(draft, "weather", "Sunny and mild today.");
+  draft = updateAnnouncementSection(draft, "birthdaysEvents", "For lunch today, use the confirmed menu.");
   draft = setAnnouncementTeacherReview(draft, true);
   const view = buildAnnouncementsLiveView({
     draft,
@@ -277,6 +304,9 @@ test("the live view rejects an unapproved draft and exposes only the approved br
   assert.match(text, /Good morning\./);
   assert.match(text, /Sunny and mild today\./);
   assert.match(text, /Have a good day\./);
+  assert.ok(findByText(view, "h2", "Special events"));
+  assert.match(text, /For lunch today, use the confirmed menu/);
+  assert.doesNotMatch(text, /birthday/i);
   assert.doesNotMatch(text, /teacher review|local draft|crew roles|checklist/i);
   findByText(view, "button", "Exit broadcast view").click();
   assert.deepEqual(calls, ["exit"]);

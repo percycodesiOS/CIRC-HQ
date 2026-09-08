@@ -104,7 +104,7 @@ function crewView(documentRef) {
       attributes: { id: "announcements-crew-heading" }
     }),
     element(documentRef, "p", {
-      text: "Assign roles in person or from a private teacher roster. Do not enter student names in this draft."
+      text: "Assign roles in person or from a private teacher roster. Use only first names approved for the broadcast in the script; keep rosters and private notices out."
     }),
     element(documentRef, "div", { className: "announcements-role-grid" },
       ANNOUNCEMENT_CREW_ROLES.map((role) => element(documentRef, "article", {
@@ -241,6 +241,13 @@ export function buildAnnouncementsWorkflow(input, options = {}) {
     element(documentRef, "p", {
       text: "Use only information approved for the school broadcast. CIRC HQ does not invent pledge wording or school notices."
     }),
+    button(documentRef, "Use ECMS outline", "secondary-action", () => callbacks.onUseEcmsOutline?.()),
+    element(documentRef, "p", {
+      text: "Two announcers: greeting and cycle day, first-name introductions, at least 20 seconds of silence, a separate 5-second handoff pause before Announcer 1 leads the full Pledge, sit, required notices from Heather and Emily, lunch, optional reminder, closing. Resolve every [[placeholder]] before teacher review. Confirm no notices with the office when applicable."
+    }),
+    element(documentRef, "p", {
+      text: "Go live shows the approved script, including speaker labels and pause cues. If you share or mirror that screen, the audience sees the same view. CIRC HQ does not start the building's broadcast equipment."
+    }),
     scriptField(documentRef, {
       id: "script-opening",
       name: "script-opening",
@@ -252,23 +259,23 @@ export function buildAnnouncementsWorkflow(input, options = {}) {
     scriptField(documentRef, {
       id: "script-pledge-school-items",
       name: "script-pledge-school-items",
-      label: "Pledge or approved school items",
+      label: "Moment of silence, Pledge and required school notices",
       value: script.pledgeSchoolItems,
-      help: "Enter only the cue or wording required by the school.",
+      help: "Keep Heather's and Emily's required notices immediately after the Pledge and sit cue. Enter only wording approved for the broadcast.",
       onInput: (value) => callbacks.onSectionChange?.("pledgeSchoolItems", value)
     }),
     scriptField(documentRef, {
       id: "script-birthdays-events",
       name: "script-birthdays-events",
-      label: "Birthdays and events",
+      label: "Special events",
       value: script.birthdaysEvents,
-      help: "Use only names or events cleared for public announcement by the teacher.",
+      help: "Use confirmed lunch information and special events approved for the broadcast.",
       onInput: (value) => callbacks.onSectionChange?.("birthdaysEvents", value)
     }),
     scriptField(documentRef, {
       id: "script-weather",
       name: "script-weather",
-      label: "Weather",
+      label: "Optional reminder or weather",
       value: script.weather,
       help: "Enter a checked forecast or leave this section blank.",
       onInput: (value) => callbacks.onSectionChange?.("weather", value)
@@ -331,9 +338,9 @@ export function buildAnnouncementsLiveView(input, options = {}) {
   }
   const sectionLabels = {
     opening: "Opening",
-    pledgeSchoolItems: "School items",
-    birthdaysEvents: "Birthdays and events",
-    weather: "Weather",
+    pledgeSchoolItems: "Moment of silence, Pledge and school notices",
+    birthdaysEvents: "Special events",
+    weather: "Optional reminder or weather",
     closing: "Closing"
   };
   const scriptSections = Object.entries(sectionLabels)

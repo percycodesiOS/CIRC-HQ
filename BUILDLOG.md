@@ -1,5 +1,15 @@
 # CIRC HQ - BUILDLOG
 
+## 2026-09-08 ECMS announcement outline
+
+- Added **Use ECMS outline** to the existing local announcement studio with the approved two-announcer wording: selected date and cycle day, first-name placeholders, rise and at least 20 seconds of silence, a separate 5-second opening handoff pause before Announcer 1 leads the full US Pledge, sit, required Heather and Emily notices, lunch, optional reminder, and closing. The 5-second cue appears once and leaves the 20-second silence intact.
+- Existing wording requires explicit replacement confirmation. Cancel preserves the current draft and saved value. Applying the outline resets preparation, rehearsal and teacher approval; saving remains a separate local action.
+- Unresolved, partial and multiline double-bracket markers block teacher review and broadcast view. Changing or clearing the selected date updates the recognizable generated date cue without rewriting the other script sections.
+- Kept the existing local-only draft schema, storage key, editable sections and approved-script projection boundary. No actual student names, private notices, schedules or roster files were added.
+- Clarified that Go live shows speaker labels and pause cues with the approved script. Mirroring or sharing shows the same visible view; CIRC HQ does not start building broadcast equipment.
+- Set the visible editor and broadcast section label to **Special events**, with confirmed lunch information and approved-event help. The existing internal storage field remains compatible with saved drafts.
+- Focused model, UI and app-render coverage verifies the exact outline sequence, complete Pledge, date changes, draft preservation, placeholder gates, approval invalidation and absence of implicit schedule/storage writes. Release verification and deployment are recorded separately by the release owner.
+
 ## 2026-09-02 active lesson focus runner
 
 - Rebuilt the active teacher runner around one sticky command bar that keeps the current step, dominant step timer, class timer, Pause or Resume, +1 min, Previous, and Next Step visible while the lesson scrolls.

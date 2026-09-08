@@ -1518,6 +1518,79 @@ test("Playbooks features the Grade 6 announcements studio without adding a sixth
   }
 });
 
+test("the ECMS outline preserves a saved custom draft on cancel and replaces only after confirmation", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const original = approvedAnnouncementDraft();
+  const savedValue = JSON.stringify(original);
+  const announcementStorage = keyValueStorage({ [ANNOUNCEMENT_LOCAL_STORAGE_KEY]: savedValue });
+  const confirmationMessages = [];
+  const scheduleWrites = [];
+  let allowReplacement = false;
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1, clearInterval: () => {}, scrollTo: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  let controller;
+  try {
+    controller = renderApp(root, {
+      store: {
+        load: () => ({ state: stateWithActiveEvent("teach"), error: null }),
+        save: (state) => { scheduleWrites.push(state); return state; }
+      },
+      announcementStorage, loadPrivateSeed: false, weatherService: {},
+      confirmReplaceAnnouncement: (message) => {
+        confirmationMessages.push(message);
+        return allowReplacement;
+      },
+      clock: { now: () => new Date("2026-10-15T08:00:00-04:00") }
+    });
+    await controller.ready;
+    controller.navigate("announcements");
+    const field = (name) => findAll(root, (node) => node.getAttribute("name") === name)[0];
+    const action = (label) => findAll(root, (node) => node.tagName === "button" && textOf(node) === label)[0];
+    const openingBefore = field("script-opening").value;
+    action("Use ECMS outline").click();
+    assert.equal(confirmationMessages.length, 1);
+    assert.match(confirmationMessages[0], /Cancel keeps your draft/);
+    assert.equal(field("script-opening").value, openingBefore);
+    assert.equal(field("teacher-review").checked, true);
+    assert.equal(announcementStorage.values.get(ANNOUNCEMENT_LOCAL_STORAGE_KEY), savedValue);
+    assert.equal(announcementStorage.writes.length, 0);
+
+    allowReplacement = true;
+    action("Use ECMS outline").click();
+    assert.equal(confirmationMessages.length, 2);
+    assert.match(field("script-opening").value, /Thursday, September 3, 2026/);
+    assert.doesNotMatch(field("script-opening").value, /October 15/);
+    assert.equal(field("teacher-review").checked, false);
+    assert.equal(field("teacher-review").hasAttribute("disabled"), true);
+    assert.equal(action("Go live").hasAttribute("disabled"), true);
+    assert.equal(announcementStorage.values.get(ANNOUNCEMENT_LOCAL_STORAGE_KEY), savedValue);
+    assert.equal(announcementStorage.writes.length, 0);
+    assert.equal(scheduleWrites.length, 0);
+    const dateInput = field("announcement-date");
+    dateInput.value = "2026-10-16";
+    dateInput.listeners.get("input")({ currentTarget: dateInput });
+    assert.match(field("script-opening").value, /Friday, October 16, 2026/);
+    action("Save local draft").click();
+    assert.equal(announcementStorage.writes.length, 1);
+    assert.equal(announcementStorage.writes[0][0], ANNOUNCEMENT_LOCAL_STORAGE_KEY);
+    const saved = JSON.parse(announcementStorage.writes[0][1]);
+    assert.equal(saved.scope, "local-only");
+    assert.equal(saved.teacherReview.approved, false);
+    assert.match(saved.script.pledgeSchoolItems, /at least 20 seconds/);
+    assert.equal(scheduleWrites.length, 0);
+  } finally {
+    controller?.destroy();
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
 test("only a teacher-approved announcement draft can enter the student-safe broadcast view", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;

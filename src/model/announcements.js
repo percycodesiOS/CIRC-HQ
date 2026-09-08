@@ -80,6 +80,36 @@ const SCRIPT_SECTION_SET = new Set(SCRIPT_SECTIONS);
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_SCRIPT_LENGTH = 2000;
 const MAX_STORED_DRAFT_LENGTH = 15000;
+const OUTLINE_PLACEHOLDER = /\[\[|\]\]/;
+
+function spokenAnnouncementDate(value) {
+  if (!validCalendarDate(value)) return null;
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC"
+  }).format(new Date(`${value}T12:00:00Z`));
+}
+
+export function hasAnnouncementScript(draft) {
+  return Object.values(normalizedDraft(draft).script).some((text) => text.trim() !== "");
+}
+
+export function applyEcmsAnnouncementOutline(draft, { replaceExisting = false } = {}) {
+  const prior = admitAnnouncementDraft(draft);
+  const date = spokenAnnouncementDate(prior.date);
+  if (!date) throw new TypeError("Choose the announcement date before using the ECMS outline.");
+  if (hasAnnouncementScript(prior) && replaceExisting !== true) {
+    throw new TypeError("Confirm before replacing the current announcement script.");
+  }
+  const next = createAnnouncementDraft({ date: prior.date, targetMinutes: prior.timing.targetMinutes });
+  next.script = {
+    opening: `Announcer 1: Good morning, ECMS! Today is ${date}. It is cycle day [[CYCLE DAY]].\nAnnouncer 1: My name is [[ANNOUNCER 1 FIRST NAME]].\nAnnouncer 2: And my name is [[ANNOUNCER 2 FIRST NAME]].`,
+    pledgeSchoolItems: "Announcer 2: Please rise for a moment of silence, followed by the Pledge of Allegiance.\n[Pause silently for at least 20 seconds.]\n[Wait 5 seconds before Announcer 1 begins.]\nAnnouncer 1: I pledge allegiance to the flag of the United States of America, and to the republic for which it stands, one nation under God, indivisible, with liberty and justice for all.\nAnnouncer 2: Thank you. You may be seated.\nAnnouncer 1: Here are today's announcements.\nAnnouncer 1: [[HEATHER'S REQUIRED NOTICES]]\nAnnouncer 2: [[EMILY'S REQUIRED NOTICES]]",
+    birthdaysEvents: "Announcer 2: For lunch today, we are having [[TODAY'S LUNCH]].",
+    weather: "Announcer 1: A reminder: [[OPTIONAL REMINDER OR DELETE THIS LINE]]",
+    closing: "Announcer 2: That's all for today's announcements.\nAnnouncer 1: Have a great day of learning, ECMS!"
+  };
+  return next;
+}
 
 function clone(value) {
   return structuredClone(value);
@@ -240,7 +270,15 @@ export function updateAnnouncementDetails(draft, changes = {}) {
   const unknown = Object.keys(changes).filter((key) => !["date", "targetMinutes", "rehearsalSeconds"].includes(key));
   if (unknown.length) throw new TypeError("Choose a valid announcement detail.");
   let next = normalizedDraft(draft);
-  if (Object.hasOwn(changes, "date")) next.date = changes.date;
+  if (Object.hasOwn(changes, "date")) {
+    const previousCue = `Announcer 1: Good morning, ECMS! Today is ${spokenAnnouncementDate(next.date) ?? "[[ANNOUNCEMENT DATE]]"}.`;
+    const newDate = spokenAnnouncementDate(changes.date) ?? "[[ANNOUNCEMENT DATE]]";
+    if (next.script.opening.startsWith(previousCue)) {
+      next.script.opening = next.script.opening.replace(previousCue,
+        `Announcer 1: Good morning, ECMS! Today is ${newDate}.`);
+    }
+    next.date = changes.date;
+  }
   if (Object.hasOwn(changes, "targetMinutes")) next.timing.targetMinutes = changes.targetMinutes;
   if (Object.hasOwn(changes, "rehearsalSeconds")) next.timing.rehearsalSeconds = changes.rehearsalSeconds;
   next = invalidatesTeacherReview(next);
@@ -283,6 +321,13 @@ export function evaluateAnnouncementDraft(draft) {
     errors.push(error("closing-required", "Write the closing.", "script.closing"));
   }
   for (const section of SCRIPT_SECTIONS) {
+    if (OUTLINE_PLACEHOLDER.test(value.script[section])) {
+      errors.push(error(
+        "outline-placeholder-unresolved",
+        "Resolve every [[placeholder]] with broadcast-approved wording, or remove the optional reminder, before teacher review.",
+        `script.${section}`
+      ));
+    }
     if (value.script[section].length > MAX_SCRIPT_LENGTH) {
       errors.push(error(
         "section-too-long",

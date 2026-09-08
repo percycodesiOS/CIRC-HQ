@@ -38,6 +38,16 @@ The welcome screen also offers two optional paths:
 
 The normal teaching path does not require Settings, a backup file, or Room.
 
+## Morning announcements
+
+Open **Playbooks > Open announcement studio**, choose the broadcast date, then choose **Use ECMS outline**. An existing script is replaced only after confirmation; Cancel preserves its wording. The outline is editable and starts with preparation, rehearsal and teacher approval unchecked.
+
+The two-announcer order is greeting/date/cycle day, first-name introductions, rise and at least 20 seconds of silence, a separate 5-second handoff pause before Announcer 1 leads the full Pledge of Allegiance, sit, required notices from Heather and Emily, lunch, an optional reminder, and closing. The 5-second cue appears once at that opening handoff and does not shorten the moment of silence. Replace the marked placeholders with broadcast-approved wording, confirm any absence of required notices with the office, and remove an unused optional reminder. Unresolved or partly edited double-bracket markers block teacher review and Go live. Changing the selected date updates the generated ECMS date cue; custom wording remains editable and must be fact-checked.
+
+**Save local draft** saves only on the current device. The outline contains no actual student names or private notices. Go live displays the approved script, including speaker labels and pause cues, along with the date, section headings and an exit control. Teacher preparation and private schedule information stay out. A shared or mirrored screen shows that same view; CIRC HQ does not start the building's broadcast equipment.
+
+The **Special events** section holds the confirmed lunch line and any approved special events in both the editor and broadcast view. Existing saved drafts remain compatible.
+
 ## Private sync and Room are optional
 
 CIRC HQ remains usable locally without an account. Private sync is optional. It begins only after explicit Google sign-in, and an explicit cloud write is required before private schedule data is uploaded.
