@@ -129,6 +129,417 @@ function definePlan(projectNumber, title, safetyTags, stepRows, extra = {}) {
   };
 }
 
+// Explicit optional lessons for the Ehrman Crest replica. The original annual modes stay intact.
+export const REPLICA_LESSON_CHOICES = deepFreeze([
+  {
+    "id": "replica-sort",
+    "title": "Sort, Count, Plan",
+    "label": "Today / Day 3: Sort, Count, Plan",
+    "objective": "I can sort reusable materials, check an inventory, and use evidence to propose a model feature.",
+    "summary": "Sort approved loose parts, check quantities, and leave a clear plan for the next crew.",
+    "materials": [
+      "Approved loose materials",
+      "Labeled trays",
+      "Paper, pencils and a checked inventory",
+      "Teacher-selected aerial reference when available"
+    ],
+    "safety": "Use only loose approved parts. Leave attached, sharp or questionable parts for the teacher. Keep the model dry. Epoxy is required for the final build. Use these dry lessons while supplies and the plan are being prepared; later attachment is teacher-managed using the exact product label and SDS, material compatibility and cure instructions.",
+    "teacherContext": [
+      "Use the teacher-selected aerial image when available; actual school footprint, dimensions and parent-drop-off direction are not invented. Mark fountain or other additions PROPOSED. No working water in these sessions.",
+      "Epoxy is required for the final build. These sessions stay dry while supplies and the plan are being prepared. Later teacher-managed use follows the exact product label/SDS and school-approved procedure, checks material compatibility and protects the specified curing stage. No student mixing or unspecified cure time is supplied."
+    ],
+    "fastFinish": "Check one label or count, then leave one useful question for the next crew."
+  },
+  {
+    "id": "replica-layout",
+    "title": "Aerial Layout & Dry Prototype",
+    "label": "Next session: Aerial Layout & Dry Prototype",
+    "objective": "I can use a top-view reference, distinguish an observed feature from a proposed change, and explain a design constraint.",
+    "summary": "Use a confirmed aerial reference to plan the school footprint and try a removable dry layout.",
+    "materials": [
+      "Approved loose materials",
+      "Labeled trays",
+      "Paper, pencils and a checked inventory",
+      "Teacher-selected aerial reference when available"
+    ],
+    "safety": "Use only loose approved parts. Leave attached, sharp or questionable parts for the teacher. Keep the model dry. Epoxy is required for the final build. Use these dry lessons while supplies and the plan are being prepared; later attachment is teacher-managed using the exact product label and SDS, material compatibility and cure instructions.",
+    "teacherContext": [
+      "Use the teacher-selected aerial image when available; actual school footprint, dimensions and parent-drop-off direction are not invented. Mark fountain or other additions PROPOSED. No working water in these sessions.",
+      "Epoxy is required for the final build. These sessions stay dry while supplies and the plan are being prepared. Later teacher-managed use follows the exact product label/SDS and school-approved procedure, checks material compatibility and protects the specified curing stage. No student mixing or unspecified cure time is supplied."
+    ],
+    "fastFinish": "Check one label or count, then leave one useful question for the next crew."
+  },
+  {
+    "id": "replica-service",
+    "title": "Remember & Serve",
+    "label": "Friday, September 11: Remember & Serve",
+    "objective": "I can explain one way people help their community and design a small model feature that meets a person's need.",
+    "summary": "Use calm September 11 history and a useful service design for the school community.",
+    "materials": [
+      "Approved loose materials",
+      "Labeled trays",
+      "Paper, pencils and a checked inventory",
+      "Optional previewed living Survivor Tree photograph"
+    ],
+    "safety": "Use only loose approved parts. Leave attached, sharp or questionable parts for the teacher. Keep the model dry. Epoxy is required for the final build. Use these dry lessons while supplies and the plan are being prepared; later attachment is teacher-managed using the exact product label and SDS, material compatibility and cure instructions.",
+    "teacherContext": [
+      "Use calm basic facts, optional sharing and a quiet alternative. No attack reenactment or graphic media.",
+      "Epoxy is required for the final build. These sessions stay dry while supplies and the plan are being prepared. Later teacher-managed use follows the exact product label/SDS and school-approved procedure, checks material compatibility and protects the specified curing stage. No student mixing or unspecified cure time is supplied."
+    ],
+    "fastFinish": "Check one label or count, then leave one useful question for the next crew."
+  }
+]);
+
+export function getReplicaLessonChoice(modeId) {
+  return REPLICA_LESSON_CHOICES.find((choice) => choice.id === modeId) ?? null;
+}
+
+function replicaParallelJobs() {
+  return defineParallelJobs([
+    ["materials", "Materials Team", ["Handle only the loose parts approved for this step."]],
+    ["plan", "Plan Team", ["Draw or label the current plan."]],
+    ["check", "Check Team", ["Check one count, label or design reason."]],
+    ["reference", "Reference Team", ["Mark what is known and what needs a reference."]],
+    ["record", "Record Team", ["Record the result and the next action."]],
+    ["share", "Share Team", ["Explain one result and help reset the space."]]
+  ]);
+}
+
+function replicaModeVariants() {
+  return {
+    "replica-sort": {
+      ...defineModeVariant(2, [
+        [
+          "replica-ready",
+          "MEET THE PROJECT",
+          "ready",
+          3,
+          [
+            "Look at the approved loose parts.",
+            "Name one kind of material you notice."
+          ],
+          [
+            "Say: We are preparing a model of our school. Today we sort the loose approved parts and find out what we have before we build.",
+            "Keep actual quantities and final feature decisions open until checked."
+          ]
+        ],
+        [
+          "replica-roles",
+          "TAKE A ROLE",
+          "safety",
+          4,
+          [
+            "Choose materials lead, sorter, counter or recorder.",
+            "Move only loose parts the teacher approved.",
+            "Leave attached or questionable parts in place and tell the teacher."
+          ],
+          [
+            "Model one safe part, a sorting category and a count with units.",
+            "Remaining disassembly is teacher-managed only; students do not pull or pry glued pieces.",
+            "Explain that this dry lesson prepares the required final epoxy stage. Confirm supplies and product directions before attachment."
+          ]
+        ],
+        [
+          "replica-sort",
+          "SORT THE PARTS",
+          "work",
+          8,
+          [
+            "Sort one tray into possible building parts and site parts.",
+            "Keep each kind together.",
+            "Flag a questionable item for the teacher."
+          ],
+          [
+            "Give each team one tray.",
+            "Use existing approved materials only.",
+            "Halfway through, rotate handling and recording roles."
+          ]
+        ],
+        [
+          "replica-count",
+          "COUNT AND CHECK",
+          "work",
+          4,
+          [
+            "Record the material, count, unit and condition.",
+            "Ask a partner to check one count.",
+            "Label any unfinished pile not yet counted."
+          ],
+          [
+            "Ask: Could the next crew check this count?",
+            "Distinguish individual pieces, pairs and sets. Do not tally the same pile twice."
+          ]
+        ],
+        [
+          "replica-plan",
+          "SKETCH ONE USE",
+          "work",
+          7,
+          [
+            "Look at the teacher-selected school reference if available.",
+            "Sketch one use for an inventoried material.",
+            "Mark new features PROPOSED and uncertain features with a question mark."
+          ],
+          [
+            "Identify only confirmed building, arrival and path features.",
+            "If the aerial is unavailable, label the site sketch REFERENCE NEEDED and check inventory instead.",
+            "Keep any fountain dry and unbuilt today."
+          ]
+        ],
+        [
+          "replica-reset",
+          "LABEL AND RESET",
+          "cleanup",
+          5,
+          [
+            "Return parts to labeled trays.",
+            "Keep counted and uncounted piles clear.",
+            "Clear the table and walking space."
+          ],
+          [
+            "Do not discard or permanently attach parts.",
+            "Check one tray label and protect remaining teacher-managed materials."
+          ]
+        ],
+        [
+          "replica-exit",
+          "LEAVE THE NEXT STEP",
+          "exit",
+          4,
+          [
+            "Complete: We counted ___ units of ___.",
+            "Explain: It could represent ___ because ___.",
+            "Leave one question and one next action for the next crew."
+          ],
+          [
+            "Accept a short written, spoken or drawn response.",
+            "Collect a checked inventory and team handoff; do not require every tray to be finished."
+          ]
+        ]
+      ], replicaParallelJobs(), { preserveExisting: true, requiresTeacherPlan: true, dismantleGluedStructure: false }),
+      title: "Sort, Count, Plan",
+      safetyTags: []
+    },
+    "replica-layout": {
+      ...defineModeVariant(2, [
+        [
+          "map-handoff",
+          "READ THE HANDOFF",
+          "ready",
+          4,
+          [
+            "Read the previous crew's tray labels and next step.",
+            "Check one inventory count before using parts."
+          ],
+          [
+            "Say: We check the previous crew's evidence before we add our own ideas.",
+            "Continue inventory if needed; do not assume the same students attended yesterday."
+          ]
+        ],
+        [
+          "map-reference",
+          "READ THE SCHOOL VIEW",
+          "work",
+          5,
+          [
+            "Orient the teacher-selected aerial image with a confirmed landmark.",
+            "Find the building, parent-drop-off area and a visible path.",
+            "Mark anything uncertain with a question mark."
+          ],
+          [
+            "Confirm visible features without inventing traffic direction or dimensions.",
+            "If no reference is available, keep site placement undecided and use feature sketches only."
+          ]
+        ],
+        [
+          "map-footprint",
+          "DRAW THE TOP VIEW",
+          "work",
+          7,
+          [
+            "Sketch the broad building and site shapes.",
+            "Make a key for observed features and proposed changes.",
+            "Mark the fountain or other new ideas PROPOSED."
+          ],
+          [
+            "Keep the actual-school replica and proposed modifications distinguishable.",
+            "Label the drawing not to scale unless a reference measurement has been confirmed."
+          ]
+        ],
+        [
+          "map-materials",
+          "MATCH MATERIALS",
+          "work",
+          5,
+          [
+            "Choose one inventoried material for a feature.",
+            "Explain why its shape or condition fits the job.",
+            "Record an open question before using an uncertain part."
+          ],
+          [
+            "Check proposed material uses.",
+            "Reserve final epoxy compatibility and application decisions for the exact product and teacher-approved process."
+          ]
+        ],
+        [
+          "map-dryfit",
+          "TRY A LOOSE LAYOUT",
+          "work",
+          5,
+          [
+            "Place loose paper shapes or approved parts on the plan.",
+            "Trace a connected model route from arrival to entrance.",
+            "Revise one crowded or unclear spot."
+          ],
+          [
+            "Keep all parts removable and all water features dry.",
+            "This is a model design check, not certification of real-school accessibility or traffic safety."
+          ]
+        ],
+        [
+          "map-reset",
+          "SAVE THE PLAN",
+          "cleanup",
+          5,
+          [
+            "Label the plan and store loose pieces separately.",
+            "Return the materials and clear your space."
+          ],
+          [
+            "Preserve other teams' work.",
+            "Confirm the handoff identifies what was observed, proposed and left undecided."
+          ]
+        ],
+        [
+          "map-exit",
+          "EXPLAIN YOUR REVISION",
+          "exit",
+          4,
+          [
+            "Name one observed feature and one proposed change.",
+            "Name one limit and explain what you changed.",
+            "Write the next crew's first task."
+          ],
+          [
+            "Collect the labeled plan and one evidence-based explanation.",
+            "Do not advance to permanent attachment until the plan and materials are approved."
+          ]
+        ]
+      ], replicaParallelJobs(), { preserveExisting: true, requiresTeacherPlan: true, dismantleGluedStructure: false }),
+      title: "Aerial Layout & Dry Prototype",
+      safetyTags: []
+    },
+    "replica-service": {
+      ...defineModeVariant(2, [
+        [
+          "care-ready",
+          "SETTLE AND LISTEN",
+          "ready",
+          3,
+          [
+            "Listen quietly or share if you choose.",
+            "Think about a way people care for one another."
+          ],
+          [
+            "Say: Today is September 11. We will remember people and consider how communities care for one another. You do not have to share a personal story."
+          ]
+        ],
+        [
+          "care-history",
+          "REMEMBER SEPTEMBER 11",
+          "work",
+          4,
+          [
+            "Listen to the short factual explanation.",
+            "Ask a question or choose to listen."
+          ],
+          [
+            "Say: On September 11, 2001, terrorists attacked the United States and many people died. First responders and other people helped during and after the attacks. We remember the people who died and the people whose lives changed.",
+            "Give basic age-appropriate facts. No graphic footage, sirens, collapse reenactments or blame toward an entire group."
+          ]
+        ],
+        [
+          "care-example",
+          "NOTICE CARE AND RECOVERY",
+          "work",
+          4,
+          [
+            "Look at the teacher-selected living-tree image if available.",
+            "Describe one action that helps something recover."
+          ],
+          [
+            "Use only a previewed current Survivor Tree image from the 9/11 Memorial & Museum.",
+            "Explain that people cared for a tree damaged in the attacks and it returned to the Memorial after recovery.",
+            "If the image is unavailable, give the brief explanation without opening an unpreviewed video."
+          ]
+        ],
+        [
+          "care-design",
+          "DESIGN FOR SOMEONE",
+          "work",
+          13,
+          [
+            "Choose a school-community user and one need.",
+            "Draw or make a removable paper feature that helps.",
+            "Label the feature PROPOSED and explain where it could fit."
+          ],
+          [
+            "Offer a welcoming sign, rest area, clear route marker or quiet garden concept.",
+            "Keep the school model separate from any attack reenactment or claimed official memorial.",
+            "Use dry approved materials only; required final epoxy application is a later teacher-managed stage."
+          ]
+        ],
+        [
+          "care-share",
+          "EXPLAIN AND IMPROVE",
+          "work",
+          5,
+          [
+            "Complete: This helps ___ by ___.",
+            "Give a design reason and listen to one partner question.",
+            "Revise one label or placement."
+          ],
+          [
+            "Accept quiet written responses.",
+            "Look for a specific user need and a reasoned design choice, not a display of a particular emotion."
+          ]
+        ],
+        [
+          "care-reset",
+          "PROTECT THE IDEAS",
+          "cleanup",
+          4,
+          [
+            "Store the concept separately from the shared model.",
+            "Leave other teams' work intact.",
+            "Return materials."
+          ],
+          [
+            "Collect any thank-you messages for teacher review; sending or public display is a later decision.",
+            "Follow school support routines for anyone needing a quieter task."
+          ]
+        ],
+        [
+          "care-exit",
+          "NAME ONE WAY TO HELP",
+          "exit",
+          2,
+          [
+            "Complete: One way I can help our community is ___.",
+            "Explain how your proposed feature helps someone."
+          ],
+          [
+            "Accept a drawing with a brief oral explanation.",
+            "Save the proposal and one next action for a later build session."
+          ]
+        ]
+      ], replicaParallelJobs(), { preserveExisting: true, requiresTeacherPlan: true, dismantleGluedStructure: false }),
+      title: "Remember & Serve",
+      safetyTags: []
+    }
+  };
+}
+
 const PLAN_DEFINITIONS = [
   definePlan(
     1,
@@ -363,6 +774,7 @@ const PLAN_DEFINITIONS = [
             dismantleGluedStructure: false,
           },
         ),
+        ...replicaModeVariants(),
       },
     },
   ),
@@ -2273,6 +2685,8 @@ export function getExperienceTimingPlan(projectNumber, selection) {
   return deepFreeze({
     ...sharedPlan,
     activeModeId: modeId,
+    title: modeVariant.title ?? sharedPlan.title,
+    safetyTags: modeVariant.safetyTags ?? sharedPlan.safetyTags,
     steps: modeVariant.steps,
     parallelJobs: modeVariant.parallelJobs,
     preservation: modeVariant.preservation,

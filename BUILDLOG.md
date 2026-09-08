@@ -1,5 +1,15 @@
 # CIRC HQ - BUILDLOG
 
+## 2026-09-08 optional Ehrman Crest replica lessons
+
+- Added three explicit Tech Terrarium lesson choices: Sort, Count, Plan; Aerial Layout & Dry Prototype; and September 11 Remember & Serve. Each uses seven steps totaling 35 minutes, separate student/teacher directions, cleanup and an exit handoff. The original catalog, annual modes and other 35 experiences remain intact.
+- Reused the existing mode snapshot and timer schemas. The chooser is directly available on Playbooks, Tech Terrarium teacher detail, and Today when Tech Terrarium is current. A different saved runner requires replacement confirmation; same-choice reopening preserves it. A separate confirmed new-class action resets a completed or active lesson to Ready at step 1.
+- Kept stationary Ready clocks, explicit Start class, both class and step timers, manual Next, Pause/Resume, and the existing scheduled-class end. A late scheduled launch uses remaining class time; a launch without a current teaching event receives 35:00.
+- Gave replica runners their own context and removed the unrelated original terrarium artwork and artifact controls from these runner views. Student views show only the selected title, active student directions, timers and step sequence. No account, cloud, private schedule, source-image or shared-artifact changes were introduced.
+- Dry sessions use approved loose parts and preserve teacher-managed attached material. The unverified aerial layout stays open; epoxy remains required for later teacher-managed attachment with the exact product instructions. Friday uses basic age-appropriate history and useful service design, without reenactment or graphic media.
+- Added teacher operating notes for 8:50 arrival, 8:55 announcements, the three-minute full-script target, and Day 4 preparation/finalization of the following week. No automatic school rotation or date changes.
+- Initial targeted tests failed on the three missing feature boundaries. Focused model, runner and app coverage now passes 123 of 123 checks, including all 21 student step projections, no-account Preview, all three complete-to-new-class resets, running/paused cancellation, same-choice preservation, and a late launch with 25 minutes remaining. Full release verification is recorded by the independent release reviewer.
+
 ## 2026-09-08 ECMS announcement outline
 
 - Added **Use ECMS outline** to the existing local announcement studio with the approved two-announcer wording: selected date and cycle day, first-name placeholders, rise and at least 20 seconds of silence, a separate 5-second opening handoff pause before Announcer 1 leads the full US Pledge, sit, required Heather and Emily notices, lunch, optional reminder, and closing. The 5-second cue appears once and leaves the 20-second silence intact.

@@ -18,7 +18,7 @@ import { isOwnerKey } from "./schema-admission.js";
 const TEACHER_FIELDS = new Set(["directions", "cue", "model"]);
 const STEP_KINDS = new Set(["ready", "safety", "transition", "work", "cleanup", "exit"]);
 const TIMER_STATUSES = new Set(["ready", "running", "paused", "step-expired", "complete"]);
-const MODE_IDS = new Set(["build-new", "refresh-existing", "alternate-shared-build"]);
+const MODE_IDS = new Set(Object.keys(getExperienceTimingPlan(2).modeVariants));
 const PRESERVATION_FIELDS = new Set([
   "preserveExisting",
   "requiresExistingArtifact",

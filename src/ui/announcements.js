@@ -248,6 +248,9 @@ export function buildAnnouncementsWorkflow(input, options = {}) {
     element(documentRef, "p", {
       text: "Go live shows the approved script, including speaker labels and pause cues. If you share or mirror that screen, the audience sees the same view. CIRC HQ does not start the building's broadcast equipment."
     }),
+    element(documentRef, "p", {
+      text: "Crew arrival: 8:50 a.m. latest. Broadcast: 8:55 a.m., with a three-minute target including the opening, silence, Pledge and closing. On Day 4, prepare and finalize all announcements for the following week. Choose the actual broadcast dates; no school rotation or calendar dates are changed automatically."
+    }),
     scriptField(documentRef, {
       id: "script-opening",
       name: "script-opening",

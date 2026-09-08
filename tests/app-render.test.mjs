@@ -1985,9 +1985,9 @@ test("every current lesson path resolves to a reviewed meaning-based icon", () =
     "warning-circle"
   ]);
 
-  assert.equal(paths.length, 42);
-  assert.equal(steps.length, 340);
-  assert.equal(uniqueSteps.size, 231);
+  assert.equal(paths.length, 45);
+  assert.equal(steps.length, 361);
+  assert.equal(uniqueSteps.size, 252);
   for (const step of steps) assert.equal(reviewedFiles.has(runnerStepIconFile(step)), true);
 
   const distribution = Object.fromEntries(
@@ -1998,15 +1998,15 @@ test("every current lesson path resolves to a reviewed meaning-based icon", () =
   );
   assert.deepEqual(distribution, {
     "arrow-right": 8,
-    books: 17,
-    "calendar-dots": 29,
-    "chalkboard-teacher": 3,
-    "gear-six": 84,
+    books: 21,
+    "calendar-dots": 31,
+    "chalkboard-teacher": 4,
+    "gear-six": 90,
     house: 1,
-    "play-circle": 10,
-    "presentation-chart": 31,
+    "play-circle": 13,
+    "presentation-chart": 35,
     student: 6,
-    "warning-circle": 42
+    "warning-circle": 43
   });
 
   for (const [label, kind, expected] of [
@@ -3870,5 +3870,160 @@ test("artifact handoff controls are inert after one event visit, across detached
   } finally {
     globalThis.document = previousDocument;
     globalThis.window = previousWindow;
+  }
+});
+
+
+test("replica chooser is explicit, preserves a different saved runner on cancel, and keeps student projection separate", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithActiveEvent("teach");
+  const original = createExperienceRunner(EXPERIENCE_TIMING_PLANS[1], {
+    teacherKey: "teacher:teacher-alpha", nowIso: "2026-08-20T12:00:00.000Z", modeId: "build-new"
+  });
+  state.experienceRunners = { "teacher:teacher-alpha": original };
+  const saves = [];
+  let replacementAllowed = false;
+  let confirmations = 0;
+  globalThis.document = fakeDocument();
+  globalThis.window = { location: { hostname: "example.test" }, setInterval: () => 1, clearInterval: () => {}, fetch: async () => ({ ok: false }) };
+  let controller;
+  try {
+    controller = renderApp(root, {
+      store: { load: () => ({ state, error: null }), save: (value) => { saves.push(structuredClone(value)); return value; } },
+      loadPrivateSeed: false, weatherService: {},
+      confirmReplaceRunner: () => { confirmations += 1; return replacementAllowed; },
+      clock: { now: () => new Date("2026-08-20T08:05:00-04:00") }
+    });
+    await controller.ready;
+    const button = (label) => findAll(root, (node) => node.tagName === "button" && textOf(node) === label)[0];
+    controller.navigate("projects");
+    assert.match(textOf(root), /Ehrman Crest replica lessons/);
+    button("Today / Day 3: Sort, Count, Plan").click();
+    assert.equal(confirmations, 1);
+    assert.equal(saves.length, 0);
+    assert.match(textOf(root), /Ehrman Crest replica lessons/);
+    replacementAllowed = true;
+    button("Today / Day 3: Sort, Count, Plan").click();
+    assert.equal(saves.at(-1).experienceRunners["teacher:teacher-alpha"].modeId, "replica-sort");
+    assert.deepEqual(saves.at(-1).plan, state.plan);
+    assert.match(textOf(root), /Sort, Count, Plan/);
+    assert.match(textOf(root), /35:00/);
+    assert.doesNotMatch(textOf(root), /WASH STATION/);
+    button("Start class").click();
+    button("Next Step").click();
+    const savedCount = saves.length;
+    controller.navigate("projects");
+    button("Today / Day 3: Sort, Count, Plan").click();
+    assert.equal(saves.length, savedCount);
+    assert.equal(confirmations, 2);
+    assert.match(textOf(root), /TAKE A ROLE/);
+    button("Student directions").click();
+    assert.match(textOf(root), /TAKE A ROLE/);
+    assert.match(textOf(root), /Move only loose parts the teacher approved/);
+    assert.doesNotMatch(textOf(root), /Teacher action|Teacher context|SDS|PRIVATE_|Day 4|8:50/);
+  } finally {
+    controller?.destroy(); globalThis.document = previousDocument; globalThis.window = previousWindow;
+  }
+});
+
+
+for (const [modeId, label, title] of [
+  ["replica-sort", "Today / Day 3: Sort, Count, Plan", "Sort, Count, Plan"],
+  ["replica-layout", "Next session: Aerial Layout & Dry Prototype", "Aerial Layout & Dry Prototype"],
+  ["replica-service", "Friday, September 11: Remember & Serve", "Remember & Serve"]
+]) {
+  test(`${modeId} runs without an account, keeps every student step separate, and explicitly restarts for another class`, async () => {
+    const previousDocument = globalThis.document;
+    const previousWindow = globalThis.window;
+    const root = new FakeNode("main");
+    const saves = [];
+    let resetAllowed = false;
+    let confirmations = 0;
+    globalThis.document = fakeDocument();
+    globalThis.window = { location: { hostname: "example.test" }, setInterval: () => 1, clearInterval: () => {}, fetch: async () => ({ ok: false }) };
+    let controller;
+    try {
+      controller = renderApp(root, {
+        store: { load: () => ({ state: stateWithoutPlan(), error: null }), save: (state) => { saves.push(state); return state; } },
+        loadPrivateSeed: false, weatherService: {}, confirmFinish: () => true,
+        confirmReplaceRunner: () => { confirmations += 1; return resetAllowed; },
+        clock: { now: () => new Date("2026-09-08T08:05:00-04:00") }
+      });
+      await controller.ready;
+      const button = (name) => findAll(root, (node) => node.tagName === "button" && textOf(node) === name)[0];
+      controller.navigate("projects");
+      button(label).click();
+      assert.match(textOf(root), /35:00/);
+      assert.equal(confirmations, 0);
+      button("Start class").click();
+      const steps = EXPERIENCE_TIMING_PLANS[1].modeVariants[modeId].steps;
+      for (let index = 0; index < steps.length; index += 1) {
+        assert.match(textOf(root), /Teacher action/);
+        button("Student directions").click();
+        assert.ok(findAll(root, (node) => node.tagName === "h1" && textOf(node) === title).length);
+        const studentList = findAll(root, (node) => /\brunner-directions\b/.test(node.className))[0];
+        const displayed = findAll(root, (node) => node.tagName === "li").map(textOf);
+        for (const direction of steps[index].directions) assert.ok(displayed.includes(direction), direction);
+        assert.doesNotMatch(textOf(root), /Teacher action|Teacher context|SDS|PRIVATE_|Day 4|8:50|Start this lesson for a new class/);
+        controller.navigate("projects");
+        button(label).click();
+        assert.equal(confirmations, 0);
+        if (index < steps.length - 1) button("Next Step").click();
+      }
+      button("Finish Lesson").click();
+      assert.match(textOf(root), /Lesson complete/);
+      button("Start this lesson for a new class").click();
+      assert.equal(confirmations, 1);
+      assert.match(textOf(root), /Lesson complete/);
+      resetAllowed = true;
+      button("Start this lesson for a new class").click();
+      assert.equal(confirmations, 2);
+      assert.match(textOf(root), /35:00/);
+      assert.match(textOf(root), /Step 1 of 7/);
+      assert.ok(button("Start class"));
+      assert.equal(saves.length, 0);
+    } finally {
+      controller?.destroy(); globalThis.document = previousDocument; globalThis.window = previousWindow;
+    }
+  });
+}
+
+test("replica launches respect a current scheduled end and decline changes to running or paused lessons", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const saves = [];
+  let confirms = 0;
+  globalThis.document = fakeDocument();
+  globalThis.window = { location: { hostname: "example.test" }, setInterval: () => 1, clearInterval: () => {}, fetch: async () => ({ ok: false }) };
+  let controller;
+  try {
+    controller = renderApp(root, {
+      store: { load: () => ({ state: stateWithActiveEvent("teach"), error: null }), save: (value) => { saves.push(structuredClone(value)); return value; } },
+      loadPrivateSeed: false, weatherService: {}, confirmReplaceRunner: () => { confirms += 1; return false; },
+      clock: { now: () => new Date("2026-08-20T09:05:00-04:00") }
+    });
+    await controller.ready;
+    const button = (name) => findAll(root, (node) => node.tagName === "button" && textOf(node) === name)[0];
+    button("Today / Day 3: Sort, Count, Plan").click();
+    assert.match(textOf(root), /25:00/);
+    button("Start class").click();
+    for (const paused of [false, true]) {
+      if (paused) button("Pause").click();
+      const savedCount = saves.length;
+      const snapshot = structuredClone(saves.at(-1));
+      controller.navigate("projects");
+      button("Next session: Aerial Layout & Dry Prototype").click();
+      assert.equal(saves.length, savedCount);
+      assert.deepEqual(saves.at(-1), snapshot);
+      button("Today / Day 3: Sort, Count, Plan").click();
+      assert.equal(saves.length, savedCount);
+      assert.ok(button(paused ? "Resume" : "Pause"));
+    }
+    assert.equal(confirms, 2);
+  } finally {
+    controller?.destroy(); globalThis.document = previousDocument; globalThis.window = previousWindow;
   }
 });

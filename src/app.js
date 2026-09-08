@@ -13,7 +13,12 @@ import {
   updateAnnouncementDetails,
   updateAnnouncementSection
 } from "./model/announcements.js";
-import { EXPERIENCE_TIMING_PLANS } from "./model/experience-timing-plans.js";
+import {
+  EXPERIENCE_TIMING_PLANS,
+  REPLICA_LESSON_CHOICES,
+  getExperienceTimingPlan,
+  getReplicaLessonChoice
+} from "./model/experience-timing-plans.js";
 import {
   advanceExperienceRunnerClock,
   applyExperienceRunnerAction,
@@ -338,7 +343,14 @@ export function runnerStepIconFile(step) {
   if (step.kind === "exit") return "presentation-chart";
   if (step.kind === "transition") return /\b(?:RETURN|INSIDE)\b/.test(label) ? "house" : "arrow-right";
   if (step.kind === "cleanup") return "gear-six";
-  return RUNNER_WORK_ICON_RULES.find((rule) => rule.pattern.test(label))?.icon ?? "student";
+  const replicaIcons = {
+    "REMEMBER SEPTEMBER 11": "chalkboard-teacher",
+    "NOTICE CARE AND RECOVERY": "books",
+    "DESIGN FOR SOMEONE": "calendar-dots",
+    "MATCH MATERIALS": "calendar-dots",
+    "TRY A LOOSE LAYOUT": "gear-six"
+  };
+  return replicaIcons[label] ?? RUNNER_WORK_ICON_RULES.find((rule) => rule.pattern.test(label))?.icon ?? "student";
 }
 
 function imageIcon(name, label, className = "action-icon") {
@@ -491,7 +503,7 @@ function buildProjectHero(view, actions) {
 }
 
 function projectArtwork(project, className) {
-  return project.number === 2
+  return project.number === 2 && !project.replicaLesson
     ? element("img", {
         className,
         attributes: {
@@ -769,7 +781,52 @@ function sharedArtifactCard(context, actions) {
   return element("section", { className: "shared-artifact-card" }, children.filter(Boolean));
 }
 
+function replicaProjectContext(project, runner) {
+  const choice = project.number === 2 ? getReplicaLessonChoice(runner?.modeId) : null;
+  if (!choice) return project;
+  return {
+    ...project,
+    replicaLesson: true,
+    title: choice.title,
+    objective: choice.objective,
+    materials: choice.materials,
+    safety: choice.safety,
+    teacherSay: [],
+    teacherDo: choice.teacherContext,
+    fastFinish: { title: "Check and hand off", directions: choice.fastFinish }
+  };
+}
+
+function replicaLessonChooser(actions) {
+  return element("section", {
+    className: "replica-lessons",
+    attributes: { "aria-labelledby": "replica-lessons-heading" }
+  }, [
+    element("p", { className: "section-kicker", text: "Tech Terrarium lesson choices" }),
+    element("h2", { text: "Ehrman Crest replica lessons", attributes: { id: "replica-lessons-heading" } }),
+    element("p", { text: "Choose the lesson your crew needs. Each lesson plan totals 35 minutes; during a scheduled class, the class clock uses its remaining time. Opening the same choice keeps its current step; replacing a different lesson requires confirmation." }),
+    element("div", { className: "replica-lesson-choices" }, REPLICA_LESSON_CHOICES.map((choice) =>
+      element("article", { className: "replica-lesson-choice" }, [
+        actionButton(choice.label, "primary-action replica-lesson-button", () => actions.openRunner(2, { modeId: choice.id })),
+        element("p", { text: choice.summary })
+      ])
+    )),
+    element("p", { text: "Use these dry lessons while supplies and the plan are being prepared. Check the aerial reference and parent-drop-off layout before placing site features. Epoxy is required for the final build; attachment is a later teacher-managed stage." }),
+    actions.currentReplicaLesson ? element("div", { className: "replica-current-lesson" }, [
+      element("p", { text: `Current lesson: ${actions.currentReplicaLesson.title}. Reopen it to continue, or explicitly reset it for a new class.` }),
+      actionButton("Start this lesson for a new class", "secondary-action", () => actions.openRunner(2, { modeId: actions.currentReplicaLesson.id, restart: true }))
+    ]) : null,
+    actionButton("Original Tech Terrarium", "secondary-action", () => actions.openRunner(2, { modeId: "build-new" })),
+    element("details", { className: "replica-operation-notes" }, [
+      element("summary", { text: "Daily preparation" }),
+      element("p", { text: "Announcement crew arrives by 8:50 a.m.; the 8:55 broadcast targets three minutes including the opening, silence, Pledge and closing. On Day 4, prepare and finalize all announcements for the following week. Select actual broadcast dates yourself; this does not change the school rotation or calendar." })
+    ])
+  ]);
+}
+
 function experienceRunnerRoute(project, runner, actions, artifactContext = null) {
+  project = replicaProjectContext(project, runner);
+  if (project.replicaLesson) artifactContext = null;
   const timer = runner.timer;
   if (timer.status === "complete") {
     const stoppedStep = runner.steps[timer.currentStepIndex] ?? { label: "Lesson complete" };
@@ -782,6 +839,7 @@ function experienceRunnerRoute(project, runner, actions, artifactContext = null)
         element("p", { className: "project-kicker", text: `Experience ${project.number} of ${PROJECTS.length}` }),
         element("h1", { text: "Lesson complete" }),
         element("p", { text: `${project.title} is complete. Both timers have stopped.` }),
+        project.replicaLesson ? actionButton("Start this lesson for a new class", "primary-action", () => actions.openRunner(2, { modeId: runner.modeId, restart: true })) : null,
         actionButton("Back to Today", "primary-action", () => actions.navigate("today"))
       ]),
       sharedArtifactCard(artifactContext, actions),
@@ -834,7 +892,8 @@ function experienceRunnerRoute(project, runner, actions, artifactContext = null)
       actions.previewOnly
         ? element("p", { className: "runner-preview-label", text: "Preview only" })
         : element("p", { className: "runner-device-owner", text: "This device is running the class" }),
-      actionButton("Student directions", "primary-action runner-student-action", () => actions.openStudent(project.number), "student")
+      actionButton("Student directions", "primary-action runner-student-action", () => actions.openStudent(project.number), "student"),
+      project.replicaLesson ? actionButton("Start this lesson for a new class", "secondary-action", () => actions.openRunner(2, { modeId: runner.modeId, restart: true })) : null
     ]),
     actions.schedule ? element("div", { className: "runner-schedule" }, [
       element("strong", { text: `Class ends at ${actions.schedule.endLabel}` }),
@@ -884,6 +943,7 @@ function experienceRunnerRoute(project, runner, actions, artifactContext = null)
 }
 
 function studentRunnerRoute(project, runner, actions) {
+  project = replicaProjectContext(project, runner);
   const step = getActiveRunnerStep(runner, { teacherKey: actions.teacherKey });
   const timer = runner.timer;
   return element("section", {
@@ -951,6 +1011,7 @@ function buildToday(model, actions, options) {
   }
 
   children.push(buildProjectHero(projectView, actions));
+  if (projectView.currentProject.number === 2) children.push(replicaLessonChooser(actions));
   if (options.artifactContext) {
     children.push(sharedArtifactCard(options.artifactContext, actions));
   }
@@ -1083,6 +1144,7 @@ function projectsRoute(actions) {
         actions.openAnnouncements
       )
     ]),
+    replicaLessonChooser(actions),
     element("div", { className: "project-library" }, cards)
   ]);
 }
@@ -1131,6 +1193,7 @@ function teacherProjectRoute(project, actions) {
     attributes: { "data-view": "project-teacher" }
   }, [
     projectDetailHeading(project, "Teacher script", () => actions.navigate("today")),
+    project.number === 2 ? replicaLessonChooser(actions) : null,
     element("div", { className: "project-detail-actions" }, [
       student,
       download,
@@ -1884,15 +1947,29 @@ export function renderApp(root, services = {}) {
     return { runner: setRunnerInMemory(next), changed: true };
   }
 
-  function openRunner(projectNumber) {
+  function openRunner(projectNumber, { modeId, restart = false } = {}) {
     const project = getProjectByNumber(projectNumber);
     if (!project) return;
     const current = selectedRunner();
+    const explicitSelection = modeId !== undefined;
+    if (explicitSelection && (projectNumber !== 2 || !getExperienceTimingPlan(2, { modeId }))) return;
+    const sameSelection = current?.projectNumber === projectNumber && current?.modeId === modeId;
+    if (explicitSelection && current && (!sameSelection || restart === true)) {
+      const title = getExperienceTimingPlan(2, { modeId }).title;
+      const message = restart === true && sameSelection
+        ? `Start "${title}" for a new class? This resets the current step and both timers. A current scheduled class still uses its remaining time. Cancel keeps the existing lesson.`
+        : `Replace the saved lesson "${current.title}" with "${title}"? Its current step and timers will be replaced. Cancel keeps the existing lesson.`;
+      const confirmed = typeof services.confirmReplaceRunner === "function"
+        ? services.confirmReplaceRunner(message) === true
+        : typeof window.confirm === "function" && window.confirm(message) === true;
+      if (!confirmed) return;
+    }
     if (
-      !current ||
+      (explicitSelection && (!sameSelection || restart === true)) ||
+      (!explicitSelection && (!current ||
       current.projectNumber !== projectNumber ||
       current.timer.status === "complete" ||
-      (!previewOnly && current.timer.status === "ready")
+      (!previewOnly && current.timer.status === "ready")))
     ) {
       const plan = EXPERIENCE_TIMING_PLANS[projectNumber - 1];
       const currentTime = now();
@@ -1914,7 +1991,9 @@ export function renderApp(root, services = {}) {
         teacherKey: runnerOwnerKey(),
         nowIso: currentTime.toISOString(),
         ...(classDurationSeconds !== undefined ? { classDurationSeconds } : {}),
-        ...(projectNumber === 2 ? { modeId: "build-new" } : {})
+        ...(projectNumber === 2 ? {
+          modeId: modeId ?? (current?.projectNumber === 2 ? current.modeId : "build-new")
+        } : {})
       });
       if (previewOnly) setRunnerInMemory(created);
       else saveRunner(created);
@@ -2664,7 +2743,8 @@ export function renderApp(root, services = {}) {
       lastCompletion,
       teacherKey: runnerOwnerKey(),
       schedule: runnerSchedule(model.current),
-      previewOnly
+      previewOnly,
+      currentReplicaLesson: getReplicaLessonChoice(runner?.modeId)
     };
     let view;
     if (route === "welcome") view = welcomeRoute(actions);

@@ -4593,3 +4593,34 @@ button:disabled {
     font-size: 0.8rem;
   }
 }
+
+
+/* Explicit Tech Terrarium replica lesson choices */
+.replica-lessons {
+  margin: 20px 0;
+  padding: clamp(18px, 3vw, 28px);
+  border: 2px solid var(--circ-command-blue);
+  border-radius: 20px;
+  background: #f3f9fd;
+}
+.replica-lessons h2 { color: #123d59; }
+.replica-lesson-choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 18px 0;
+}
+.replica-lesson-choice { min-width: 0; }
+.replica-lesson-button {
+  width: 100%;
+  min-height: 64px;
+  white-space: normal;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.replica-lesson-choice p { margin-top: 10px; }
+.replica-operation-notes { margin-top: 16px; }
+.replica-operation-notes summary { cursor: pointer; font-weight: 700; }
+@media (max-width: 760px) {
+  .replica-lesson-choices { grid-template-columns: 1fr; }
+}

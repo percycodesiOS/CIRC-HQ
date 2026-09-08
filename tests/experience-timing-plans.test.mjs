@@ -420,12 +420,12 @@ test("Tech Terrarium supports all annual modes without dismantling glued work", 
   );
 });
 
-test("Tech Terrarium selects one complete mode and hides the other two", () => {
+test("Tech Terrarium selects one complete mode and hides the other choices", () => {
   const { getExperienceTimingPlan } = getModel();
   const basePlan = getPlans()[1];
   const modeIds = ["build-new", "refresh-existing", "alternate-shared-build"];
 
-  assert.deepEqual(Object.keys(basePlan.modeVariants), modeIds);
+  assert.deepEqual(Object.keys(basePlan.modeVariants).slice(0, 3), modeIds);
 
   for (const modeId of modeIds) {
     assert.ok(Array.isArray(basePlan.modeVariants[modeId].steps));
@@ -590,4 +590,29 @@ test("registry validation rejects duplicate, missing, and out-of-range project p
 test("timing plan source data contains no em dash or en dash", () => {
   const corpus = JSON.stringify(getPlans());
   assert.doesNotMatch(corpus, /[\u2013\u2014]/);
+});
+
+
+test("replica lessons add three explicit complete dry paths without replacing the original annual modes", () => {
+  const { REPLICA_LESSON_CHOICES, getExperienceTimingPlan, validateExperienceTimingPlan } = getModel();
+  assert.equal(REPLICA_LESSON_CHOICES.length, 3);
+  assert.deepEqual(REPLICA_LESSON_CHOICES.map(({ id }) => id), ["replica-sort", "replica-layout", "replica-service"]);
+  for (const choice of REPLICA_LESSON_CHOICES) {
+    const plan = getExperienceTimingPlan(2, { modeId: choice.id });
+    assert.equal(plan.title, choice.title);
+    assert.equal(plan.steps.length, 7);
+    assert.equal(plan.steps.reduce((sum, step) => sum + step.minutes, 0), 35);
+    assert.equal(validateExperienceTimingPlan(plan).ok, true);
+    assert.equal(plan.preservation.dismantleGluedStructure, false);
+    assert.equal(Object.hasOwn(plan, "modeVariants"), false);
+    assert.equal(plan.safetyTags.includes("water"), false);
+    assert.ok(plan.parallelJobs.reduce((sum, job) => sum + job.maxStudents, 0) >= 30);
+  }
+  assert.match(getExperienceTimingPlan(2, { modeId: "build-new" }).steps.map((step) => step.label).join(" "), /WASH STATION/);
+  const sort = getExperienceTimingPlan(2, { modeId: "replica-sort" });
+  assert.match(sort.steps.flatMap((step) => step.teacherDirections).join(" "), /dry lesson.*required final epoxy/i);
+  const layout = getExperienceTimingPlan(2, { modeId: "replica-layout" });
+  assert.match(layout.steps.flatMap((step) => step.teacherDirections).join(" "), /no reference|reference is unavailable/i);
+  const service = getExperienceTimingPlan(2, { modeId: "replica-service" });
+  assert.match(service.steps.flatMap((step) => step.teacherDirections).join(" "), /No graphic footage/);
 });

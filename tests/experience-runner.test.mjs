@@ -1139,3 +1139,25 @@ test("timestamps and action names fail closed instead of being corrected silentl
     /runner-action-invalid/,
   );
 });
+
+
+test("replica selections keep existing runner schema, stationary clocks, and manual step transitions", () => {
+  const { createExperienceRunner, applyExperienceRunnerAction, advanceExperienceRunnerClock, validateExperienceRunner } = getRunnerModel();
+  for (const modeId of ["replica-sort", "replica-layout", "replica-service"]) {
+    let runner = createExperienceRunner(EXPERIENCE_TIMING_PLANS[1], { teacherKey: TEACHER_KEY, nowIso: NOW, modeId });
+    assert.equal(runner.schemaVersion, 1);
+    assert.equal(runner.modeId, modeId);
+    assert.equal(runner.timer.status, "ready");
+    assert.equal(runner.timer.totalRemainingSeconds, 2100);
+    assert.equal(validateExperienceRunner(runner, { teacherKey: TEACHER_KEY }).ok, true);
+    runner = applyExperienceRunnerAction(runner, "start", { teacherKey: TEACHER_KEY, nowIso: NOW });
+    const firstSeconds = runner.steps[0].minutes * 60;
+    const later = new Date(Date.parse(NOW) + (firstSeconds + 1) * 1000).toISOString();
+    runner = advanceExperienceRunnerClock(runner, { teacherKey: TEACHER_KEY, nowIso: later });
+    assert.equal(runner.timer.status, "step-expired");
+    assert.equal(runner.timer.currentStepIndex, 0);
+    assert.equal(runner.timer.totalRemainingSeconds, 2100 - firstSeconds - 1);
+    runner = applyExperienceRunnerAction(runner, "next", { teacherKey: TEACHER_KEY, nowIso: later });
+    assert.equal(runner.timer.currentStepIndex, 1);
+  }
+});

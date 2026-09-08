@@ -38,6 +38,24 @@ The welcome screen also offers two optional paths:
 
 The normal teaching path does not require Settings, a backup file, or Room.
 
+## Ehrman Crest replica lessons
+
+**Playbooks** and the **Tech Terrarium teacher detail** now show **Ehrman Crest replica lessons**. The same chooser appears on Today when Tech Terrarium is the current experience. These are optional lesson choices; the original Tech Terrarium curriculum and annual modes remain available.
+
+- **Today / Day 3: Sort, Count, Plan** uses loose approved parts, sorting, checked counts, a proposed material use and a handoff for the next crew.
+- **Next session: Aerial Layout & Dry Prototype** uses a confirmed top-view reference, observed versus proposed features and a removable dry layout. If the aerial reference is unavailable, site placement stays undecided while students check inventory and sketch features. Actual school dimensions and parent-drop-off direction are not supplied by the app.
+- **Friday, September 11: Remember & Serve** combines calm Grades 5-6 historical context with a useful school-community service design. It includes optional sharing, a quiet alternative and teacher-selected media, with no graphic footage or attack reenactment.
+
+Choose a lesson, confirm only if replacing a different saved runner, then choose **Start class**. Each plan has seven steps totaling 35 minutes. During a current scheduled class, the class clock uses the actual time remaining until that class ends. Without a current teaching event, it starts at 35:00. Step expiry waits for manual **Next Step**. **Student directions** shares the active timers and student steps while keeping teacher guidance, operating notes and private schedule information out.
+
+Reopening the same choice preserves its step and timers, including a completed lesson. **Start this lesson for a new class** explicitly resets it after confirmation, ready at step 1. This action appears in the chooser and the teacher runner, including the completed view. Cancel preserves the current runner. The original shared-artifact handoff is not changed by these lessons. No-account use retains the existing in-memory Preview behavior; a configured local plan can save its runner without cloud sign-in.
+
+All three lessons stay dry and preserve attached work for teacher handling. Epoxy remains required for the final build, with later teacher-managed product selection, compatibility checks, application and cure instructions. The app does not infer that supplies have arrived or approve permanent attachment. The three lesson labels are manual choices, not automatic school-rotation or calendar assignments.
+
+The announcement preparation note keeps the crew arrival at 8:50 a.m., the broadcast at 8:55, and a three-minute target for the complete script. Day 4 is the point to prepare and finalize the following week's announcements; actual broadcast dates remain teacher-selected.
+
+Friday's factual and care-based framing draws on the 9/11 Memorial & Museum's [Local Heroes](https://911memorial.org/learn/students-and-teachers/lesson-plans/lesson-plans/local-heroes), [Survivor Tree](https://www.911memorial.org/visit/memorial/survivor-tree), and [Talking to Children About Terrorism](https://www.911memorial.org/learn/youth-and-families/talking-children-about-terrorism) guidance. The replica and service-design activities are this project's Grades 5-6 adaptation. No external image or video is loaded automatically.
+
 ## Morning announcements
 
 Open **Playbooks > Open announcement studio**, choose the broadcast date, then choose **Use ECMS outline**. An existing script is replaced only after confirmation; Cancel preserves its wording. The outline is editable and starts with preparation, rehearsal and teacher approval unchecked.
