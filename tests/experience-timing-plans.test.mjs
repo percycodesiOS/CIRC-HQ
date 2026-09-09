@@ -593,10 +593,10 @@ test("timing plan source data contains no em dash or en dash", () => {
 });
 
 
-test("replica lessons add three explicit complete dry paths without replacing the original annual modes", () => {
+test("replica lessons add five explicit complete paths without replacing the original annual modes", () => {
   const { REPLICA_LESSON_CHOICES, getExperienceTimingPlan, validateExperienceTimingPlan } = getModel();
-  assert.equal(REPLICA_LESSON_CHOICES.length, 3);
-  assert.deepEqual(REPLICA_LESSON_CHOICES.map(({ id }) => id), ["replica-sort", "replica-layout", "replica-service"]);
+  assert.equal(REPLICA_LESSON_CHOICES.length, 5);
+  assert.deepEqual(REPLICA_LESSON_CHOICES.map(({ id }) => id), ["replica-sort", "replica-layout", "replica-cardboard", "replica-service", "replica-resin"]);
   for (const choice of REPLICA_LESSON_CHOICES) {
     const plan = getExperienceTimingPlan(2, { modeId: choice.id });
     assert.equal(plan.title, choice.title);
@@ -615,4 +615,12 @@ test("replica lessons add three explicit complete dry paths without replacing th
   assert.match(layout.steps.flatMap((step) => step.teacherDirections).join(" "), /no reference|reference is unavailable/i);
   const service = getExperienceTimingPlan(2, { modeId: "replica-service" });
   assert.match(service.steps.flatMap((step) => step.teacherDirections).join(" "), /No graphic footage/);
+  const build = getExperienceTimingPlan(2, { modeId: "replica-cardboard" });
+  assert.ok(build.safetyTags.includes("hot-glue"));
+  assert.match(build.steps.flatMap((step) => step.teacherDirections).join(" "), /tape and tabs throughout if the station is unavailable/i);
+  const resin = getExperienceTimingPlan(2, { modeId: "replica-resin" });
+  const resinTeacher = resin.steps.flatMap((step) => step.teacherDirections).join(" ");
+  assert.match(resinTeacher, /student lesson stays dry/i);
+  assert.match(resinTeacher, /classroom timer never confirms a chemical cure/i);
+  assert.match(resinTeacher, /Do not treat equal volume as equal weight/);
 });

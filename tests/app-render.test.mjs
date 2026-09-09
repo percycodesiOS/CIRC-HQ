@@ -7,6 +7,7 @@ import {
   ANNOUNCEMENT_LOCAL_STORAGE_KEY,
   createAnnouncementDraft,
   setAnnouncementCheck,
+  setAnnouncementCrewCheck,
   setAnnouncementTeacherReview,
   updateAnnouncementSection
 } from "../src/model/announcements.js";
@@ -239,6 +240,9 @@ function approvedAnnouncementDraft() {
   }
   for (const itemId of ["fullRead", "timingChecked", "pronunciationsChecked"]) {
     draft = setAnnouncementCheck(draft, "rehearse", itemId, true);
+  }
+  for (const slot of ["announcer1", "announcer2"]) {
+    for (const field of ["homeroomConfirmed", "arrived", "ready"]) draft = setAnnouncementCrewCheck(draft, slot, field, true);
   }
   return setAnnouncementTeacherReview(draft, true);
 }
@@ -1596,6 +1600,56 @@ test("the ECMS outline preserves a saved custom draft on cancel and replaces onl
   }
 });
 
+test("prepared broadcast replacement protects local saved scripts and resets checks only after confirmation", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const original = approvedAnnouncementDraft();
+  const savedValue = JSON.stringify(original);
+  const announcementStorage = keyValueStorage({ [ANNOUNCEMENT_LOCAL_STORAGE_KEY]: savedValue });
+  const scheduleWrites = [];
+  let allowReplacement = false;
+  globalThis.document = fakeDocument();
+  globalThis.window = { location: { hostname: "example.test" }, setInterval: () => 1, clearInterval: () => {}, scrollTo: () => {}, fetch: async () => ({ ok: false }) };
+  let controller;
+  try {
+    controller = renderApp(root, {
+      store: { load: () => ({ state: stateWithActiveEvent("teach"), error: null }), save: (state) => { scheduleWrites.push(state); return state; } },
+      announcementStorage, loadPrivateSeed: false, weatherService: {},
+      confirmReplaceAnnouncement: () => allowReplacement,
+      clock: { now: () => new Date("2026-09-09T08:00:00-04:00") }
+    });
+    await controller.ready;
+    controller.navigate("announcements");
+    const field = name => findAll(root, node => node.getAttribute("name") === name)[0];
+    const action = label => findAll(root, node => node.tagName === "button" && textOf(node) === label)[0];
+    action("Load Wednesday, September 9 script").click();
+    assert.equal(field("script-opening").value, original.script.opening);
+    assert.equal(field("teacher-review").checked, true);
+    assert.equal(announcementStorage.writes.length, 0);
+    allowReplacement = true;
+    action("Load Wednesday, September 9 script").click();
+    assert.equal(field("announcement-date").value, "2026-09-09");
+    assert.match(field("script-birthdays-events").value, /pancakes/);
+    assert.equal(action("Go live").hasAttribute("disabled"), true);
+    assert.equal(field("teacher-review").checked, false);
+    assert.equal(announcementStorage.values.get(ANNOUNCEMENT_LOCAL_STORAGE_KEY), savedValue);
+    assert.equal(announcementStorage.writes.length, 0);
+    action("Save local draft").click();
+    const archive = JSON.parse(announcementStorage.values.get(ANNOUNCEMENT_ARCHIVE_STORAGE_KEY)).drafts;
+    assert.deepEqual(archive[original.date], original);
+    assert.match(archive["2026-09-09"].script.birthdaysEvents, /pancakes/);
+    const archiveBefore = announcementStorage.values.get(ANNOUNCEMENT_ARCHIVE_STORAGE_KEY);
+    action("Load Friday, September 11 script").click();
+    assert.match(field("script-pledge-school-items").value, /\[\[TIM AND IVAN APPROVED/);
+    assert.match(textOf(root), /Teacher preparation for Friday/);
+    assert.equal(announcementStorage.values.get(ANNOUNCEMENT_ARCHIVE_STORAGE_KEY), archiveBefore);
+    assert.equal(scheduleWrites.length, 0);
+  } finally {
+    controller?.destroy(); globalThis.document = previousDocument; globalThis.window = previousWindow;
+  }
+});
+
 test("weekly scripts survive app reload and explicit Load protects unsaved changes without storage writes", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
@@ -1681,6 +1735,63 @@ test("weekly scripts survive app reload and explicit Load protects unsaved chang
     assert.equal(findAll(root, (node) => node.getAttribute("aria-label")?.startsWith("Load broadcast ")).length, 5);
     assert.match(textOf(root), /Your dated saved scripts are unchanged/);
     assert.equal(announcementStorage.values.get("unrelated"), "keep");
+    assert.equal(scheduleWrites.length, 0);
+  } finally {
+    controller?.destroy();
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("legacy script approval survives private crew confirmation and only local save persists it", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const legacy = approvedAnnouncementDraft();
+  delete legacy.crew;
+  const announcementStorage = keyValueStorage({ [ANNOUNCEMENT_LOCAL_STORAGE_KEY]: JSON.stringify(legacy) });
+  const scheduleWrites = [];
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" }, setInterval: () => 1, clearInterval: () => {}, scrollTo: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  let controller;
+  try {
+    controller = renderApp(root, {
+      store: { load: () => ({ state: stateWithActiveEvent("teach"), error: null }), save: (state) => { scheduleWrites.push(state); return state; } },
+      announcementStorage, loadPrivateSeed: false, weatherService: {},
+      clock: { now: () => new Date("2026-09-03T08:50:00-04:00") }
+    });
+    await controller.ready;
+    controller.navigate("announcements");
+    const field = (name) => findAll(root, (node) => node.getAttribute("name") === name)[0];
+    const action = (label) => findAll(root, (node) => node.tagName === "button" && textOf(node) === label)[0];
+    const check = (name, value) => { const node = field(name); node.checked = value; node.listeners.get("change")({ currentTarget: node }); };
+    assert.equal(field("teacher-review").checked, true);
+    assert.equal(action("Go live").hasAttribute("disabled"), true);
+    for (const role of ["announcer1", "announcer2"]) {
+      for (const item of ["homeroomConfirmed", "arrived", "ready"]) check(`crew-${role}-${item}`, true);
+    }
+    assert.equal(field("teacher-review").checked, true);
+    assert.equal(action("Go live").hasAttribute("disabled"), false);
+    check("crew-announcer1-backupActive", true);
+    assert.equal(field("crew-announcer1-homeroomConfirmed").checked, false);
+    assert.equal(field("crew-announcer1-arrived").checked, false);
+    assert.equal(field("crew-announcer1-ready").checked, false);
+    assert.equal(action("Go live").hasAttribute("disabled"), true);
+    check("crew-announcer1-teacherCovers", true);
+    assert.equal(action("Go live").hasAttribute("disabled"), false);
+    assert.equal(announcementStorage.writes.length, 0);
+    assert.equal(scheduleWrites.length, 0);
+    action("Save local draft").click();
+    assert.equal(announcementStorage.writes.length, 2);
+    const saved = JSON.parse(announcementStorage.values.get(ANNOUNCEMENT_LOCAL_STORAGE_KEY));
+    assert.equal(saved.crew.announcers.announcer1.teacherCovers, true);
+    assert.equal(saved.teacherReview.approved, true);
+    action("Go live").click();
+    assert.equal(findAll(root, (node) => node.getAttribute("data-view") === "announcements-live").length, 1);
+    assert.doesNotMatch(textOf(root), /homeroom|backup decision|teacher-arranged coverage|crew check-in/i);
     assert.equal(scheduleWrites.length, 0);
   } finally {
     controller?.destroy();
@@ -2083,9 +2194,9 @@ test("every current lesson path resolves to a reviewed meaning-based icon", () =
     "warning-circle"
   ]);
 
-  assert.equal(paths.length, 45);
-  assert.equal(steps.length, 361);
-  assert.equal(uniqueSteps.size, 252);
+  assert.equal(paths.length, 47);
+  assert.equal(steps.length, 375);
+  assert.equal(uniqueSteps.size, 266);
   for (const step of steps) assert.equal(reviewedFiles.has(runnerStepIconFile(step)), true);
 
   const distribution = Object.fromEntries(
@@ -2097,14 +2208,14 @@ test("every current lesson path resolves to a reviewed meaning-based icon", () =
   assert.deepEqual(distribution, {
     "arrow-right": 8,
     books: 21,
-    "calendar-dots": 31,
+    "calendar-dots": 32,
     "chalkboard-teacher": 4,
-    "gear-six": 90,
+    "gear-six": 93,
     house: 1,
-    "play-circle": 13,
-    "presentation-chart": 35,
+    "play-circle": 15,
+    "presentation-chart": 41,
     student: 6,
-    "warning-circle": 43
+    "warning-circle": 45
   });
 
   for (const [label, kind, expected] of [
@@ -4030,7 +4141,9 @@ test("replica chooser is explicit, preserves a different saved runner on cancel,
 for (const [modeId, label, title] of [
   ["replica-sort", "Today / Day 3: Sort, Count, Plan", "Sort, Count, Plan"],
   ["replica-layout", "Next session: Aerial Layout & Dry Prototype", "Aerial Layout & Dry Prototype"],
-  ["replica-service", "Friday, September 11: Remember & Serve", "Remember & Serve"]
+  ["replica-cardboard", "Day 4: Build the Cardboard School", "Build the Cardboard School"],
+  ["replica-service", "Friday, September 11: Remember & Serve", "Remember & Serve"],
+  ["replica-resin", "Resin unit: Design and Measure a Feature", "Design and Measure a Resin Feature"]
 ]) {
   test(`${modeId} runs without an account, keeps every student step separate, and explicitly restarts for another class`, async () => {
     const previousDocument = globalThis.document;

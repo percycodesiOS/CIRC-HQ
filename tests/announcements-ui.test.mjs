@@ -3,8 +3,10 @@ import test from "node:test";
 
 import {
   applyEcmsAnnouncementOutline,
+  applyPreparedEcmsAnnouncement,
   createAnnouncementDraft,
   setAnnouncementCheck,
+  setAnnouncementCrewCheck,
   setAnnouncementTeacherReview,
   updateAnnouncementSection
 } from "../src/model/announcements.js";
@@ -72,7 +74,11 @@ function callbacksDouble() {
   const calls = [];
   const names = [
     "onDetailChange",
+    "onCrewCheckChange",
+    "onCrewTimeChange",
+    "onCrewReset",
     "onUseEcmsOutline",
+    "onUsePreparedEcms",
     "onSectionChange",
     "onChecklistChange",
     "onTeacherReviewChange",
@@ -97,8 +103,50 @@ function approvedDraft() {
   for (const itemId of ["fullRead", "timingChecked", "pronunciationsChecked"]) {
     draft = setAnnouncementCheck(draft, "rehearse", itemId, true);
   }
+  for (const slot of ["announcer1", "announcer2"]) {
+    for (const field of ["homeroomConfirmed", "arrived", "ready"]) draft = setAnnouncementCrewCheck(draft, slot, field, true);
+  }
   return setAnnouncementTeacherReview(draft, true);
 }
+
+test("private crew controls expose affirmations and manual cutoffs without putting attendance into broadcast", () => {
+  const { callbacks, calls } = callbacksDouble();
+  let draft = approvedDraft();
+  draft = setAnnouncementCrewCheck(draft, "announcer1", "backupActive", true);
+  draft = setAnnouncementCrewCheck(draft, "announcer2", "teacherCovers", true);
+  const view = buildAnnouncementsWorkflow({ draft, callbacks }, { document: documentDouble });
+  const text = textOf(view);
+  assert.match(text, /student affirmation, not official school attendance/);
+  assert.match(text, /before coming to CIRC/);
+  assert.match(text, /8:50 a.m./);
+  assert.match(text, /8:52 a.m./);
+  assert.match(text, /8:54 a.m./);
+  assert.match(text, /8:55 a.m./);
+  assert.match(text, /does not send a message/);
+  assert.match(text, /Teacher-editable workflow/);
+  assert.match(text, /Announcer 1 \(backup\)/);
+  assert.match(text, /Teacher-arranged coverage recorded/);
+  const check = findAll(view, (node) => node.getAttribute("name") === "crew-announcer1-homeroomConfirmed")[0];
+  assert.equal(check.checked, false);
+  check.checked = true;
+  check.listeners.get("change")({ currentTarget: check });
+  const time = findAll(view, (node) => node.getAttribute("name") === "crew-time-backup")[0];
+  time.value = "08:53";
+  time.listeners.get("input")({ currentTarget: time });
+  findByText(view, "button", "Crew assignments changed: reset checks").click();
+  assert.deepEqual(calls, [
+    ["onCrewCheckChange", "announcer1", "homeroomConfirmed", true],
+    ["onCrewTimeChange", "backup", "08:53"],
+    ["onCrewReset"]
+  ]);
+  assert.equal(findByText(view, "button", "Go live").hasAttribute("disabled"), true);
+  assert.throws(() => buildAnnouncementsLiveView({ draft }, { document: documentDouble }), /announcement-live-review-required/);
+  for (const field of ["homeroomConfirmed", "arrived", "ready"]) draft = setAnnouncementCrewCheck(draft, "announcer1", field, true);
+  const live = buildAnnouncementsLiveView({ draft }, { document: documentDouble });
+  assert.doesNotMatch(textOf(live), /homeroom|backup|late|crew check|coverage recorded|8:52|8:54|teacher covers/i);
+  assert.equal(findAll(live, (node) => node.getAttribute("data-private-crew") === "true").length, 0);
+  assert.equal(findAll(live, (node) => node.tagName === "input").length, 0);
+});
 
 test("the announcements screen explains the Grade 6 responsibility and stays public-safe by default", () => {
   const draft = createAnnouncementDraft();
@@ -213,6 +261,25 @@ test("the ECMS action is explicit and its unresolved editable script cannot ente
   assert.equal(findAll(outlined, (node) => node.getAttribute("name") === "teacher-review")[0].hasAttribute("disabled"), true);
   assert.equal(findByText(outlined, "button", "Go live").hasAttribute("disabled"), true);
   assert.throws(() => buildAnnouncementsLiveView({ draft, onExit: () => {} }, { document: documentDouble }), /announcement-live-review-required/);
+});
+
+test("prepared date buttons send explicit dates and Friday teacher guidance is absent from broadcast", () => {
+  const actions = callbacksDouble();
+  let draft = applyPreparedEcmsAnnouncement(createAnnouncementDraft(), "2026-09-11");
+  const view = buildAnnouncementsWorkflow({ draft, callbacks: actions.callbacks }, { document: documentDouble });
+  findByText(view, "button", "Load Friday, September 11 script").click();
+  assert.deepEqual(actions.calls, [["onUsePreparedEcms", "2026-09-11"]]);
+  assert.match(textOf(view), /reserve about 30 seconds/);
+  assert.throws(() => buildAnnouncementsLiveView({ draft, onExit: () => {} }, { document: documentDouble }), /announcement-live-review-required/);
+  for (const [section, value] of Object.entries(draft.script)) {
+    draft = updateAnnouncementSection(draft, section, value.replace(/\[\[[^\]]+\]\]/g, "Approved wording"));
+  }
+  for (const phase of ["prepare", "rehearse"]) for (const item of Object.keys(draft.checklist[phase])) draft = setAnnouncementCheck(draft, phase, item, true);
+  for (const slot of ["announcer1", "announcer2"]) draft = setAnnouncementCrewCheck(draft, slot, "teacherCovers", true);
+  draft = setAnnouncementTeacherReview(draft, true);
+  const live = buildAnnouncementsLiveView({ draft, onExit: () => {} }, { document: documentDouble });
+  assert.match(textOf(live), /Approved wording/);
+  assert.doesNotMatch(textOf(live), /Teacher preparation|reserve about 30 seconds|Load Friday|homeroom|crew checks|Tim and Ivan/i);
 });
 
 test("teacher review and go-live controls remain gated until the workflow says ready", () => {

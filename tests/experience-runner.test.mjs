@@ -1143,7 +1143,7 @@ test("timestamps and action names fail closed instead of being corrected silentl
 
 test("replica selections keep existing runner schema, stationary clocks, and manual step transitions", () => {
   const { createExperienceRunner, applyExperienceRunnerAction, advanceExperienceRunnerClock, validateExperienceRunner } = getRunnerModel();
-  for (const modeId of ["replica-sort", "replica-layout", "replica-service"]) {
+  for (const modeId of ["replica-sort", "replica-layout", "replica-cardboard", "replica-service", "replica-resin"]) {
     let runner = createExperienceRunner(EXPERIENCE_TIMING_PLANS[1], { teacherKey: TEACHER_KEY, nowIso: NOW, modeId });
     assert.equal(runner.schemaVersion, 1);
     assert.equal(runner.modeId, modeId);

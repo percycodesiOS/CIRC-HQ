@@ -170,6 +170,27 @@ export const REPLICA_LESSON_CHOICES = deepFreeze([
     "fastFinish": "Check one label or count, then leave one useful question for the next crew."
   },
   {
+    "id": "replica-cardboard",
+    "title": "Build the Cardboard School",
+    "label": "Day 4: Build the Cardboard School",
+    "objective": "I can turn a checked top-view plan into a stable cardboard module, test its fit, and leave a useful handoff.",
+    "summary": "Start building with cardboard now. Make one school module, check its fit and preserve room for the next crew.",
+    "materials": [
+      "Cardboard, pencils, rulers and approved cutting tools",
+      "Masking tape or paper tabs for student assembly",
+      "Existing hot-glue gun, glue sticks and heat-resistant mat at the teacher station",
+      "Confirmed top-view reference and labeled storage trays"
+    ],
+    "safety": "Students dry-fit with tape or tabs. The teacher handles knife cuts, hot glue and cooled joints under the school's tool procedure. Keep cords and hot tools at the marked station. No heat gun, epoxy or water is needed for this lesson.",
+    "teacherContext": [
+      "Use the known cardboard and existing glue equipment. Precut thick pieces or make requested cuts at the teacher station. A tape-and-tab build remains a complete lesson if the glue station is unavailable.",
+      "Confirm the school outline and parent-drop-off direction from a trusted reference. If unavailable, build freestanding feature modules and leave site placement undecided. Mark new fountains and other modifications PROPOSED.",
+      "Use one shared model scale only after a real reference dimension is confirmed. Otherwise label the prototype not to scale. Keep new modules removable from the shared base so future crews can revise them.",
+      "Epoxy is still part of the later project. Do not pour onto cardboard today. Use a separate compatible mold and test the selected resin, cured piece and attachment method before adding it to the model."
+    ],
+    "fastFinish": "Add one labeled brace or test a doorway fit, then sketch the next module without taking another crew's space."
+  },
+  {
     "id": "replica-service",
     "title": "Remember & Serve",
     "label": "Friday, September 11: Remember & Serve",
@@ -187,6 +208,28 @@ export const REPLICA_LESSON_CHOICES = deepFreeze([
       "Epoxy is required for the final build. These sessions stay dry while supplies and the plan are being prepared. Later teacher-managed use follows the exact product label/SDS and school-approved procedure, checks material compatibility and protects the specified curing stage. No student mixing or unspecified cure time is supplied."
     ],
     "fastFinish": "Check one label or count, then leave one useful question for the next crew."
+  },
+  {
+    "id": "replica-resin",
+    "title": "Design and Measure a Resin Feature",
+    "label": "Resin unit: Design and Measure a Feature",
+    "objective": "I can estimate mold volume, calculate a labeled mixing ratio, and justify when resin is useful for our school model.",
+    "summary": "Design a small fountain insert, sign or game piece. Students plan with dry materials; the teacher manages any later resin work.",
+    "materials": [
+      "Paper, pencils, rulers and calculators",
+      "An empty silicone mold or its dimensioned drawing",
+      "A teacher-cleared fully cured example if available",
+      "The exact selected resin label, instruction sheet and both component safety data sheets"
+    ],
+    "safety": "This 35-minute student lesson stays dry. Students do not mix, pour, heat, demold or handle uncured epoxy. The teacher prepares a separate approved resin station and follows the exact product instructions for any later demonstration, application and cure.",
+    "teacherContext": [
+      "Run the design, volume and ratio work before resin arrives. Use a drawing if molds or cured examples are unavailable. Resin is a planned material, not a prerequisite for today's learning.",
+      "For later teacher-managed use: confirm the exact product, both safety data sheets, compatible gloves and eye protection, room ventilation, batch and pour limits, protected curing location and disposal procedure. A low-odor or low-VOC claim does not replace those checks.",
+      "Separate the hot-glue build table from any resin station. A heat gun is optional adult equipment only when the exact resin instructions and school procedure allow it; it is not a student tool or a required step. No flame is used in this unit.",
+      "Keep volume ratios and weight ratios distinct. Use the selected product label for real batches. The paper example assumes a 1:1 ratio by volume and a rectangular 5 cm by 4 cm by 0.5 cm cavity: 10 cubic centimeters is 10 mL total, or 5 mL of each part. This is arithmetic practice, not a batch instruction.",
+      "The classroom step timer is not a resin cure timer. Record the actual product, pour time and manufacturer conditions separately; pieces remain at the protected station until the teacher confirms the required cure and safe handling. Do not promise next-period demolding."
+    ],
+    "fastFinish": "Compare the same feature in cardboard and resin, then explain whether the extra material and curing time solve a real design need."
   }
 ]);
 
@@ -427,6 +470,125 @@ function replicaModeVariants() {
         ]
       ], replicaParallelJobs(), { preserveExisting: true, requiresTeacherPlan: true, dismantleGluedStructure: false }),
       title: "Aerial Layout & Dry Prototype",
+      safetyTags: []
+    },
+    "replica-cardboard": {
+      ...defineModeVariant(2, [
+        ["build-handoff", "READ THE BUILD PLAN", "ready", 3, [
+          "Read the previous crew's plan and labels.",
+          "Choose one school module your team can finish today."
+        ], [
+          "Say: Today we start building a cardboard version of Ehrman Crest. One useful, checked module is success.",
+          "Choose a wall, entrance, roof section or route marker. Keep proposed modifications labeled and separate."
+        ]],
+        ["build-tools", "CHECK THE TOOL STATION", "safety", 4, [
+          "Use only the cutting and assembly tools your teacher gives you.",
+          "Fit the parts together with tape or tabs before asking the teacher to glue them.",
+          "Keep hands away from the hot-glue station and let the teacher check cooled pieces."
+        ], [
+          "Set a marked adult glue-and-cut station on a heat-resistant mat. Manage hot glue, knife cuts, cords and cooling under the school's tool procedure.",
+          "Use tape and tabs throughout if the station is unavailable. Existing tools do not remove the need for supervision."
+        ]],
+        ["build-mark", "MEASURE AND MARK", "work", 5, [
+          "Draw your module on cardboard and label its parts.",
+          "Mark folds, tabs and the doorway before cutting.",
+          "Check one measurement with a partner."
+        ], [
+          "Use the shared reference and consistent scale if confirmed; otherwise mark not to scale.",
+          "If no aerial reference is ready, build a freestanding module and leave its final site location undecided."
+        ]],
+        ["build-module", "BUILD ONE MODULE", "work", 12, [
+          "Cut only as directed, then fold or tape your pieces together.",
+          "Check that the parts fit before asking the teacher to glue them.",
+          "Add a brace if your module will not stand on its own."
+        ], [
+          "Manage the glue queue while other teams dry-fit, label, measure and brace. Do not let tool waiting stop all six groups.",
+          "Keep modules removable from the shared base. No epoxy pour or working fountain today."
+        ]],
+        ["build-test", "TEST THE FIT", "work", 4, [
+          "Set your module in its agreed place, or beside the plan if the location is undecided.",
+          "Check that it stands and leaves the planned route clear.",
+          "Improve one weak connection or crowded spot."
+        ], [
+          "Check a stable stand, a readable label and fit with adjacent modules. This checks the model, not actual building safety.",
+          "Record disagreements rather than overwriting another crew's work."
+        ]],
+        ["build-reset", "LABEL AND STORE", "cleanup", 5, [
+          "Label your module with a team code and its next step.",
+          "Save useful scraps and return tools as directed.",
+          "Leave hot tools and cooling pieces for the teacher."
+        ], [
+          "Unplug and secure the glue equipment; protect cooling work and clear the station.",
+          "Store modules in labeled trays. Keep student names out of public display or shared files."
+        ]],
+        ["build-exit", "EXPLAIN ONE BUILD CHOICE", "exit", 2, [
+          "Complete: Our module represents ___ and we made it stable by ___.",
+          "Leave the next crew one specific action."
+        ], [
+          "Accept a brief written, spoken or drawn handoff. Check the module against the plan, stability and label criteria."
+        ]]
+      ], replicaParallelJobs(), { preserveExisting: true, requiresTeacherPlan: true, dismantleGluedStructure: false }),
+      title: "Build the Cardboard School",
+      safetyTags: ["hot-glue", "cutting", "tool"]
+    },
+    "replica-resin": {
+      ...defineModeVariant(2, [
+        ["resin-purpose", "CHOOSE A USEFUL FEATURE", "ready", 3, [
+          "Choose a small proposed fountain insert, sign or game piece.",
+          "Name the job it needs to do on the model."
+        ], [
+          "Say: We will decide where resin earns its place, then measure and plan it before any pouring.",
+          "Keep fountains dry. This lesson can run without purchased resin or molds."
+        ]],
+        ["resin-boundary", "READ THE MATERIAL RULES", "safety", 4, [
+          "Stay with paper, empty molds and teacher-cleared cured examples.",
+          "Leave all resin bottles, mixing tools and heating equipment at the teacher station.",
+          "Ask before touching an example."
+        ], [
+          "This student lesson stays dry. Mixing, pouring, heating and cure checks are adult tasks under the exact product instructions and school procedure.",
+          "Do not pass around uncured or partly cured pieces. Use a picture if a safe example is unavailable."
+        ]],
+        ["resin-volume", "MEASURE THE MOLD", "work", 7, [
+          "Measure or read the inside dimensions in centimeters.",
+          "For a rectangular cavity, multiply length by width by depth.",
+          "Record the estimated volume in cubic centimeters and milliliters."
+        ], [
+          "Use a dimensioned rectangular drawing when the actual mold is curved or irregular; explain that its estimate needs a different method.",
+          "One cubic centimeter equals one milliliter. Example: 5 x 4 x 0.5 = 10 mL. Keep this as a design estimate, not a permission to mix."
+        ]],
+        ["resin-ratio", "CHECK THE RATIO", "work", 6, [
+          "Read whether the example ratio uses volume or weight.",
+          "For the paper 1:1 volume example, split 10 mL into two equal parts.",
+          "Explain why changing the ratio is not a way to change the color or curing time."
+        ], [
+          "Expected paper answer: 5 mL part A and 5 mL part B. Real product ratios, batch sizes and instructions must be checked separately.",
+          "Do not treat equal volume as equal weight. The teacher chooses the actual batch; students do not dispense material."
+        ]],
+        ["resin-compare", "COMPARE AND PLAN", "work", 7, [
+          "Compare cardboard with a teacher-cleared cured resin example or picture.",
+          "Choose one reason to use resin and one reason to keep a part cardboard.",
+          "Draw the feature and label the mold, estimated volume and a question to check."
+        ], [
+          "Compare useful properties, repeatability, cost and waiting time. Do not equate glossy appearance with structural strength.",
+          "For a later demonstration, prepare a compatible mold and protected station separately. The classroom timer never confirms a chemical cure; use the actual manufacturer's conditions and handling instructions."
+        ]],
+        ["resin-reset", "SAVE THE DESIGN", "cleanup", 5, [
+          "Return rulers and empty molds.",
+          "Store the dry plan with a team code.",
+          "Leave all chemical equipment for the teacher."
+        ], [
+          "Collect volume calculations and the design. Keep any real chemical work, waste and curing pieces under adult control.",
+          "Confirm an approved process and fully cured compatibility test before attaching any later casting to the school model."
+        ]],
+        ["resin-exit", "EXPLAIN YOUR CHOICE", "exit", 3, [
+          "Complete: Our feature needs about ___ mL because ___.",
+          "Explain the paper mixing ratio and why the real label still matters.",
+          "Name one check needed before the teacher can make it."
+        ], [
+          "Assess the unit, calculation, material reason and next check. A completed plan is the output today, not a finished casting."
+        ]]
+      ], replicaParallelJobs(), { preserveExisting: true, requiresTeacherPlan: true, dismantleGluedStructure: false }),
+      title: "Design and Measure a Resin Feature",
       safetyTags: []
     },
     "replica-service": {

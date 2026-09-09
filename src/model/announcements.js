@@ -4,6 +4,71 @@ export const GRADE_SIX_ANNOUNCEMENT_RESPONSIBILITY =
 export const ANNOUNCEMENT_LOCAL_STORAGE_KEY = "circHQ.announcements.local.v1";
 export const ANNOUNCEMENT_ARCHIVE_STORAGE_KEY = "circHQ.announcements.archive.v1";
 
+export const ANNOUNCEMENT_CREW_TIMES = Object.freeze({
+  arrival: "08:50", backup: "08:52", finalCheck: "08:54", broadcast: "08:55"
+});
+const ANNOUNCER_SLOTS = ["announcer1", "announcer2"];
+const CREW_CHECKS = ["homeroomConfirmed", "arrived", "ready", "lateNotified", "teacherCovers", "backupActive"];
+
+function blankCrewChecks() {
+  return Object.fromEntries(CREW_CHECKS.map((field) => [field, false]));
+}
+
+export function getAnnouncementCrew(draft) {
+  const stored = draft?.crew;
+  const times = Object.fromEntries(Object.entries(ANNOUNCEMENT_CREW_TIMES).map(([field, fallback]) => [
+    field, stored?.times?.[field] ?? fallback
+  ]));
+  const orderedTimes = Object.values(times);
+  if (orderedTimes.some((time) => typeof time !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) ||
+      orderedTimes.some((time, index) => index > 0 && time <= orderedTimes[index - 1])) {
+    throw new TypeError("Keep arrival, backup decision, final check and broadcast times in that order.");
+  }
+  return {
+    times,
+    announcers: Object.fromEntries(ANNOUNCER_SLOTS.map((slot) => [slot,
+      Object.fromEntries(CREW_CHECKS.map((field) => [field, stored?.announcers?.[slot]?.[field] === true]))
+    ]))
+  };
+}
+
+function clearCrewChecks(draft) {
+  const crew = getAnnouncementCrew(draft);
+  crew.announcers = Object.fromEntries(ANNOUNCER_SLOTS.map((slot) => [slot, blankCrewChecks()]));
+  return crew;
+}
+
+export function setAnnouncementCrewCheck(draft, slot, field, checked) {
+  if (!ANNOUNCER_SLOTS.includes(slot) || !CREW_CHECKS.includes(field) || typeof checked !== "boolean") {
+    throw new TypeError("Choose a valid private crew check.");
+  }
+  const next = normalizedDraft(draft);
+  next.crew = getAnnouncementCrew(next);
+  const member = next.crew.announcers[slot];
+  // A replacement person must make their own confirmations. No names are stored.
+  if (field === "backupActive" && member.backupActive !== checked) {
+    next.crew.announcers[slot] = { ...blankCrewChecks(), backupActive: checked };
+  } else {
+    member[field] = checked;
+  }
+  return next;
+}
+
+export function updateAnnouncementCrewTime(draft, field, value) {
+  if (!Object.hasOwn(ANNOUNCEMENT_CREW_TIMES, field)) throw new TypeError("Choose a valid crew time.");
+  const next = normalizedDraft(draft);
+  next.crew = getAnnouncementCrew(next);
+  next.crew.times[field] = value;
+  next.crew = getAnnouncementCrew(next);
+  return next;
+}
+
+export function resetAnnouncementCrew(draft) {
+  const next = normalizedDraft(draft);
+  next.crew = clearCrewChecks(next);
+  return next;
+}
+
 export const ANNOUNCEMENT_CREW_ROLES = Object.freeze([
   Object.freeze({
     id: "producer",
@@ -114,6 +179,56 @@ export function applyEcmsAnnouncementOutline(draft, { replaceExisting = false } 
   return next;
 }
 
+export const PREPARED_ECMS_BROADCASTS = Object.freeze([
+  Object.freeze({ date: "2026-09-09", label: "Load Wednesday, September 9 script", cycleDay: 4 }),
+  Object.freeze({ date: "2026-09-10", label: "Load Thursday, September 10 script", cycleDay: 5 }),
+  Object.freeze({ date: "2026-09-11", label: "Load Friday, September 11 script", cycleDay: 1 })
+]);
+
+// Public school notices only. Names and Friday's approved message stay unresolved until local teacher review.
+export function applyPreparedEcmsAnnouncement(draft, date, { replaceExisting = false } = {}) {
+  const prior = admitAnnouncementDraft(draft);
+  const prepared = PREPARED_ECMS_BROADCASTS.find((item) => item.date === date);
+  if (!prepared) throw new TypeError("Choose one of the prepared September 9-11 broadcasts.");
+  if (hasAnnouncementScript(prior) && replaceExisting !== true) {
+    throw new TypeError("Confirm before replacing the current announcement script.");
+  }
+  const next = createAnnouncementDraft({ date, targetMinutes: 3 });
+  const friday = date === "2026-09-11";
+  const audition = date === "2026-09-09"
+    ? "tomorrow, Thursday, September 10, at 5:30 p.m."
+    : "this evening at 5:30 p.m.";
+  const lunch = {
+    "2026-09-09": "Announcer 2: For Lunch 1 today, it's breakfast for lunch! We are having pancakes, a sausage patty, and warm cinnamon fruit.",
+    "2026-09-10": "Announcer 2: For Lunch 1 today, we are having pasta with meat sauce or marinara sauce, a breadstick, and a steamed vegetable.",
+    "2026-09-11": "Announcer 1: For Lunch 1 today, we are having popcorn chicken, Smiles potatoes, a roll, and a steamed vegetable."
+  }[date];
+  const office = [
+    "Announcer 1: Here are today's announcements. Chorus sign-ups are happening now. Listen for more information in your music class.",
+    ...(!friday ? [`Announcer 2: Attention, fifth graders: auditions for the musical, Little Shop of Horrors, are ${audition} at Ryan Gloyer Middle School. These auditions are for fifth graders only.`] : []),
+    `Announcer ${friday ? 2 : 1}: Yearbooks are available to order through the Ehrman Crest PTO website. Please remind your family that the yearbook discount ends October 31.`
+  ].join("\n");
+  next.script = {
+    opening: `Announcer 1: Good morning, ECMS! Today is ${spokenAnnouncementDate(date)}. It is cycle day ${prepared.cycleDay}.\nAnnouncer 1: My name is [[ANNOUNCER 1 FIRST NAME]].\nAnnouncer 2: And my name is [[ANNOUNCER 2 FIRST NAME]].`,
+    pledgeSchoolItems: [
+      "Announcer 2: Please rise for a moment of silence, followed by the Pledge of Allegiance.",
+      "[Pause silently for at least 20 seconds.]",
+      "[Wait 5 additional seconds before Announcer 1 begins.]",
+      "Announcer 1: Please join me in the Pledge of Allegiance.",
+      "I pledge allegiance to the flag of the United States of America, and to the republic for which it stands, one nation under God, indivisible, with liberty and justice for all.",
+      "Announcer 2: Thank you. You may be seated.",
+      ...(friday ? ["[[TIM AND IVAN APPROVED SEPTEMBER 11 MESSAGE WITH SPEAKER]]"] : []),
+      office
+    ].join("\n"),
+    birthdaysEvents: `${lunch}\nAnnouncer ${friday ? 2 : 1}: Looking ahead, the ECMS and Haine Academic Games teams have their first tournament next Thursday, September 17, at Ryan Gloyer Middle School. Good luck to both teams!`,
+    weather: "",
+    closing: friday
+      ? "Announcer 1: That's all for today's announcements. Thank you for listening.\nAnnouncer 2: Have a thoughtful day of learning and a safe weekend, ECMS. Embrace the challenge!"
+      : "Announcer 2: That's all for today's announcements. Thank you for listening.\nAnnouncer 1: Have a great day of learning, ECMS, and embrace the challenge!"
+  };
+  return next;
+}
+
 function clone(value) {
   return structuredClone(value);
 }
@@ -161,7 +276,9 @@ function normalizedDraft(value) {
     },
     script,
     checklist,
-    teacherReview: { approved: value.teacherReview?.approved === true }
+    teacherReview: { approved: value.teacherReview?.approved === true },
+    // Optional so existing version-one working drafts and strict dated archives retain their exact shape.
+    ...(Object.hasOwn(value, "crew") ? { crew: getAnnouncementCrew(value) } : {})
   };
 }
 
@@ -390,6 +507,7 @@ export function updateAnnouncementDetails(draft, changes = {}) {
   if (unknown.length) throw new TypeError("Choose a valid announcement detail.");
   let next = normalizedDraft(draft);
   if (Object.hasOwn(changes, "date")) {
+    if (next.date !== changes.date && next.crew) next.crew = clearCrewChecks(next);
     const previousCue = `Announcer 1: Good morning, ECMS! Today is ${spokenAnnouncementDate(next.date) ?? "[[ANNOUNCEMENT DATE]]"}.`;
     const newDate = spokenAnnouncementDate(changes.date) ?? "[[ANNOUNCEMENT DATE]]";
     if (next.script.opening.startsWith(previousCue)) {
@@ -409,6 +527,8 @@ export function updateAnnouncementSection(draft, section, value) {
     throw new TypeError("Choose a valid announcement script section.");
   }
   const next = invalidatesTeacherReview(normalizedDraft(draft));
+  // Introductions contain the broadcast names. Editing them requires fresh role confirmations.
+  if (section === "opening" && next.script.opening !== value && next.crew) next.crew = clearCrewChecks(next);
   next.script[section] = value;
   return next;
 }
@@ -420,7 +540,7 @@ export function setAnnouncementCheck(draft, phaseId, itemId, complete) {
   }
   if (phaseId === "go-live" && itemId === "broadcastComplete" && complete === true &&
       !evaluateAnnouncementDraft(next).canGoLive) {
-    throw new TypeError("Teacher approval is required before going live.");
+    throw new TypeError("Teacher approval and current crew confirmations or arranged coverage are required before going live.");
   }
   next.checklist[phaseId][itemId] = complete === true;
   if (["prepare", "rehearse"].includes(phaseId)) next.teacherReview.approved = false;
@@ -477,7 +597,10 @@ export function evaluateAnnouncementDraft(draft) {
   const prepareComplete = incompletePrepare.length === 0;
   const rehearseComplete = incompleteRehearse.length === 0;
   const reviewReady = errors.length === 0 && prepareComplete && rehearseComplete;
-  const canGoLive = reviewReady && value.teacherReview.approved;
+  const crew = getAnnouncementCrew(value);
+  const crewReady = Object.values(crew.announcers).every((member) =>
+    member.teacherCovers || (member.homeroomConfirmed && member.arrived && member.ready));
+  const canGoLive = reviewReady && value.teacherReview.approved && crewReady;
   return {
     errors,
     incompletePrepare,
@@ -485,6 +608,7 @@ export function evaluateAnnouncementDraft(draft) {
     prepareComplete,
     rehearseComplete,
     reviewReady,
+    crewReady,
     canGoLive,
     broadcastComplete: value.checklist["go-live"].broadcastComplete,
     resetComplete: Object.values(value.checklist.reset).every(Boolean)

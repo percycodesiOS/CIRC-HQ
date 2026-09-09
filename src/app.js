@@ -2,6 +2,7 @@ import { admitLocalState, buildBoardProjection } from "./model/access.js";
 import { buildAdminPlanDocument } from "./model/admin-plan.js";
 import {
   applyEcmsAnnouncementOutline,
+  applyPreparedEcmsAnnouncement,
   clearLocalAnnouncementDraft,
   evaluateAnnouncementDraft,
   hasAnnouncementScript,
@@ -9,11 +10,14 @@ import {
   loadLocalAnnouncementArchive,
   loadLocalAnnouncementDraft,
   resetAnnouncementDraft,
+  resetAnnouncementCrew,
   saveLocalAnnouncementDraft,
   saveDatedAnnouncementDraft,
   setAnnouncementCheck,
+  setAnnouncementCrewCheck,
   setAnnouncementTeacherReview,
   updateAnnouncementDetails,
+  updateAnnouncementCrewTime,
   updateAnnouncementSection
 } from "./model/announcements.js";
 import {
@@ -814,7 +818,7 @@ function replicaLessonChooser(actions) {
         element("p", { text: choice.summary })
       ])
     )),
-    element("p", { text: "Use these dry lessons while supplies and the plan are being prepared. Check the aerial reference and parent-drop-off layout before placing site features. Epoxy is required for the final build; attachment is a later teacher-managed stage." }),
+    element("p", { text: "Ready to build with cardboard? Choose Day 4. Students can assemble with tape and tabs while the teacher manages the hot-glue station. Check the aerial reference before placing site features. The resin unit starts with dry design and measurement; any later resin work and cure checks are teacher-managed." }),
     actions.currentReplicaLesson ? element("div", { className: "replica-current-lesson" }, [
       element("p", { text: `Current lesson: ${actions.currentReplicaLesson.title}. Reopen it to continue, or explicitly reset it for a new class.` }),
       actionButton("Start this lesson for a new class", "secondary-action", () => actions.openRunner(2, { modeId: actions.currentReplicaLesson.id, restart: true }))
@@ -2319,9 +2323,10 @@ export function renderApp(root, services = {}) {
   function updateAnnouncementDraft(update, { rerender = true } = {}) {
     try {
       const wasApproved = announcementDraft.teacherReview?.approved === true;
+      const priorCrew = JSON.stringify(announcementDraft.crew);
       announcementDraft = update(announcementDraft);
       announcementStatus = "Changes are local to this device. Choose Save local draft when ready.";
-      if (rerender || wasApproved) render();
+      if (rerender || wasApproved || priorCrew !== JSON.stringify(announcementDraft.crew)) render();
     } catch (error) {
       announcementStatus = error instanceof Error ? error.message : "The announcement draft could not be updated.";
       render();
@@ -2396,7 +2401,7 @@ export function renderApp(root, services = {}) {
 
   function openAnnouncementBroadcast() {
     if (!evaluateAnnouncementDraft(announcementDraft).canGoLive) {
-      announcementStatus = "Finish preparation and rehearsal, then record teacher approval before going live.";
+      announcementStatus = "Finish preparation and rehearsal, record teacher approval, and confirm both crew roles or teacher-arranged coverage before going live.";
       render();
       return;
     }
@@ -2416,12 +2421,31 @@ export function renderApp(root, services = {}) {
     navigate("announcements-live");
   }
 
+  function usePreparedEcmsAnnouncement(date) {
+    const hasScript = hasAnnouncementScript(announcementDraft);
+    if (hasScript) {
+      const message = `Load the prepared ${date} script? This replaces the current working wording and resets preparation, rehearsal, approval and crew checks. Your saved dates stay unchanged until you explicitly save. Cancel keeps this draft.`;
+      const confirmed = typeof services.confirmReplaceAnnouncement === "function"
+        ? services.confirmReplaceAnnouncement(message) === true
+        : typeof globalThis.window?.confirm === "function" && globalThis.window.confirm(message) === true;
+      if (!confirmed) return;
+    }
+    updateAnnouncementDraft((draft) => applyPreparedEcmsAnnouncement(draft, date, { replaceExisting: hasScript }));
+  }
+
   function announcementWorkflow() {
     return buildAnnouncementsWorkflow({
       draft: announcementDraft,
       savedArchive: announcementArchive,
       status: announcementStatus,
       callbacks: {
+        onCrewCheckChange: (slot, field, checked) => updateAnnouncementDraft(
+          (draft) => setAnnouncementCrewCheck(draft, slot, field, checked)
+        ),
+        onCrewTimeChange: (field, value) => updateAnnouncementDraft(
+          (draft) => updateAnnouncementCrewTime(draft, field, value)
+        ),
+        onCrewReset: () => updateAnnouncementDraft((draft) => resetAnnouncementCrew(draft)),
         onDetailChange: (field, value) => updateAnnouncementDraft(
           (draft) => updateAnnouncementDetails(draft, { [field]: value }),
           { rerender: field === "date" }
@@ -2439,6 +2463,7 @@ export function renderApp(root, services = {}) {
         onSaveLocalDraft: saveAnnouncementDraft,
         onLoadSavedDraft: loadAnnouncementDraft,
         onUseEcmsOutline: useEcmsAnnouncementOutline,
+        onUsePreparedEcms: usePreparedEcmsAnnouncement,
         onClearLocalDraft: clearAnnouncementDraft,
         onGoLive: openAnnouncementBroadcast
       }

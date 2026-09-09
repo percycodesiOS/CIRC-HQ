@@ -9,19 +9,25 @@ import {
   GRADE_SIX_ANNOUNCEMENT_RESPONSIBILITY,
   admitAnnouncementDraft,
   applyEcmsAnnouncementOutline,
+  applyPreparedEcmsAnnouncement,
+  PREPARED_ECMS_BROADCASTS,
   clearLocalAnnouncementDraft,
   createAnnouncementDraft,
   evaluateAnnouncementDraft,
+  getAnnouncementCrew,
   hasAnnouncementScript,
   loadLocalAnnouncementDraft,
   loadLocalAnnouncementArchive,
   loadArchivedAnnouncementDraft,
   resetAnnouncementDraft,
+  resetAnnouncementCrew,
   saveLocalAnnouncementDraft,
   saveDatedAnnouncementDraft,
   setAnnouncementCheck,
+  setAnnouncementCrewCheck,
   setAnnouncementTeacherReview,
   updateAnnouncementDetails,
+  updateAnnouncementCrewTime,
   updateAnnouncementSection
 } from "../src/model/announcements.js";
 
@@ -50,8 +56,152 @@ function readyForTeacherReview() {
   for (const itemId of ["fullRead", "timingChecked", "pronunciationsChecked"]) {
     draft = setAnnouncementCheck(draft, "rehearse", itemId, true);
   }
+  for (const slot of ["announcer1", "announcer2"]) {
+    for (const field of ["homeroomConfirmed", "arrived", "ready"]) draft = setAnnouncementCrewCheck(draft, slot, field, true);
+  }
   return draft;
 }
+
+test("prepared school scripts load explicitly with current names and Friday approval still required", () => {
+  const original = setAnnouncementTeacherReview(readyForTeacherReview(), true);
+  const before = structuredClone(original);
+  for (const { date, cycleDay } of PREPARED_ECMS_BROADCASTS) {
+    assert.throws(() => applyPreparedEcmsAnnouncement(original, date), /Confirm before replacing/);
+    let draft = applyPreparedEcmsAnnouncement(original, date, { replaceExisting: true });
+    assert.equal(draft.date, date);
+    assert.equal(draft.timing.targetMinutes, 3);
+    assert.match(draft.script.opening, new RegExp(`cycle day ${cycleDay}`));
+    assert.equal(draft.teacherReview.approved, false);
+    assert.equal(evaluateAnnouncementDraft(draft).canGoLive, false);
+    assert.equal(Object.values(getAnnouncementCrew(draft).announcers).flatMap(Object.values).every(v => v === false), true);
+    const text = Object.values(draft.script).join("\n");
+    assert.equal((text.match(/Wait 5 additional seconds/g) ?? []).length, 1);
+    assert.match(text, /at least 20 seconds/);
+    assert.match(text, /with liberty and justice for all/);
+    assert.match(text, /October 31/);
+    assert.match(text, /September 17/);
+    assert.doesNotMatch(text, /TEACHER ONLY|reserve about 30|spiritwear|birthday/i);
+    draft = updateAnnouncementSection(draft, "opening", draft.script.opening.replace("[[ANNOUNCER 1 FIRST NAME]]", "First").replace("[[ANNOUNCER 2 FIRST NAME]]", "Second"));
+    for (const phase of ["prepare", "rehearse"]) {
+      for (const item of Object.keys(draft.checklist[phase])) draft = setAnnouncementCheck(draft, phase, item, true);
+    }
+    if (date === "2026-09-11") {
+      assert.equal(evaluateAnnouncementDraft(draft).reviewReady, false);
+      assert.throws(() => setAnnouncementTeacherReview(draft, true), /teacher approval/i);
+      draft = updateAnnouncementSection(draft, "pledgeSchoolItems", draft.script.pledgeSchoolItems.replace("[[TIM AND IVAN APPROVED SEPTEMBER 11 MESSAGE WITH SPEAKER]]", "Announcer 1: Approved message."));
+    }
+    assert.equal(evaluateAnnouncementDraft(draft).reviewReady, true);
+    assert.ok(Object.values(draft.script).every(section => section.length <= 2000));
+  }
+  assert.deepEqual(original, before);
+  assert.throws(() => applyPreparedEcmsAnnouncement(original, "2026-09-12", { replaceExisting: true }), /prepared September/);
+});
+
+test("private crew defaults are unchecked and old approved archives remain readable without migration writes", () => {
+  const legacy = setAnnouncementTeacherReview(readyForTeacherReview(), true);
+  delete legacy.crew;
+  assert.equal(Object.hasOwn(legacy, "crew"), false);
+  const crew = getAnnouncementCrew(legacy);
+  assert.deepEqual(crew.times, { arrival: "08:50", backup: "08:52", finalCheck: "08:54", broadcast: "08:55" });
+  assert.equal(Object.values(crew.announcers).flatMap(Object.values).every((value) => value === false), true);
+  const archive = { format: "circ.announcements.archive.v1", version: 1, scope: "local-only", drafts: { [legacy.date]: legacy } };
+  const text = JSON.stringify(archive);
+  const storage = memoryStorage({ [ANNOUNCEMENT_ARCHIVE_STORAGE_KEY]: text });
+  assert.deepEqual(loadArchivedAnnouncementDraft(storage, legacy.date), legacy);
+  assert.equal(loadLocalAnnouncementArchive(storage).status, "saved");
+  assert.equal(storage.values.get(ANNOUNCEMENT_ARCHIVE_STORAGE_KEY), text);
+  assert.deepEqual(storage.writes, []);
+  assert.equal(evaluateAnnouncementDraft(legacy).canGoLive, false);
+  assert.equal(evaluateAnnouncementDraft(legacy).reviewReady, true);
+  assert.equal(legacy.teacherReview.approved, true);
+});
+
+test("crew confirmations save locally by date without changing script approval or another date", () => {
+  let draft = setAnnouncementTeacherReview(readyForTeacherReview(), true);
+  const original = structuredClone(draft);
+  draft = setAnnouncementCrewCheck(draft, "announcer1", "homeroomConfirmed", true);
+  draft = setAnnouncementCrewCheck(draft, "announcer1", "arrived", true);
+  draft = setAnnouncementCrewCheck(draft, "announcer2", "lateNotified", true);
+  assert.equal(draft.teacherReview.approved, true);
+  assert.deepEqual(draft.script, original.script);
+  const storage = memoryStorage();
+  saveDatedAnnouncementDraft(storage, draft);
+  saveDatedAnnouncementDraft(storage, createAnnouncementDraft({ date: "2026-09-04" }));
+  assert.deepEqual(loadArchivedAnnouncementDraft(storage, draft.date), draft);
+  assert.equal(loadArchivedAnnouncementDraft(storage, "2026-09-04").crew, undefined);
+  assert.equal(storage.writes.every(([key]) => [ANNOUNCEMENT_LOCAL_STORAGE_KEY, ANNOUNCEMENT_ARCHIVE_STORAGE_KEY].includes(key)), true);
+  assert.deepEqual(original.crew, getAnnouncementCrew(readyForTeacherReview()));
+});
+
+test("new date, opening names or manual crew reassignment cannot reuse earlier confirmations", () => {
+  let draft = setAnnouncementTeacherReview(readyForTeacherReview(), true);
+  draft = setAnnouncementCrewCheck(draft, "announcer1", "homeroomConfirmed", true);
+  draft = setAnnouncementCrewCheck(draft, "announcer2", "ready", true);
+  draft = updateAnnouncementCrewTime(draft, "backup", "08:53");
+  assert.equal(getAnnouncementCrew(updateAnnouncementDetails(draft, { date: draft.date })).announcers.announcer1.homeroomConfirmed, true);
+  const newDate = updateAnnouncementDetails(draft, { date: "2026-09-04" });
+  const newNames = updateAnnouncementSection(draft, "opening", "Announcer 1: My name is another approved first name.");
+  const reassigned = resetAnnouncementCrew(draft);
+  for (const reset of [newDate, newNames, reassigned]) {
+    assert.equal(Object.values(reset.crew.announcers).flatMap(Object.values).every((value) => value === false), true);
+    assert.equal(reset.crew.times.backup, "08:53");
+    assert.equal(evaluateAnnouncementDraft(reset).canGoLive, false);
+  }
+  assert.equal(reassigned.teacherReview.approved, true);
+  assert.deepEqual(reassigned.checklist, draft.checklist);
+  assert.equal(newDate.teacherReview.approved, false);
+  assert.equal(newNames.teacherReview.approved, false);
+  assert.equal(getAnnouncementCrew(draft).announcers.announcer1.homeroomConfirmed, true);
+});
+
+test("a backup starts with fresh homeroom arrival and readiness confirmations and does not disturb the other role", () => {
+  let draft = createAnnouncementDraft({ date: "2026-09-03" });
+  for (const slot of ["announcer1", "announcer2"]) {
+    for (const check of ["homeroomConfirmed", "arrived", "ready", "teacherCovers"]) draft = setAnnouncementCrewCheck(draft, slot, check, true);
+  }
+  const backup = setAnnouncementCrewCheck(draft, "announcer1", "backupActive", true);
+  assert.deepEqual(backup.crew.announcers.announcer2, draft.crew.announcers.announcer2);
+  assert.deepEqual(backup.crew.announcers.announcer1, {
+    homeroomConfirmed: false, arrived: false, ready: false, lateNotified: false, teacherCovers: false, backupActive: true
+  });
+  const confirmed = setAnnouncementCrewCheck(backup, "announcer1", "homeroomConfirmed", true);
+  assert.equal(setAnnouncementCrewCheck(confirmed, "announcer1", "backupActive", true).crew.announcers.announcer1.homeroomConfirmed, true);
+  assert.equal(setAnnouncementCrewCheck(confirmed, "announcer1", "backupActive", false).crew.announcers.announcer1.homeroomConfirmed, false);
+});
+
+test("crew controls admit only boolean role checks and valid ordered times without student identities", () => {
+  const draft = createAnnouncementDraft({ date: "2026-09-03" });
+  assert.throws(() => setAnnouncementCrewCheck(draft, "person", "arrived", true), /valid private crew check/);
+  assert.throws(() => setAnnouncementCrewCheck(draft, "announcer1", "name", "PRIVATE_STUDENT"), /valid private crew check/);
+  assert.throws(() => setAnnouncementCrewCheck(draft, "announcer1", "arrived", "true"), /valid private crew check/);
+  assert.throws(() => updateAnnouncementCrewTime(draft, "backup", "08:56"), /times in that order/);
+  assert.throws(() => updateAnnouncementCrewTime(draft, "arrival", "24:00"), /times in that order/);
+  assert.throws(() => updateAnnouncementCrewTime(draft, "unknown", "08:51"), /valid crew time/);
+  const withCrew = setAnnouncementCrewCheck(draft, "announcer1", "arrived", true);
+  withCrew.crew.studentName = "PRIVATE_STUDENT";
+  withCrew.crew.announcers.announcer1.name = "PRIVATE_STUDENT";
+  assert.equal(JSON.stringify(admitAnnouncementDraft(withCrew)).includes("PRIVATE_STUDENT"), false);
+});
+
+test("Go live requires current confirmations for both roles or explicit teacher-arranged coverage", () => {
+  const approved = setAnnouncementTeacherReview(readyForTeacherReview(), true);
+  assert.equal(evaluateAnnouncementDraft(approved).canGoLive, true);
+  let draft = setAnnouncementCrewCheck(approved, "announcer1", "backupActive", true);
+  assert.equal(draft.teacherReview.approved, true);
+  assert.equal(evaluateAnnouncementDraft(draft).crewReady, false);
+  assert.equal(evaluateAnnouncementDraft(draft).canGoLive, false);
+  assert.throws(() => setAnnouncementCheck(draft, "go-live", "broadcastComplete", true), /current crew confirmations/);
+  for (const field of ["arrived", "ready"]) draft = setAnnouncementCrewCheck(draft, "announcer1", field, true);
+  assert.equal(evaluateAnnouncementDraft(draft).canGoLive, false);
+  draft = setAnnouncementCrewCheck(draft, "announcer1", "homeroomConfirmed", true);
+  assert.equal(evaluateAnnouncementDraft(draft).canGoLive, true);
+  draft = setAnnouncementCrewCheck(draft, "announcer2", "arrived", false);
+  assert.equal(evaluateAnnouncementDraft(draft).canGoLive, false);
+  draft = setAnnouncementCrewCheck(draft, "announcer2", "teacherCovers", true);
+  assert.equal(evaluateAnnouncementDraft(draft).canGoLive, true);
+  draft = setAnnouncementCrewCheck(draft, "announcer2", "teacherCovers", false);
+  assert.equal(evaluateAnnouncementDraft(draft).canGoLive, false);
+});
 
 test("the ECMS outline follows the approved two-announcer order with the full pledge and selected date", () => {
   const original = createAnnouncementDraft({ date: "2026-10-15", targetMinutes: 4 });
@@ -111,6 +261,10 @@ test("outline placeholders block teacher review and live even after all preparat
   }
   assert.equal(evaluateAnnouncementDraft(draft).reviewReady, true);
   draft = setAnnouncementTeacherReview(draft, true);
+  assert.equal(evaluateAnnouncementDraft(draft).canGoLive, false);
+  for (const slot of ["announcer1", "announcer2"]) {
+    for (const field of ["homeroomConfirmed", "arrived", "ready"]) draft = setAnnouncementCrewCheck(draft, slot, field, true);
+  }
   assert.equal(evaluateAnnouncementDraft(draft).canGoLive, true);
   draft = updateAnnouncementSection(draft, "weather", "[[NEW REMINDER]]");
   assert.equal(draft.teacherReview.approved, false);
@@ -219,7 +373,7 @@ test("checklist changes validate known phases and items without mutating the dra
   assert.equal(draft.checklist["go-live"].broadcastComplete, false);
   assert.throws(
     () => setAnnouncementCheck(createAnnouncementDraft(), "go-live", "broadcastComplete", true),
-    /Teacher approval is required before going live\./
+    /Teacher approval and current crew confirmations/
   );
   assert.throws(() => setAnnouncementCheck(draft, "unknown", "item", true), /Choose a valid announcement checklist item\./);
   assert.throws(() => setAnnouncementCheck(draft, "prepare", "unknown", true), /Choose a valid announcement checklist item\./);

@@ -1,5 +1,20 @@
 # CIRC HQ - BUILDLOG
 
+## 2026-09-09 cardboard build and resin design lessons
+
+- Added two manual lesson choices alongside the existing three replica paths: **Day 4: Build the Cardboard School** and **Resin unit: Design and Measure a Feature**. Both have seven steps totaling 35 minutes, cleanup, a concrete output and a next-crew handoff.
+- The cardboard lesson begins work with available materials. Students measure, dry-fit and use tape or tabs while the teacher manages knife cuts and the hot-glue station. The complete fallback needs no powered tool. New modules remain removable from the shared base, and site placement waits for a checked reference.
+- The resin lesson works before purchases arrive: mold-volume estimates, a clearly labeled paper ratio example, material comparison and a proposed feature. Students stay with dry materials. Product-specific adult setup, application, optional heat-gun use and curing remain separate; a classroom timer never certifies cure.
+- Preserved original modes, manual timer transitions, explicit new-class resets, local data, private teacher directions and the already prepared crew check-in changes. No actual student names, emailed announcements, school schedule changes, cloud writes or student-game uploads were added.
+- Extended the runner and app projection tests to both new paths. Release review records complete test and publication results separately.
+
+## 2026-09-09 prepared first-week announcement scripts
+
+- Added explicit Load buttons for the prepared September 9, 10 and 11 broadcasts. Complete public school notices and lunch lines are available on the school computer from the app; approved first names remain local placeholders.
+- Reused the current local draft schema and existing replacement confirmation. Loading sets the selected prepared date and resets preparation, rehearsal, teacher approval and crew checks without writing storage or changing archived dates. Save local draft remains explicit.
+- Friday's missing approved September 11 message blocks approval and Go live. Its teacher-only preparation instruction is rendered only in the editor, never inside the broadcast script.
+- Verified replacement cancellation, archive preservation, date-specific menu and notice content, fresh crew checks, full Pledge and pause sequence, and teacher-note exclusion from an approved Friday broadcast. No personal student details, student-game files or private schedule fields are bundled.
+
 ## 2026-09-08 dated local announcement library
 
 - **Save local draft** now saves the working draft and a dated copy for the selected valid broadcast date. **Saved broadcast dates** provides an explicit Load action for each local copy, making Day 4 preparation of the following week possible without overwriting the other days.

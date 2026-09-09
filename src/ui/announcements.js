@@ -2,7 +2,9 @@ import {
   ANNOUNCEMENT_CREW_ROLES,
   ANNOUNCEMENT_WORKFLOW,
   GRADE_SIX_ANNOUNCEMENT_RESPONSIBILITY,
-  evaluateAnnouncementDraft
+  PREPARED_ECMS_BROADCASTS,
+  evaluateAnnouncementDraft,
+  getAnnouncementCrew
 } from "../model/announcements.js";
 
 function resolveDocument(options) {
@@ -116,6 +118,74 @@ function crewView(documentRef) {
   ]);
 }
 
+function privateCrewView(documentRef, draft, callbacks) {
+  const crew = getAnnouncementCrew(draft);
+  const labels = {
+    homeroomConfirmed: "Student says they checked in with their homeroom teacher before coming to CIRC",
+    arrived: "Arrived in CIRC",
+    ready: "Ready to read the rehearsed script",
+    lateNotified: "Kenny was told about a delay",
+    teacherCovers: "Teacher has arranged coverage for this role",
+    backupActive: "Teacher is using the backup for this role (changing this resets the role's checks)"
+  };
+  const timeLabels = {
+    arrival: "Crew due", backup: "Teacher backup decision", finalCheck: "Final microphone and script check", broadcast: "On air"
+  };
+  const displayTime = (time) => `${Number(time.slice(0, 2)) % 12 || 12}:${time.slice(3)} ${Number(time.slice(0, 2)) < 12 ? "a.m." : "p.m."}`;
+  return element(documentRef, "section", {
+    className: "announcements-crew announcements-private-crew",
+    attributes: { "aria-labelledby": "announcements-private-crew-heading", "data-private-crew": "true" }
+  }, [
+    element(documentRef, "h2", { text: "Private crew check-in", attributes: { id: "announcements-private-crew-heading" } }),
+    element(documentRef, "p", {
+      text: `For ${draft.date || "the selected broadcast date"}. Confirm homeroom check-in before coming to CIRC. If running late, tell Kenny through the usual school-approved route before the crew is due. This screen does not send a message.`
+    }),
+    element(documentRef, "p", {
+      text: "Homeroom confirmation is a student affirmation, not official school attendance. Only the teacher records these checks. They stay out of broadcast view; do not mirror this preparation screen. No student names are stored here."
+    }),
+    element(documentRef, "details", {}, [
+      element(documentRef, "summary", { text: "Adjust recommended crew times" }),
+      element(documentRef, "p", { text: "Teacher-editable workflow, not an official attendance policy. These times do not trigger messages, replacements or any automatic changes." }),
+      ...Object.entries(timeLabels).map(([field, label]) => textField(documentRef, {
+        id: `crew-time-${field}`, name: `crew-time-${field}`, label, type: "time", value: crew.times[field],
+        onInput: (value) => callbacks.onCrewTimeChange?.(field, value)
+      }))
+    ]),
+    element(documentRef, "p", {
+      text: `Crew due ${displayTime(crew.times.arrival)} At ${displayTime(crew.times.backup)}, if either announcer is missing, has not confirmed homeroom check-in, or cannot be ready in time, Kenny chooses a rehearsed backup or covers the role. Tell Kenny about bus or teacher delays so he can adjust the plan. Final microphone and script check: ${displayTime(crew.times.finalCheck)} On air: ${displayTime(crew.times.broadcast)}`
+    }),
+    ...Object.entries(crew.announcers).map(([slot, member], index) => element(documentRef, "fieldset", {
+      className: "announcements-phase"
+    }, [
+      element(documentRef, "legend", { text: `Announcer ${index + 1}${member.backupActive ? " (backup)" : ""}` }),
+      ...Object.entries(labels).slice(0, 3).map(([field, label]) => checkbox(documentRef, {
+        id: `crew-${slot}-${field}`, name: `crew-${slot}-${field}`, label, checked: member[field],
+        onChange: (checked) => callbacks.onCrewCheckChange?.(slot, field, checked)
+      })),
+      element(documentRef, "details", {}, [
+        element(documentRef, "summary", { text: "Delay or backup options" }),
+        element(documentRef, "p", { text: "Only a homeroom-checked, present, ready student or a teacher may cover. A backup needs fresh confirmations. Arrange coverage explicitly; this never clears an unchecked student to come to CIRC." }),
+        ...Object.entries(labels).slice(3).map(([field, label]) => checkbox(documentRef, {
+          id: `crew-${slot}-${field}`, name: `crew-${slot}-${field}`, label, checked: member[field],
+          onChange: (checked) => callbacks.onCrewCheckChange?.(slot, field, checked)
+        }))
+      ]),
+      element(documentRef, "p", {
+        attributes: { role: "status", "aria-live": "polite" },
+        text: member.teacherCovers
+          ? "Teacher-arranged coverage recorded. Any student covering must have checked in with homeroom, arrived and be ready."
+          : member.homeroomConfirmed && member.arrived && member.ready
+            ? "Homeroom, arrival and readiness confirmed for this role."
+            : "Still needs a crew check. This is not a no-show or absence record."
+      })
+    ])),
+    button(documentRef, "Crew assignments changed: reset checks", "secondary-action", () => callbacks.onCrewReset?.()),
+    element(documentRef, "p", {
+      text: "Save local draft keeps these checks with this date in this browser only. Loading the same saved date preserves its recorded checks; review them before use. Changing the date or opening introductions clears both roles' checks. Changing a role to or from backup clears that role. For any other crew change, use Reset checks and rehearse again. Go live requires both script approval and each role's confirmations or teacher-arranged coverage."
+    })
+  ]);
+}
+
 function errorsView(documentRef, errors) {
   if (!Array.isArray(errors) || errors.length === 0) return null;
   return element(documentRef, "section", {
@@ -129,10 +199,10 @@ function errorsView(documentRef, errors) {
 
 function reviewStatus(documentRef, assessment, approved) {
   const text = assessment.canGoLive
-    ? "Teacher approved. The crew is ready to go live."
+    ? "Teacher approved the script. Review private crew readiness before going live."
     : assessment.reviewReady
       ? approved
-        ? "Teacher approval is recorded."
+        ? "Script approval is recorded. Confirm both crew roles or arrange coverage before going live."
         : "The script and rehearsal are ready for teacher review."
       : "Teacher review unlocks after the script, preparation, and rehearsal are complete.";
   return element(documentRef, "p", {
@@ -214,7 +284,9 @@ export function buildAnnouncementsWorkflow(input, options = {}) {
         : element(documentRef, "ul", { className: "announcements-saved-dates" }, savedDates.map((date) =>
             element(documentRef, "li", {}, [
               element(documentRef, "span", {
-                text: `${date} · ${evaluateAnnouncementDraft(savedDrafts[date]).canGoLive ? "Teacher approved" : "Needs teacher review"}`
+                text: `${date} · ${savedDrafts[date].teacherReview?.approved && evaluateAnnouncementDraft(savedDrafts[date]).reviewReady
+                  ? evaluateAnnouncementDraft(savedDrafts[date]).crewReady ? "Teacher approved; crew confirmed" : "Teacher approved; crew check pending"
+                  : "Needs teacher review"}`
               }),
               button(documentRef, "Load", "secondary-action", () => callbacks.onLoadSavedDraft?.(date), {
                 "aria-label": `Load broadcast ${date}`
@@ -273,6 +345,12 @@ export function buildAnnouncementsWorkflow(input, options = {}) {
       text: "Use only information approved for the school broadcast. CIRC HQ does not invent pledge wording or school notices."
     }),
     button(documentRef, "Use ECMS outline", "secondary-action", () => callbacks.onUseEcmsOutline?.()),
+    element(documentRef, "section", { className: "announcements-prepared" }, [
+      element(documentRef, "h3", { text: "Prepared September 9-11 scripts" }),
+      element(documentRef, "p", { text: "These prepared school notices are available on this computer without copying email. Load the actual broadcast date, add approved first names, check for office changes and rehearse. Loading does not save over your local dated drafts." }),
+      ...PREPARED_ECMS_BROADCASTS.map((item) => button(documentRef, item.label, "secondary-action", () => callbacks.onUsePreparedEcms?.(item.date))),
+      draft.date === "2026-09-11" ? element(documentRef, "p", { className: "announcements-teacher-note", text: "Teacher preparation for Friday: reserve about 30 seconds after the Pledge for Tim and Ivan's approved September 11 wording. Replace the marked message, assign its speaker and rehearse the whole script. This instruction is not part of broadcast view." }) : null
+    ]),
     element(documentRef, "p", {
       text: "Two announcers: greeting and cycle day, first-name introductions, at least 20 seconds of silence, a separate 5-second handoff pause before Announcer 1 leads the full Pledge, sit, required notices from Heather and Emily, lunch, optional reminder, closing. Resolve every [[placeholder]] before teacher review. Confirm no notices with the office when applicable."
     }),
@@ -349,6 +427,7 @@ export function buildAnnouncementsWorkflow(input, options = {}) {
     savedLibrary,
     crewView(documentRef),
     details,
+    privateCrewView(documentRef, draft, callbacks),
     scriptView,
     workflowView(documentRef, draft, assessment, callbacks),
     element(documentRef, "div", { className: "announcements-actions" }, [
