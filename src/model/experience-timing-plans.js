@@ -143,10 +143,10 @@ export const REPLICA_LESSON_CHOICES = deepFreeze([
       "Paper, pencils and a checked inventory",
       "Teacher-selected aerial reference when available"
     ],
-    "safety": "Use only loose approved parts. Leave attached, sharp or questionable parts for the teacher. Keep the model dry. Epoxy is required for the final build. Use these dry lessons while supplies and the plan are being prepared; later attachment is teacher-managed using the exact product label and SDS, material compatibility and cure instructions.",
+    "safety": "Use only loose approved parts. Leave attached, sharp or questionable parts for the teacher. Build the aerial school view at the front. Preserve the rocks, lizard habitat and technology at the back. Do not move the animal, disturb its habitat or add water without the teacher. Resin is a separate unit and is not needed for this model lesson.",
     "teacherContext": [
       "Use the teacher-selected aerial image when available; actual school footprint, dimensions and parent-drop-off direction are not invented. Mark fountain or other additions PROPOSED. No working water in these sessions.",
-      "Epoxy is required for the final build. These sessions stay dry while supplies and the plan are being prepared. Later teacher-managed use follows the exact product label/SDS and school-approved procedure, checks material compatibility and protects the specified curing stage. No student mixing or unspecified cure time is supplied."
+      "Keep the front aerial school model separate from the rear rocks, lizard habitat and technology. Confirm a physical boundary and protect existing habitat functions before building. The separate resin unit does not require changing this habitat or adding epoxy to the school model."
     ],
     "fastFinish": "Check one label or count, then leave one useful question for the next crew."
   },
@@ -162,10 +162,10 @@ export const REPLICA_LESSON_CHOICES = deepFreeze([
       "Paper, pencils and a checked inventory",
       "Teacher-selected aerial reference when available"
     ],
-    "safety": "Use only loose approved parts. Leave attached, sharp or questionable parts for the teacher. Keep the model dry. Epoxy is required for the final build. Use these dry lessons while supplies and the plan are being prepared; later attachment is teacher-managed using the exact product label and SDS, material compatibility and cure instructions.",
+    "safety": "Use only loose approved parts. Leave attached, sharp or questionable parts for the teacher. Build the aerial school view at the front. Preserve the rocks, lizard habitat and technology at the back. Do not move the animal, disturb its habitat or add water without the teacher. Resin is a separate unit and is not needed for this model lesson.",
     "teacherContext": [
       "Use the teacher-selected aerial image when available; actual school footprint, dimensions and parent-drop-off direction are not invented. Mark fountain or other additions PROPOSED. No working water in these sessions.",
-      "Epoxy is required for the final build. These sessions stay dry while supplies and the plan are being prepared. Later teacher-managed use follows the exact product label/SDS and school-approved procedure, checks material compatibility and protects the specified curing stage. No student mixing or unspecified cure time is supplied."
+      "Keep the front aerial school model separate from the rear rocks, lizard habitat and technology. Confirm a physical boundary and protect existing habitat functions before building. The separate resin unit does not require changing this habitat or adding epoxy to the school model."
     ],
     "fastFinish": "Check one label or count, then leave one useful question for the next crew."
   },
@@ -174,7 +174,7 @@ export const REPLICA_LESSON_CHOICES = deepFreeze([
     "title": "Build the Cardboard School",
     "label": "Day 4: Build the Cardboard School",
     "objective": "I can turn a checked top-view plan into a stable cardboard module, test its fit, and leave a useful handoff.",
-    "summary": "Start building with cardboard now. Make one school module, check its fit and preserve room for the next crew.",
+    "summary": "Build the aerial school view at the front with cardboard. Preserve the rocks, lizard habitat and technology at the back, and leave a clear handoff for the next crew.",
     "materials": [
       "Cardboard, pencils, rulers and approved cutting tools",
       "Masking tape or paper tabs for student assembly",
@@ -186,7 +186,7 @@ export const REPLICA_LESSON_CHOICES = deepFreeze([
       "Use the known cardboard and existing glue equipment. Precut thick pieces or make requested cuts at the teacher station. A tape-and-tab build remains a complete lesson if the glue station is unavailable.",
       "Confirm the school outline and parent-drop-off direction from a trusted reference. If unavailable, build freestanding feature modules and leave site placement undecided. Mark new fountains and other modifications PROPOSED.",
       "Use one shared model scale only after a real reference dimension is confirmed. Otherwise label the prototype not to scale. Keep new modules removable from the shared base so future crews can revise them.",
-      "Epoxy is still part of the later project. Do not pour onto cardboard today. Use a separate compatible mold and test the selected resin, cured piece and attachment method before adding it to the model."
+      "Mark the front school-model area and the separate rear rocks, lizard habitat and technology. Keep tools, loose parts and glue out of the habitat. The teacher checks animal access, ventilation and existing equipment. The resin unit is a separate project; this model can progress with cardboard and the existing glue equipment."
     ],
     "fastFinish": "Add one labeled brace or test a doorway fit, then sketch the next module without taking another crew's space."
   },
@@ -202,10 +202,10 @@ export const REPLICA_LESSON_CHOICES = deepFreeze([
       "Paper, pencils and a checked inventory",
       "Optional previewed living Survivor Tree photograph"
     ],
-    "safety": "Use only loose approved parts. Leave attached, sharp or questionable parts for the teacher. Keep the model dry. Epoxy is required for the final build. Use these dry lessons while supplies and the plan are being prepared; later attachment is teacher-managed using the exact product label and SDS, material compatibility and cure instructions.",
+    "safety": "Use only loose approved parts. Leave attached, sharp or questionable parts for the teacher. Build the aerial school view at the front. Preserve the rocks, lizard habitat and technology at the back. Do not move the animal, disturb its habitat or add water without the teacher. Resin is a separate unit and is not needed for this model lesson.",
     "teacherContext": [
       "Use calm basic facts, optional sharing and a quiet alternative. No attack reenactment or graphic media.",
-      "Epoxy is required for the final build. These sessions stay dry while supplies and the plan are being prepared. Later teacher-managed use follows the exact product label/SDS and school-approved procedure, checks material compatibility and protects the specified curing stage. No student mixing or unspecified cure time is supplied."
+      "Keep the front aerial school model separate from the rear rocks, lizard habitat and technology. Confirm a physical boundary and protect existing habitat functions before building. The separate resin unit does not require changing this habitat or adding epoxy to the school model."
     ],
     "fastFinish": "Check one label or count, then leave one useful question for the next crew."
   },
@@ -213,23 +213,27 @@ export const REPLICA_LESSON_CHOICES = deepFreeze([
     "id": "replica-resin",
     "title": "Design and Measure a Resin Feature",
     "label": "Resin unit: Design and Measure a Feature",
-    "objective": "I can estimate mold volume, calculate a labeled mixing ratio, and justify when resin is useful for our school model.",
-    "summary": "Design a small fountain insert, sign or game piece. Students plan with dry materials; the teacher manages any later resin work.",
+    "objective": "I can design a small game or art piece, estimate its mold volume, calculate a labeled mixing ratio, and explain my material choice.",
+    "summary": "A separate unit for all 670 students: design a small game or art piece and measure its mold. Students plan with dry materials; the teacher manages later resin work.",
     "materials": [
       "Paper, pencils, rulers and calculators",
       "An empty silicone mold or its dimensioned drawing",
       "A teacher-cleared fully cured example if available",
+      "Reusable station trays, blank class/group/piece labels and a teacher handoff sheet",
       "The exact selected resin label, instruction sheet and both component safety data sheets"
     ],
     "safety": "This 35-minute student lesson stays dry. Students do not mix, pour, heat, demold or handle uncured epoxy. The teacher prepares a separate approved resin station and follows the exact product instructions for any later demonstration, application and cure.",
     "teacherContext": [
+      "Plan for approximately 670 students rotating through five cycle days, about 134 per day on average. The six groups of up to five are one class setup, not a limit of 30 participants. Use the actual roster size and schedule for each class.",
+      "Every student completes a dry design, volume calculation and material explanation. Reuse the same empty molds, rulers and station trays across classes. The purchasing plan allows one small individual piece per student, with final mold capacity and actual class counts checked before ordering. This is separate from the Tech Terrarium school model. A design class and the later casting/cure schedule are different stages; one gallon is not the whole-cohort supply plan.",
+      "Use a teacher handoff sheet with cycle day, class code, group code, piece ID, design decision, estimated volume, current stage, storage tray and next action. Student names stay off public screens. At each class change, check the previous row and reset dry supplies before the next crew starts.",
       "Run the design, volume and ratio work before resin arrives. Use a drawing if molds or cured examples are unavailable. Resin is a planned material, not a prerequisite for today's learning.",
       "For later teacher-managed use: confirm the exact product, both safety data sheets, compatible gloves and eye protection, room ventilation, batch and pour limits, protected curing location and disposal procedure. A low-odor or low-VOC claim does not replace those checks.",
       "Separate the hot-glue build table from any resin station. A heat gun is optional adult equipment only when the exact resin instructions and school procedure allow it; it is not a student tool or a required step. No flame is used in this unit.",
       "Keep volume ratios and weight ratios distinct. Use the selected product label for real batches. The paper example assumes a 1:1 ratio by volume and a rectangular 5 cm by 4 cm by 0.5 cm cavity: 10 cubic centimeters is 10 mL total, or 5 mL of each part. This is arithmetic practice, not a batch instruction.",
       "The classroom step timer is not a resin cure timer. Record the actual product, pour time and manufacturer conditions separately; pieces remain at the protected station until the teacher confirms the required cure and safe handling. Do not promise next-period demolding."
     ],
-    "fastFinish": "Compare the same feature in cardboard and resin, then explain whether the extra material and curing time solve a real design need."
+    "fastFinish": "Compare a paper prototype with a fully cured game or art piece, then explain whether the material and curing time meet the design need."
   }
 ]);
 
@@ -534,11 +538,13 @@ function replicaModeVariants() {
     "replica-resin": {
       ...defineModeVariant(2, [
         ["resin-purpose", "CHOOSE A USEFUL FEATURE", "ready", 3, [
-          "Choose a small proposed fountain insert, sign or game piece.",
-          "Name the job it needs to do on the model."
+          "Read your class, group and piece code on the plan.",
+          "Choose a small game piece, art tile or other teacher-approved mold design.",
+          "Name its purpose in your game or art project."
         ], [
           "Say: We will decide where resin earns its place, then measure and plan it before any pouring.",
-          "Keep fountains dry. This lesson can run without purchased resin or molds."
+          "This is a separate unit from the school model and lizard habitat. It can run without purchased resin or molds.",
+          "Set up for this class within the 670-student, five-cycle-day rotation. Every student does the dry work; reuse station equipment. Check the previous class's sheet and assign class/group/piece codes without public names."
         ]],
         ["resin-boundary", "READ THE MATERIAL RULES", "safety", 4, [
           "Stay with paper, empty molds and teacher-cleared cured examples.",
@@ -574,11 +580,13 @@ function replicaModeVariants() {
         ]],
         ["resin-reset", "SAVE THE DESIGN", "cleanup", 5, [
           "Return rulers and empty molds.",
-          "Store the dry plan with a team code.",
+          "Label the dry plan with your class, group and piece code.",
+          "Record its estimated volume, storage tray and next action.",
           "Leave all chemical equipment for the teacher."
         ], [
-          "Collect volume calculations and the design. Keep any real chemical work, waste and curing pieces under adult control.",
-          "Confirm an approved process and fully cured compatibility test before attaching any later casting to the school model."
+          "Collect each student's calculation and design explanation. On the class handoff sheet record the piece ID, decision, estimated volume, stage, storage tray and next action. Reset reusable dry stations for the next class.",
+          "Keep any real chemical work, waste and curing pieces under adult control. A later casting needs its own product, pour time and cure record, separate from class rotation; the next class does not imply readiness to demold.",
+          "Keep each piece labeled through the separate pour, demold and full-cure stages. Return only fully cured pieces after the teacher checks them; this may be in the following class cycle. Do not place resin materials or castings in the animal habitat."
         ]],
         ["resin-exit", "EXPLAIN YOUR CHOICE", "exit", 3, [
           "Complete: Our feature needs about ___ mL because ___.",

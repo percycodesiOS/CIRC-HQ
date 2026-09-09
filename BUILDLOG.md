@@ -1,5 +1,12 @@
 # CIRC HQ - BUILDLOG
 
+## 2026-09-09 separate resin unit and corrected program scale
+
+- Separated the resin chooser from the Tech Terrarium school-model lessons while preserving saved mode IDs, timers and reset behavior.
+- Defined the model layout as the front school aerial view and the rear rocks, lizard habitat and technology. Removed the incorrect requirement to use epoxy in the school model.
+- Corrected the resin plan to all 670 students over five cycle days, with reusable class stations and a separate adult casting/cure schedule. The purchasing assumption is one small individual game or art piece per student, subject to actual mold-volume checks.
+- Retained private teacher guidance, dry student directions and existing announcement scripts. No school account, device enrollment, student-data upload or purchase is part of this release.
+
 ## 2026-09-09 cardboard build and resin design lessons
 
 - Added two manual lesson choices alongside the existing three replica paths: **Day 4: Build the Cardboard School** and **Resin unit: Design and Measure a Feature**. Both have seven steps totaling 35 minutes, cleanup, a concrete output and a next-crew handoff.

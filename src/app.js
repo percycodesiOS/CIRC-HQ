@@ -805,28 +805,42 @@ function replicaProjectContext(project, runner) {
 }
 
 function replicaLessonChooser(actions) {
-  return element("section", {
-    className: "replica-lessons",
-    attributes: { "aria-labelledby": "replica-lessons-heading" }
-  }, [
-    element("p", { className: "section-kicker", text: "Tech Terrarium lesson choices" }),
-    element("h2", { text: "Ehrman Crest replica lessons", attributes: { id: "replica-lessons-heading" } }),
-    element("p", { text: "Choose the lesson your crew needs. Each lesson plan totals 35 minutes; during a scheduled class, the class clock uses its remaining time. Opening the same choice keeps its current step; replacing a different lesson requires confirmation." }),
-    element("div", { className: "replica-lesson-choices" }, REPLICA_LESSON_CHOICES.map((choice) =>
-      element("article", { className: "replica-lesson-choice" }, [
-        actionButton(choice.label, "primary-action replica-lesson-button", () => actions.openRunner(2, { modeId: choice.id })),
-        element("p", { text: choice.summary })
-      ])
-    )),
-    element("p", { text: "Ready to build with cardboard? Choose Day 4. Students can assemble with tape and tabs while the teacher manages the hot-glue station. Check the aerial reference before placing site features. The resin unit starts with dry design and measurement; any later resin work and cure checks are teacher-managed." }),
-    actions.currentReplicaLesson ? element("div", { className: "replica-current-lesson" }, [
+  const choiceCard = (choice) => element("article", { className: "replica-lesson-choice" }, [
+    actionButton(choice.label, "primary-action replica-lesson-button", () => actions.openRunner(2, { modeId: choice.id })),
+    element("p", { text: choice.summary })
+  ]);
+  const currentLesson = (resin) => actions.currentReplicaLesson && (actions.currentReplicaLesson.id === "replica-resin") === resin
+    ? element("div", { className: "replica-current-lesson" }, [
       element("p", { text: `Current lesson: ${actions.currentReplicaLesson.title}. Reopen it to continue, or explicitly reset it for a new class.` }),
       actionButton("Start this lesson for a new class", "secondary-action", () => actions.openRunner(2, { modeId: actions.currentReplicaLesson.id, restart: true }))
-    ]) : null,
-    actionButton("Original Tech Terrarium", "secondary-action", () => actions.openRunner(2, { modeId: "build-new" })),
-    element("details", { className: "replica-operation-notes" }, [
-      element("summary", { text: "Daily preparation" }),
-      element("p", { text: "Announcement crew arrives by 8:50 a.m.; the 8:55 broadcast targets three minutes including the opening, silence, Pledge and closing. On Day 4, prepare and finalize all announcements for the following week. Select actual broadcast dates yourself; this does not change the school rotation or calendar." })
+    ]) : null;
+  return element("div", { className: "replica-unit-choices" }, [
+    element("section", {
+      className: "replica-lessons",
+      attributes: { "aria-labelledby": "replica-lessons-heading" }
+    }, [
+      element("p", { className: "section-kicker", text: "Tech Terrarium lesson choices" }),
+      element("h2", { text: "Ehrman Crest replica lessons", attributes: { id: "replica-lessons-heading" } }),
+      element("p", { text: "School aerial view at the front; rocks, lizard habitat and technology at the back. Preserve the habitat and check the aerial reference before placing school features." }),
+      element("p", { text: "Choose the lesson your crew needs. Each lesson plan totals 35 minutes; during a scheduled class, the class clock uses its remaining time. Opening the same choice keeps its current step; replacing a different lesson requires confirmation." }),
+      element("div", { className: "replica-lesson-choices" }, REPLICA_LESSON_CHOICES.filter((choice) => choice.id !== "replica-resin").map(choiceCard)),
+      element("p", { text: "Ready to build with cardboard? Choose Day 4. Students assemble with tape and tabs while the teacher manages the hot-glue station. Resin is not required for this school-model lesson." }),
+      currentLesson(false),
+      actionButton("Original Tech Terrarium", "secondary-action", () => actions.openRunner(2, { modeId: "build-new" })),
+      element("details", { className: "replica-operation-notes" }, [
+        element("summary", { text: "Daily preparation" }),
+        element("p", { text: "Announcement crew arrives by 8:50 a.m.; the 8:55 broadcast targets three minutes including the opening, silence, Pledge and closing. On Day 4, prepare and finalize all announcements for the following week. Select actual broadcast dates yourself; this does not change the school rotation or calendar." })
+      ])
+    ]),
+    element("section", {
+      className: "replica-lessons",
+      attributes: { "aria-labelledby": "standalone-resin-heading" }
+    }, [
+      element("p", { className: "section-kicker", text: "Separate CIRC unit" }),
+      element("h2", { text: "Standalone resin unit", attributes: { id: "standalone-resin-heading" } }),
+      element("p", { text: "All 670 students across five cycle days. Design a small individual game or art piece. Reuse dry stations between classes; keep the adult casting and full-cure schedule separate from the class clock and the Tech Terrarium." }),
+      element("div", { className: "replica-lesson-choices" }, REPLICA_LESSON_CHOICES.filter((choice) => choice.id === "replica-resin").map(choiceCard)),
+      currentLesson(true)
     ])
   ]);
 }
