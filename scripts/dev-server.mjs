@@ -74,6 +74,7 @@ const PUBLIC_STATIC_FILES = new Set([
   "src/ui/schedule-editor.js",
   "src/ui/settings.js",
   "src/ui/setup.js",
+  "src/ui/student-studio.js",
   "src/ui/today-ui.js",
   "src/ui/view-model.js"
 ]);

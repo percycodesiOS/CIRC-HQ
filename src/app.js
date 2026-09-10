@@ -59,6 +59,7 @@ import { createCloudRuntimeController } from "./runtime/cloud-runtime.js";
 import { createBrowserFirebaseClient, createFirebaseClient } from "./storage/firebase-adapter.js";
 import { LocalStore } from "./storage/local-store.js";
 import { buildBoardView } from "./ui/board.js";
+import { buildStudentStudio } from "./ui/student-studio.js";
 import {
   buildAnnouncementsLiveView,
   buildAnnouncementsWorkflow,
@@ -1783,6 +1784,8 @@ export function renderApp(root, services = {}) {
     : "";
   let crewSignupForm = { date: localDateKey(now()), classLabel: "", firstName: "", role: "announcer1", side: "primary" };
   let crewSignupStatus = "";
+  let studentStudioDesk = "video";
+  let studentStudioStep = 0;
 
   function adoptPersistedState(nextState) {
     state = admitLocalState(nextState);
@@ -2230,7 +2233,7 @@ export function renderApp(root, services = {}) {
   }
 
   function setNavigation() {
-    const activeRoute = ["project-teacher", "project-student", "announcements", "announcements-live", "crew-signup"].includes(route)
+    const activeRoute = ["project-teacher", "project-student", "announcements", "announcements-live", "crew-signup", "student-studio"].includes(route)
       ? "projects"
       : route;
     for (const button of navButtons) {
@@ -2478,6 +2481,7 @@ export function renderApp(root, services = {}) {
       savedArchive: announcementArchive,
       status: announcementStatus,
       callbacks: {
+        onOpenStudentStudio: () => navigate("student-studio"),
         onOpenCrewSignup: () => {
           crewSignupForm = { ...crewSignupForm, date: announcementDraft.date || localDateKey(now()) };
           crewSignupStatus = "";
@@ -2524,6 +2528,7 @@ export function renderApp(root, services = {}) {
     return buildCrewSignupView({
       form: crewSignupForm, saved, status: crewSignupStatus, classLabels,
       callbacks: {
+        onOpenStudentStudio: () => navigate("student-studio"),
         onBack: () => navigate("announcements"),
         onChange: (field, value) => {
           if (!Object.hasOwn(crewSignupForm, field)) return;
@@ -2919,6 +2924,13 @@ export function renderApp(root, services = {}) {
     else if (route === "projects") view = projectsRoute(actions);
     else if (route === "announcements") view = announcementWorkflow();
     else if (route === "crew-signup") view = crewSignupWorkflow();
+    else if (route === "student-studio") view = buildStudentStudio({
+      deskId: studentStudioDesk,
+      stepIndex: studentStudioStep,
+      onDesk: desk => { studentStudioDesk = desk; studentStudioStep = 0; render(); root.focus({ preventScroll: true }); },
+      onStep: step => { studentStudioStep = step; render(); root.focus({ preventScroll: true }); },
+      onExit: () => navigate("announcements")
+    }, { document });
     else if (route === "announcements-live") {
       if (evaluateAnnouncementDraft(announcementDraft).canGoLive) {
         view = buildAnnouncementsLiveView({
@@ -3012,7 +3024,8 @@ export function renderApp(root, services = {}) {
       route === "board" ||
       route === "project-student" ||
       route === "experience-runner" ||
-      route === "announcements-live"
+      route === "announcements-live" ||
+      route === "student-studio"
     );
     setNavigation();
     announceBoundary(model);
@@ -3083,7 +3096,7 @@ export function renderApp(root, services = {}) {
     const minuteKey = `${localDateKey(currentTime)}:${currentTime.getHours()}:${currentTime.getMinutes()}`;
     if (route === "experience-runner" || route === "project-student") {
       refreshRunnerView(runner);
-    } else if (route !== "crew-signup" && minuteKey !== lastRenderedMinute) render();
+    } else if (!["crew-signup", "student-studio"].includes(route) && minuteKey !== lastRenderedMinute) render();
   }, 1000);
 
   const handleVisibilityChange = () => {

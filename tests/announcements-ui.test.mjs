@@ -1,5 +1,42 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { buildStudentStudio, STUDENT_STUDIO_DESKS, STUDENT_STUDIO_LINKS } from "../src/ui/student-studio.js";
+
+test("student production desks show reviewed instructions without accepting private content or media", () => {
+  const calls = [];
+  for (const desk of STUDENT_STUDIO_DESKS) {
+    for (let stepIndex = 0; stepIndex < 3; stepIndex += 1) {
+      const view = buildStudentStudio({
+        deskId: desk.id, stepIndex,
+        draft: { script: { opening: "PRIVATE_STUDENT_SCRIPT" } },
+        crew: { name: "PRIVATE_CREW_NAME" },
+        onStep: value => calls.push(["step", value]),
+        onDesk: value => calls.push(["desk", value]),
+        onExit: () => calls.push(["exit"])
+      }, { document: documentDouble });
+      assert.match(textOf(view), new RegExp(`Step ${stepIndex + 1} of 3`));
+      assert.match(textOf(view), /Bring back:/);
+      assert.doesNotMatch(textOf(view), /PRIVATE_STUDENT_SCRIPT|PRIVATE_CREW_NAME/);
+      assert.equal(findAll(view, node => ["input", "textarea", "video", "iframe"].includes(node.tagName)).length, 0);
+      const next = findByText(view, "button", "Next step");
+      if (stepIndex < 2) { next.click(); assert.deepEqual(calls.at(-1), ["step", stepIndex + 1]); }
+      else { assert.equal(next, undefined); assert.match(textOf(view), /cannot approve or publish/); }
+      for (const link of findAll(view, node => node.tagName === "a")) {
+        assert.ok(Object.values(STUDENT_STUDIO_LINKS).includes(link.getAttribute("href")));
+        assert.equal(link.getAttribute("target"), "_blank");
+        assert.equal(link.getAttribute("rel"), "noopener noreferrer");
+      }
+    }
+  }
+  const weather = buildStudentStudio({ deskId: "weather", stepIndex: 99 }, { document: documentDouble });
+  assert.match(textOf(weather), /Step 3 of 3/);
+  assert.match(textOf(weather), /Cranberry Township forecast/);
+  assert.match(textOf(weather), /Pittsburgh radar map/);
+  const video = buildStudentStudio({ deskId: "unrecognized", stepIndex: -1 }, { document: documentDouble });
+  assert.match(textOf(video), /Step 1 of 3/);
+  assert.match(textOf(video), /One camera. Three shots./);
+  assert.match(textOf(video), /15-45-second/);
+});
 
 import {
   applyEcmsAnnouncementOutline,

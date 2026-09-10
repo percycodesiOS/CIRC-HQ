@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { STUDENT_STUDIO_LINKS } from "../src/ui/student-studio.js";
 import { createHash } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -23,6 +24,16 @@ const LEGACY_SHA256 =
   "6E7FF5AA3B15A57A44F0D3351C6C6A5A3B3D14813E9B5616AF3D138C5E41B69F";
 const ROOT_GITIGNORE = "/.superpowers/\n/.worktrees/\n/.firebase/\n/.firebaserc\n/firebase-debug.log\n/firestore-debug.log\n/ui-debug.log\n/node_modules/\n";
 const verifier = await import("../scripts/verify-public.mjs").catch(() => null);
+
+test("student help admits only the six reviewed official destinations", () => {
+  assert.equal(verifier.countUnsafeRuntimeLinks(Object.values(STUDENT_STUDIO_LINKS).join("\n")), 0);
+  assert.equal(verifier.countUnsafeRuntimeLinks([
+    `${STUDENT_STUDIO_LINKS.create}?redirect=elsewhere`,
+    STUDENT_STUDIO_LINKS.radar.replace("KPBZ", "OTHER"),
+    STUDENT_STUDIO_LINKS.forecast.replace("40.7112", "10.0000"),
+    "https://support.apple.com/unreviewed"
+  ].join("\n")), 4);
+});
 
 async function listFilesRecursively(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -406,6 +417,7 @@ test("public server manifest is an exact reviewed allowlist", () => {
     "src/ui/schedule-editor.js",
     "src/ui/settings.js",
     "src/ui/setup.js",
+  "src/ui/student-studio.js",
     "src/ui/today-ui.js",
     "src/ui/view-model.js"
   ]);

@@ -4683,3 +4683,17 @@ button:disabled {
 .crew-signup-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 16px; }
 .crew-signup-assignment { border-top: 1px solid #dce4e8; padding: 8px 0; }
 .crew-signup-assignment p { overflow-wrap: anywhere; }
+.student-studio { max-width: 1060px; margin: 0 auto; padding: clamp(16px, 3vw, 32px); color: #123451; }
+.student-studio-header h1 { font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.15; }
+.student-studio-header p { max-width: 75ch; line-height: 1.6; }
+.student-studio-desks, .student-studio-navigation { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
+.student-studio-desks [aria-pressed="true"] { color: #fff; background: #123451; border-color: #123451; }
+.student-studio-task { background: #fff; border: 2px solid #167365; border-radius: 18px; padding: clamp(18px, 3vw, 30px); }
+.student-studio-task h2 { font-size: clamp(1.6rem, 3vw, 2.3rem); margin: 8px 0; }
+.student-studio-goal { font-weight: 700; }
+.student-studio-task ol { padding-left: 28px; font-size: clamp(1.05rem, 2vw, 1.3rem); line-height: 1.7; }
+.student-studio-task li + li { margin-top: 12px; }
+.student-studio-output { background: #eef9f5; padding: 16px; border-radius: 12px; line-height: 1.6; }
+.student-studio-resources { background: #fff; border: 1px solid #dce4e8; border-radius: 14px; padding: 20px; margin-top: 20px; line-height: 1.6; }
+.student-studio-resources summary { cursor: pointer; min-height: 44px; font-weight: 700; }
+.student-studio-resources a { display: inline-flex; white-space: normal; text-decoration: none; margin: 8px 10px 8px 0; }

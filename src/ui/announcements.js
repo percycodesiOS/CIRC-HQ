@@ -150,6 +150,7 @@ export function buildCrewSignupView(input, options = {}) {
       element(documentRef, "h1", { text: "Morning show crew", attributes: { id: "crew-signup-heading" } }),
       element(documentRef, "p", { text: "Director: Kenny. Choose 2 announcers, 4 reporters and 2 camera operators. Up to 2 producers are optional. Pair every job with a different backup." }),
       element(documentRef, "p", { className: "announcements-local-notice", text: "Kenny keeps control of this screen while students choose their class, first name, date and available job. Keep this screen off the projector. Names stay in this browser on this device, separate from scripts and cloud sync. This is not a form students can join from other devices." }),
+      button(documentRef, "Open student work area", "primary-action", () => callbacks.onOpenStudentStudio?.()),
       button(documentRef, "Back to announcement studio", "secondary-action", () => callbacks.onBack?.())
     ]),
     element(documentRef, "section", { className: "announcements-details" }, [
@@ -479,7 +480,9 @@ export function buildAnnouncementsWorkflow(input, options = {}) {
         className: "announcements-local-notice",
         text: "This is a local draft on this device. Nothing is uploaded or shared by this screen."
       }),
-      button(documentRef, "Open private crew sign-up", "secondary-action", () => callbacks.onOpenCrewSignup?.())
+      button(documentRef, "Open private crew sign-up", "secondary-action", () => callbacks.onOpenCrewSignup?.()),
+      button(documentRef, "Open student work area", "primary-action", () => callbacks.onOpenStudentStudio?.()),
+      element(documentRef, "p", { text: "Student work area shows only generic reporter, weather and iMovie directions. Project that view while Kenny controls the computer; exit it before using private crew information." })
     ]),
     status ? element(documentRef, "p", {
       className: "announcements-local-status",

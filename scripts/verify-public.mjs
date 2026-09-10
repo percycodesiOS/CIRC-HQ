@@ -51,6 +51,7 @@ const ALLOWED_UNTRACKED = new Set([
   "src/ui/announcements.js",
   "src/ui/schedule-editor.js",
   "src/ui/setup.js",
+  "src/ui/student-studio.js",
   "scripts/verify-public.mjs",
   "tests/admin-plan.test.mjs",
   "tests/announcements-ui.test.mjs",
@@ -152,6 +153,7 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "src/ui/schedule-editor.js",
   "src/ui/settings.js",
   "src/ui/setup.js",
+  "src/ui/student-studio.js",
   "src/ui/today-ui.js",
   "src/ui/view-model.js"
 ]);
@@ -183,6 +185,7 @@ const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "src/model/setup-flow.js",
   "src/model/schedule-editor.js",
   "src/ui/setup.js",
+  "src/ui/student-studio.js",
   "src/ui/schedule-editor.js",
   "src/model/experience-runner.js",
   "src/model/experience-timing-plans.js",
@@ -723,6 +726,14 @@ export async function inspectLocalPaths(root = ROOT) {
 
 export function countUnsafeRuntimeLinks(text) {
   const links = text.match(/https?:\/\/[^\s"'`<>)]+/gi) ?? [];
+  const reviewedStudentLinks = new Set([
+    "https://forecast.weather.gov/MapClick.php?FcstType=text&lat=40.7112&lg=english&lon=-80.1072",
+    "https://forecast.weather.gov/MapClick.php?FcstType=graphical&lat=40.7112&lg=english&lon=-80.1072&unit=0",
+    "https://radar.weather.gov/station/KPBZ/standard",
+    "https://support.apple.com/en-us/102242",
+    "https://support.apple.com/en-us/102353",
+    "https://support.apple.com/en-us/102371"
+  ]);
   let unsafe = 0;
   for (const link of links) {
     let parsed;
@@ -741,7 +752,7 @@ export function countUnsafeRuntimeLinks(text) {
       "www.gstatic.com"
     ]);
     if (parsed.protocol === "http:" && !allowedHttp) unsafe += 1;
-    else if (parsed.protocol === "https:" && !allowedHttpsHosts.has(parsed.hostname)) unsafe += 1;
+    else if (parsed.protocol === "https:" && !allowedHttpsHosts.has(parsed.hostname) && !reviewedStudentLinks.has(parsed.href)) unsafe += 1;
     else if (parsed.protocol !== "http:" && parsed.protocol !== "https:") unsafe += 1;
   }
   return unsafe;
