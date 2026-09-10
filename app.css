@@ -4673,7 +4673,7 @@ button:disabled {
   .replica-lesson-choices { grid-template-columns: 1fr; }
 }
 /* Local CIRC identity and the prepared Day 5 teacher entry. */
-.circ-brand-icon { flex: 0 0 40px; }
+.circ-brand-icon { flex: 0 0 72px; width: 72px; height: auto; object-fit: contain; }
 .brand-lockup { display: flex; align-items: center; gap: 12px; }
 .day-five-start { padding: clamp(20px, 3vw, 32px); margin: 20px 0; border: 2px solid #167365; border-radius: 18px; background: #eef9f5; color: #123451; }
 .day-five-start h2 { margin: 8px 0; font-size: clamp(1.5rem, 3vw, 2.2rem); }
@@ -4683,17 +4683,136 @@ button:disabled {
 .crew-signup-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 16px; }
 .crew-signup-assignment { border-top: 1px solid #dce4e8; padding: 8px 0; }
 .crew-signup-assignment p { overflow-wrap: anywhere; }
-.student-studio { max-width: 1060px; margin: 0 auto; padding: clamp(16px, 3vw, 32px); color: #123451; }
-.student-studio-header h1 { font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.15; }
-.student-studio-header p { max-width: 75ch; line-height: 1.6; }
-.student-studio-desks, .student-studio-navigation { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
-.student-studio-desks [aria-pressed="true"] { color: #fff; background: #123451; border-color: #123451; }
-.student-studio-task { background: #fff; border: 2px solid #167365; border-radius: 18px; padding: clamp(18px, 3vw, 30px); }
-.student-studio-task h2 { font-size: clamp(1.6rem, 3vw, 2.3rem); margin: 8px 0; }
-.student-studio-goal { font-weight: 700; }
-.student-studio-task ol { padding-left: 28px; font-size: clamp(1.05rem, 2vw, 1.3rem); line-height: 1.7; }
-.student-studio-task li + li { margin-top: 12px; }
-.student-studio-output { background: #eef9f5; padding: 16px; border-radius: 12px; line-height: 1.6; }
-.student-studio-resources { background: #fff; border: 1px solid #dce4e8; border-radius: 14px; padding: 20px; margin-top: 20px; line-height: 1.6; }
-.student-studio-resources summary { cursor: pointer; min-height: 44px; font-weight: 700; }
-.student-studio-resources a { display: inline-flex; white-space: normal; text-decoration: none; margin: 8px 10px 8px 0; }
+/* Student production surface: public prompts, distinct from teacher backstage. */
+#app-main:has(> .student-studio) { width: min(100%, 1450px); }
+.student-studio { --studio-ink: #142c3b; --studio-lime: #d3f04a; max-width: 1380px; margin: 0 auto; padding: 24px 32px 40px; color: var(--studio-ink); font-family: "Aptos", "Segoe UI", system-ui, sans-serif; }
+.student-studio h1, .student-studio h2, .student-studio h3 { font-family: "Aptos Display", "Franklin Gothic Medium", "Arial Black", sans-serif; color: var(--studio-ink); }
+.student-studio-masthead { display: flex; align-items: center; gap: 16px; padding-bottom: 16px; border-bottom: 2px solid var(--studio-ink); }
+.student-studio-masthead p { margin: 0; font-weight: 800; letter-spacing: .02em; }
+.studio-view-label { color: #24433d; background: #e8f0e2; padding: 5px 8px; font-size: .68rem; font-weight: 850; letter-spacing: .08em; }
+.studio-backstage-action { margin-left: auto; border: 0; border-radius: 0; background: none; color: #4a5d68; font-size: .8rem; font-weight: 600; padding: 8px; }
+.student-studio-header { display: grid; grid-template-columns: 1fr 1fr; align-items: center; min-height: 280px; margin-top: 24px; background: #fff; overflow: hidden; border: 1px solid #dae1df; }
+.studio-hero-copy { padding: 30px 36px; }
+.studio-kicker { font-size: .7rem; line-height: 1.4; letter-spacing: .13em; font-weight: 850; margin-bottom: 14px; }
+.student-studio-header h1 { font-size: clamp(2.4rem, 4.4vw, 4.2rem); line-height: .99; font-weight: 900; letter-spacing: -.04em; max-width: 10ch; margin-bottom: 18px; }
+.studio-hero-deck { font-size: 1.02rem; line-height: 1.5; max-width: 36ch; margin: 0; }
+.studio-hero-image { display: block; width: 100%; height: 300px; object-fit: cover; object-position: 60% 50%; }
+.student-studio-desks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 22px 0; gap: 14px; }
+.studio-desk { display: flex; align-items: center; text-align: left; gap: 18px; padding: 20px; border: 1px solid #b4c1c5; border-radius: 3px; background: #fff; box-shadow: 0 3px 0 #dbe3e6; }
+.studio-desk-number { align-self: flex-start; font-size: .7rem; font-weight: 850; letter-spacing: .07em; padding-top: 5px; }
+.studio-desk strong { display: block; font-family: "Aptos Display", "Franklin Gothic Medium", sans-serif; font-size: 1.45rem; line-height: 1.2; }
+.studio-desk small { display: block; margin-top: 5px; font-size: .83rem; font-weight: 500; }
+.student-studio-desks [aria-pressed="true"] { background: var(--studio-ink); border-color: var(--studio-ink); color: #fff; box-shadow: 0 4px 0 var(--studio-lime); }
+.studio-desk[aria-pressed="true"] strong { color: #fff; }
+.studio-desk:hover { border-color: #142c3b; }
+.student-studio-workspace { display: grid; grid-template-columns: minmax(240px, .8fr) minmax(0, 1.8fr); gap: 24px; align-items: start; }
+.studio-desk-tools { padding: 28px; border-top: 6px solid var(--studio-ink); background: #e8eff2; }
+.studio-desk-tools h2 { font-size: 1.85rem; line-height: 1.1; margin-bottom: 18px; letter-spacing: -.03em; }
+.studio-big-number { font-family: "Aptos Display", "Arial Black", sans-serif; font-size: 4.5rem; font-weight: 850; letter-spacing: -.06em; line-height: 1; margin-bottom: 8px; }
+.studio-shot-list { display: grid; gap: 12px; margin: 24px 0; }
+.studio-shot { display: flex; align-items: center; gap: 14px; padding: 16px 14px; background: #fff; border: 1px solid #becbd2; }
+.studio-shot > span { display: grid; place-items: center; min-width: 40px; height: 32px; border: 2px solid #69848c; color: #365965; font-weight: 800; font-size: .7rem; }
+.studio-shot strong, .studio-shot small { display: block; }
+.studio-shot strong { font-size: .98rem; }
+.studio-shot small { margin-top: 3px; color: #4a5c68; }
+.studio-small-note { font-size: .8rem; line-height: 1.6; margin-bottom: 0; color: #435968; }
+.studio-pitch { padding: 2px 0 12px; }
+.studio-pitch p { font-size: 1rem; padding: 14px 0; margin: 0; border-bottom: 1px solid #8aa0aa; font-style: italic; }
+.studio-tools-weather { background: #e9efd9; }
+.studio-source-note { font-size: .9rem; line-height: 1.5; }
+.studio-tool-link { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; min-height: 48px; border: 1px solid #9bacab; color: #193642; background: #fff; text-decoration: none; font-size: .9rem; margin: 10px 0; }
+.studio-tool-link::after { content: "↗"; font-size: 1.2rem; }
+.studio-tool-link:hover { background: #edf5f6; border-color: #193642; }
+.studio-tool-primary { background: #142c3b; border-color: #142c3b; color: #fff; }
+.studio-tool-primary:hover { background: #294652; color: #fff; }
+.studio-prompt-card { margin-top: 26px; padding-top: 20px; border-top: 1px solid #9aaa86; }
+.studio-prompt-card h3 { font-size: 1.35rem; line-height: 1.2; }
+.studio-prompt-card p:last-child { font-size: .9rem; line-height: 1.5; margin-bottom: 0; }
+.student-studio-task { background: #fff; border: 1px solid #bccbd3; padding: 26px 32px; }
+.studio-step-rail { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 24px; }
+.studio-step { border: 0; border-bottom: 3px solid #d7e1e7; border-radius: 0; background: none; padding: 8px 12px; min-width: 88px; font-size: .85rem; color: #486271; }
+.studio-step[aria-current="step"] { color: #142c3b; font-weight: 850; border-bottom-color: #142c3b; background: #e7f5a5; }
+.student-studio-task h2 { font-size: clamp(1.8rem, 2.5vw, 2.5rem); margin: 0 0 22px; line-height: 1.05; letter-spacing: -.03em; }
+.studio-action-list { list-style: none; counter-reset: studio-actions; display: grid; gap: 18px; margin: 0 0 26px; padding: 0; }
+.studio-action-list li { display: flex; align-items: flex-start; gap: 14px; font-size: 1.1rem; line-height: 1.45; counter-increment: studio-actions; }
+.studio-action-list li::before { content: counter(studio-actions, decimal-leading-zero); flex: 0 0 24px; margin-top: 3px; color: #597381; font-size: .75rem; font-weight: 850; }
+.student-studio-output { border-left: 4px solid #a8c82d; background: #f0f5e3; padding: 14px 16px; font-size: .94rem; font-weight: 650; line-height: 1.5; margin-bottom: 20px; }
+.student-studio-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-bottom: 20px; }
+.student-studio-navigation p { margin: 0; font-weight: 700; }
+.studio-next { border: 1px solid #142c3b; border-radius: 3px; padding: 12px 24px; background: #142c3b; color: #fff; font-weight: 800; }
+.studio-next:hover { background: #284853; color: #fff; }
+.studio-previous { border: 0; border-radius: 0; background: none; font-weight: 500; padding: 12px 0; }
+.student-studio-help { padding-top: 14px; border-top: 1px solid #dae3e6; font-size: .88rem; line-height: 1.6; color: #38515e; }
+.student-studio-help summary { min-height: 44px; cursor: pointer; font-weight: 700; padding: 9px 0; }
+.student-studio-help h3 { margin-top: 14px; }
+.student-studio-help li + li { margin-top: 10px; }
+.studio-story-bank { margin-top: 34px; }
+.studio-story-bank h2 { font-size: 1.8rem; letter-spacing: -.03em; }
+.studio-story-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+.studio-story { align-self: start; border-top: 3px solid #496574; padding: 0 4px; }
+.studio-story summary { cursor: pointer; padding: 14px 0; min-height: 80px; list-style: none; }
+.studio-story summary span { display: block; font-size: .7rem; color: #597381; margin-bottom: 8px; }
+.studio-story summary strong { font-size: 1rem; }
+.studio-story summary strong::after { content: " +"; color: #6c8340; }
+.studio-story[open] summary strong::after { content: " -"; }
+.studio-story p { font-size: .85rem; line-height: 1.6; }
+.studio-apple-help { margin-top: 20px; }
+.studio-apple-help .studio-tool-link { display: inline-flex; margin-right: 10px; }
+.studio-footer { margin-top: 28px; padding-top: 16px; border-top: 2px solid #142c3b; font-size: .8rem; font-weight: 650; color: #496170; }
+.announcements-header .studio-backstage-label { display: inline-block; padding: 6px 9px; background: #142c3b; color: #fff; font-size: .7rem; font-weight: 800; letter-spacing: .09em; }
+.studio-sv-mark { display: block; flex: 0 0 72px; width: 72px; height: auto; object-fit: contain; background: #fff; }
+.announcements { font-family: "Aptos", "Segoe UI", system-ui, sans-serif; }
+.announcements-header { border-radius: 4px; border: 1px solid #9eb7c6; border-top: 5px solid #142c3b; background: #fff; }
+.announcements-header h1 { font-family: "Aptos Display", "Franklin Gothic Medium", sans-serif; font-size: clamp(2rem, 3.2vw, 3rem); margin: 6px 0 14px; }
+.announcements-header .eyebrow { color: #48616e; font-size: .8rem; font-weight: 700; }
+.announcements-header > button { border-radius: 3px; padding: 12px 18px; margin: 16px 12px 14px 0; }
+.announcements-header > .primary-action { background: #142c3b; border-color: #142c3b; color: #fff; }
+.crew-signup .announcements-details { grid-template-columns: 1fr; border-radius: 4px; }
+.crew-signup .announcements-details > * { min-width: 0; }
+.crew-signup-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.crew-signup .announcements-details > .primary-action { justify-self: start; padding: 12px 22px; border-radius: 3px; background: #142c3b; color: #fff; }
+.crew-signup .announcements-crew { border-radius: 4px; }
+.crew-signup .announcements-role { border-radius: 3px; border-top: 4px solid #769aab; }
+.crew-signup .announcements-local-notice { border-radius: 3px; font-weight: 500; line-height: 1.6; }
+@media (max-width: 800px) {
+  .crew-signup-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .student-studio { padding: 16px; }
+  .student-studio-header { min-height: 0; }
+  .studio-hero-copy { padding: 24px; }
+  .student-studio-header h1 { font-size: 2.6rem; }
+  .studio-hero-image { height: 280px; }
+  .studio-desk { padding: 16px 12px; gap: 10px; }
+  .studio-desk strong { font-size: 1.25rem; }
+  .studio-desk small { font-size: .75rem; }
+  .student-studio-workspace { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .studio-desk-tools { padding: 22px; }
+  .studio-shot-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .studio-shot { display: block; }
+  .studio-shot > span { width: 40px; margin-bottom: 10px; }
+  .studio-big-number { font-size: 3.5rem; }
+  .studio-story-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .crew-signup-fields { grid-template-columns: 1fr; }
+  .student-studio-masthead { flex-wrap: wrap; gap: 8px; }
+  .student-studio-masthead p { font-size: .8rem; }
+  .studio-backstage-action { flex-basis: 100%; margin: 0; text-align: left; padding: 0; }
+  .student-studio-header { grid-template-columns: 1fr; margin-top: 16px; }
+  .studio-hero-copy { padding: 24px; }
+  .student-studio-header h1 { max-width: 12ch; font-size: 2.7rem; }
+  .studio-hero-image { height: 170px; object-position: 60% 56%; }
+  .student-studio-desks { gap: 7px; margin: 16px 0; }
+  .studio-desk { display: block; padding: 12px 8px; min-height: 78px; }
+  .studio-desk-number { display: block; padding: 0 0 5px; }
+  .studio-desk strong { font-size: 1.05rem; }
+  .studio-desk small { display: none; }
+  .student-studio-task { padding: 22px 18px; }
+  .studio-step-rail { gap: 4px; }
+  .studio-step { min-width: 78px; padding: 8px; }
+  .studio-action-list li { font-size: 1.03rem; gap: 10px; }
+  .studio-shot-list { gap: 7px; }
+  .studio-shot { padding: 12px 8px; }
+  .studio-shot strong { font-size: .83rem; }
+  .studio-shot small { font-size: .75rem; }
+  .studio-story-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

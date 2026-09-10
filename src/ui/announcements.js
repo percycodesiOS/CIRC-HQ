@@ -146,16 +146,17 @@ export function buildCrewSignupView(input, options = {}) {
   ]));
   return element(documentRef, "section", { className: "announcements crew-signup", attributes: { "data-private-signup": "true", "aria-labelledby": "crew-signup-heading" } }, [
     element(documentRef, "header", { className: "announcements-header" }, [
-      element(documentRef, "p", { className: "eyebrow", text: "Teacher-supervised sign-up" }),
-      element(documentRef, "h1", { text: "Morning show crew", attributes: { id: "crew-signup-heading" } }),
-      element(documentRef, "p", { text: "Director: Kenny. Choose 2 announcers, 4 reporters and 2 camera operators. Up to 2 producers are optional. Pair every job with a different backup." }),
-      element(documentRef, "p", { className: "announcements-local-notice", text: "Kenny keeps control of this screen while students choose their class, first name, date and available job. Keep this screen off the projector. Names stay in this browser on this device, separate from scripts and cloud sync. This is not a form students can join from other devices." }),
+      element(documentRef, "p", { className: "studio-backstage-label", text: "TEACHER BACKSTAGE / KEEP OFF PROJECTOR" }),
+      element(documentRef, "p", { className: "eyebrow", text: "The Morning Ehrman Show" }),
+      element(documentRef, "h1", { text: "Build your broadcast crew.", attributes: { id: "crew-signup-heading" } }),
+      element(documentRef, "p", { text: "Director: Teacher. Choose 2 announcers, 4 reporters and 2 camera operators. Up to 2 producers are optional. Pair every job with a different backup." }),
+      element(documentRef, "p", { className: "announcements-local-notice", text: "The teacher keeps control of this screen while students choose their class, first name, date and available job. Keep this screen off the projector. Names stay in this browser on this device, separate from scripts and cloud sync. This is not a form students can join from other devices." }),
       button(documentRef, "Open student work area", "primary-action", () => callbacks.onOpenStudentStudio?.()),
       button(documentRef, "Back to announcement studio", "secondary-action", () => callbacks.onBack?.())
     ]),
     element(documentRef, "section", { className: "announcements-details" }, [
       element(documentRef, "h2", { text: "Choose a place" }),
-      element(documentRef, "p", { text: "Select the actual broadcast date. One person has one primary or backup job per date. Use a first name plus last initial only when needed to tell classmates apart. A sign-up is a request Kenny reviews; it does not record attendance or approve the broadcast." }),
+      element(documentRef, "p", { text: "Select the actual broadcast date. One person has one primary or backup job per date. Use a first name plus last initial only when needed to tell classmates apart. A sign-up is a request the teacher reviews; it does not record attendance or approve the broadcast." }),
       element(documentRef, "div", { className: "crew-signup-fields" }, [
         textField(documentRef, { id: "signup-date", name: "signup-date", label: "Broadcast date", type: "date", value: form.date, onInput: value => callbacks.onChange?.("date", value) }),
         textField(documentRef, { id: "signup-classLabel", name: "signup-classLabel", label: "Class / homeroom", value: form.classLabel, attributes: { maxlength: "60", list: "signup-classes", autocomplete: "off" }, onInput: value => callbacks.onChange?.("classLabel", value) }),
@@ -175,7 +176,7 @@ export function buildCrewSignupView(input, options = {}) {
     ]),
     element(documentRef, "details", { className: "announcements-details" }, [
       element(documentRef, "summary", { text: "Saved dates and paper fallback" }),
-      element(documentRef, "p", { text: "Choose any date above to review it. If this browser or device is unavailable, use a private paper sheet with Date, Class, First name, Job and Primary/Backup columns. Kenny keeps the sheet. The school PC and your phone have separate saved lists." }),
+      element(documentRef, "p", { text: "Choose any date above to review it. If this browser or device is unavailable, use a private paper sheet with Date, Class, First name, Job and Primary/Backup columns. The teacher keeps the sheet. The school PC and your phone have separate saved lists." }),
       element(documentRef, "p", { text: Object.keys(saved.book.dates).sort().join(", ") || "No dates saved yet." })
     ])
   ]);
@@ -187,7 +188,7 @@ function privateCrewView(documentRef, draft, callbacks) {
     homeroomConfirmed: "Student says they checked in with their homeroom teacher before coming to CIRC",
     arrived: "Arrived in CIRC",
     ready: "Ready to read the rehearsed script",
-    lateNotified: "Kenny was told about a delay",
+    lateNotified: "The teacher was told about a delay",
     teacherCovers: "Teacher has arranged coverage for this role",
     backupActive: "Teacher is using the backup for this role (changing this resets the role's checks)"
   };
@@ -201,7 +202,7 @@ function privateCrewView(documentRef, draft, callbacks) {
   }, [
     element(documentRef, "h2", { text: "Private crew check-in", attributes: { id: "announcements-private-crew-heading" } }),
     element(documentRef, "p", {
-      text: `For ${draft.date || "the selected broadcast date"}. Confirm homeroom check-in before coming to CIRC. If running late, tell Kenny through the usual school-approved route before the crew is due. This screen does not send a message.`
+      text: `For ${draft.date || "the selected broadcast date"}. Confirm homeroom check-in before coming to CIRC. If running late, tell the teacher through the usual school-approved route before the crew is due. This screen does not send a message.`
     }),
     element(documentRef, "p", {
       text: "Homeroom confirmation is a student affirmation, not official school attendance. Only the teacher records these checks. They stay out of broadcast view; do not mirror this preparation screen. No student names are stored here."
@@ -215,7 +216,7 @@ function privateCrewView(documentRef, draft, callbacks) {
       }))
     ]),
     element(documentRef, "p", {
-      text: `Crew due ${displayTime(crew.times.arrival)} At ${displayTime(crew.times.backup)}, if either announcer is missing, has not confirmed homeroom check-in, or cannot be ready in time, Kenny chooses a rehearsed backup or covers the role. Tell Kenny about bus or teacher delays so he can adjust the plan. Final microphone and script check: ${displayTime(crew.times.finalCheck)} On air: ${displayTime(crew.times.broadcast)}`
+      text: `Crew due ${displayTime(crew.times.arrival)} At ${displayTime(crew.times.backup)}, if either announcer is missing, has not confirmed homeroom check-in, or cannot be ready in time, the teacher chooses a rehearsed backup or covers the role. Tell the teacher about bus or teacher delays so he can adjust the plan. Final microphone and script check: ${displayTime(crew.times.finalCheck)} On air: ${displayTime(crew.times.broadcast)}`
     }),
     ...Object.entries(crew.announcers).map(([slot, member], index) => element(documentRef, "fieldset", {
       className: "announcements-phase"
@@ -470,7 +471,8 @@ export function buildAnnouncementsWorkflow(input, options = {}) {
     attributes: { "aria-labelledby": "announcements-heading" }
   }, [
     element(documentRef, "header", { className: "announcements-header" }, [
-      element(documentRef, "p", { className: "eyebrow", text: "Grade 6 Morning Announcements" }),
+      element(documentRef, "p", { className: "studio-backstage-label", text: "TEACHER BACKSTAGE / KEEP OFF PROJECTOR" }),
+      element(documentRef, "p", { className: "eyebrow", text: "The Morning Ehrman Show / Grade 6 Morning Announcements" }),
       element(documentRef, "h1", {
         text: "Run today's broadcast",
         attributes: { id: "announcements-heading" }
@@ -482,7 +484,7 @@ export function buildAnnouncementsWorkflow(input, options = {}) {
       }),
       button(documentRef, "Open private crew sign-up", "secondary-action", () => callbacks.onOpenCrewSignup?.()),
       button(documentRef, "Open student work area", "primary-action", () => callbacks.onOpenStudentStudio?.()),
-      element(documentRef, "p", { text: "Student work area shows only generic reporter, weather and iMovie directions. Project that view while Kenny controls the computer; exit it before using private crew information." })
+      element(documentRef, "p", { text: "Project the Student studio for reporter, weather and iMovie tasks. The teacher controls the computer. Stop projecting before returning backstage. The student page collects no names, saves no assignments and uploads no media; students plan on paper and edit in iMovie." })
     ]),
     status ? element(documentRef, "p", {
       className: "announcements-local-status",

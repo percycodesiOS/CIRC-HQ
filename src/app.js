@@ -2543,7 +2543,7 @@ export function renderApp(root, services = {}) {
               ...crewSignupForm,
               member: { classLabel: crewSignupForm.classLabel, firstName: crewSignupForm.firstName }
             });
-            crewSignupStatus = `Saved ${crewSignupForm.firstName} for ${crewSignupForm.date} in this browser only. Kenny reviews the crew before broadcast.`;
+            crewSignupStatus = `Saved ${crewSignupForm.firstName} for ${crewSignupForm.date} in this browser only. the teacher reviews the crew before broadcast.`;
             crewSignupForm = { ...crewSignupForm, firstName: "" };
           } catch (error) { crewSignupStatus = error instanceof Error ? error.message : "The sign-up could not be saved."; }
           render();

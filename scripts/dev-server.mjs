@@ -12,6 +12,7 @@ const CONTENT_TYPES = new Map([
   [".html", "text/html; charset=utf-8"],
   [".js", "text/javascript; charset=utf-8"],
   [".svg", "image/svg+xml; charset=utf-8"],
+  [".png", "image/png"],
   [".webp", "image/webp"]
 ]);
 
@@ -36,7 +37,9 @@ const PUBLIC_STATIC_FILES = new Set([
   "assets/icons/snowflake.svg",
   "assets/icons/student.svg",
   "assets/icons/sun.svg",
+  "assets/icons/sv-interlock.png",
   "assets/icons/warning-circle.svg",
+  "assets/morning-show-studio.png",
   "assets/tech-terrarium-hero.webp",
   "firebase-config.js",
   "index.html",

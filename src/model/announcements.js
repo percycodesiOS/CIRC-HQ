@@ -73,7 +73,7 @@ export const ANNOUNCEMENT_CREW_ROLES = Object.freeze([
   Object.freeze({
     id: "producer",
     label: "Producers (up to 2, optional)",
-    responsibility: "Keep the crew on the checklist, time rehearsal and help Kenny prepare. Each producer has a backup."
+    responsibility: "Keep the crew on the checklist, time rehearsal and help the teacher prepare. Each producer has a backup."
   }),
   Object.freeze({
     id: "leadReader",
@@ -88,11 +88,11 @@ export const ANNOUNCEMENT_CREW_ROLES = Object.freeze([
   Object.freeze({
     id: "timekeeper",
     label: "Camera operators (2)",
-    responsibility: "Practice framing and equipment checks with Kenny. Each camera operator has a backup."
+    responsibility: "Practice framing and equipment checks with the teacher. Each camera operator has a backup."
   }),
   Object.freeze({
     id: "techLead",
-    label: "Director: Kenny",
+    label: "Director: Teacher",
     responsibility: "Assigns work, approves the script, handles crew changes and makes the final decision to broadcast."
   })
 ]);

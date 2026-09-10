@@ -16,11 +16,13 @@ test("student production desks show reviewed instructions without accepting priv
       }, { document: documentDouble });
       assert.match(textOf(view), new RegExp(`Step ${stepIndex + 1} of 3`));
       assert.match(textOf(view), /Bring back:/);
-      assert.doesNotMatch(textOf(view), /PRIVATE_STUDENT_SCRIPT|PRIVATE_CREW_NAME/);
+      assert.doesNotMatch(textOf(view), /PRIVATE_STUDENT_SCRIPT|PRIVATE_CREW_NAME|Kenny|does not collect names/);
+      assert.match(textOf(view), /The Morning Ehrman Show/);
+      assert.match(textOf(view), /STUDENT VIEW/);
       assert.equal(findAll(view, node => ["input", "textarea", "video", "iframe"].includes(node.tagName)).length, 0);
       const next = findByText(view, "button", "Next step");
       if (stepIndex < 2) { next.click(); assert.deepEqual(calls.at(-1), ["step", stepIndex + 1]); }
-      else { assert.equal(next, undefined); assert.match(textOf(view), /cannot approve or publish/); }
+      else { assert.equal(next, undefined); assert.match(textOf(view), /Bring your work to your teacher for review/); }
       for (const link of findAll(view, node => node.tagName === "a")) {
         assert.ok(Object.values(STUDENT_STUDIO_LINKS).includes(link.getAttribute("href")));
         assert.equal(link.getAttribute("target"), "_blank");
@@ -198,7 +200,7 @@ test("the announcements screen explains the Grade 6 responsibility and stays pub
   assert.match(text, /Announcers \(2\)/);
   assert.match(text, /Reporters \(4\)/);
   assert.match(text, /Camera operators \(2\)/);
-  assert.match(text, /Director: Kenny/);
+  assert.match(text, /Director: Teacher/);
   assert.match(text, /Assign roles in person or from a private teacher roster/i);
   assert.match(text, /This is a local draft on this device/i);
   assert.doesNotMatch(text, /private-person-sentinel|private-district-sentinel/i);

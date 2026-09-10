@@ -37,7 +37,7 @@ test("public entrypoints are byte-identical ordinary local shells", async () => 
 
   const html = indexBytes.toString("utf8");
   assert.match(html, /<link[^>]+href="app\.css"/);
-  assert.match(html, /<link[^>]+rel="icon"[^>]+href="assets\/icons\/circ-mark.svg"/);
+  assert.match(html, /<link[^>]+rel="icon"[^>]+type="image\/png"[^>]+href="assets\/icons\/sv-interlock.png"/);
   assert.doesNotMatch(html, /favicon\.(?:ico|svg)/i);
   assert.match(html, /<script[^>]+type="module"[^>]+src="src\/app\.js"/);
   assert.doesNotMatch(html, /<x-dc|<sc-if|<sc-for|support\.js|text\/x-dc/i);

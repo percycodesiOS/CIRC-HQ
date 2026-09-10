@@ -33,7 +33,9 @@ const ALLOWED_UNTRACKED = new Set([
   "assets/icons/snowflake.svg",
   "assets/icons/student.svg",
   "assets/icons/sun.svg",
+  "assets/icons/sv-interlock.png",
   "assets/icons/warning-circle.svg",
+  "assets/morning-show-studio.png",
   "assets/tech-terrarium-hero.webp",
   "firebase-config.js",
   "src/model/admin-plan.js",
@@ -115,7 +117,9 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "assets/icons/snowflake.svg",
   "assets/icons/student.svg",
   "assets/icons/sun.svg",
+  "assets/icons/sv-interlock.png",
   "assets/icons/warning-circle.svg",
+  "assets/morning-show-studio.png",
   "assets/tech-terrarium-hero.webp",
   "firebase-config.js",
   "index.html",
@@ -280,6 +284,14 @@ const REVIEWED_BINARY_ASSETS = new Map([
   [
     "assets/designers-challenge-sketch.webp",
     "207704BEEF933454EE3BEFF35C345F940605E946E60FD786409E5A1A3AA5F17F"
+  ],
+  [
+    "assets/morning-show-studio.png",
+    "F14EE598AD8C8D0A68E77F105EC9AE8808E62588C391108856EDB4CDB0543BCC"
+  ],
+  [
+    "assets/icons/sv-interlock.png",
+    "499429B4CB659489684D1CC93CDC48D13CFE9F8FAF445A41932439CFA765CCB6"
   ],
   [
     "assets/tech-terrarium-hero.webp",

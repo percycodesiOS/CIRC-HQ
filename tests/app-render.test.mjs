@@ -20,7 +20,7 @@ test("Day 5 starts the vetted build and private crew sign-ups persist outside pl
     confirmRemoveCrewSignup: () => true,
     clock: { now: () => new Date("2026-09-10T08:00:00-04:00") }
   };
-  const button = label => findAll(root, node => node.tagName === "button" && textOf(node) === label)[0];
+  const button = label => findAll(root, node => node.tagName === "button" && (textOf(node) === label || node.getAttribute("aria-label") === label))[0];
   const fill = (field, value) => {
     const node = findAll(root, node => node.getAttribute("name") === `signup-${field}`)[0];
     assert.ok(node, field);
@@ -37,7 +37,7 @@ test("Day 5 starts the vetted build and private crew sign-ups persist outside pl
     assert.match(textOf(root), /Step 1 of 7/);
     controller.navigate("announcements");
     button("Open private crew sign-up").click();
-    assert.match(textOf(root), /Director: Kenny/);
+    assert.match(textOf(root), /Director: Teacher/);
     fill("classLabel", "SYNTHETIC_CLASS");
     fill("firstName", "SYNTHETIC_NAME");
     fill("role", "camera1");
@@ -67,7 +67,7 @@ test("Day 5 starts the vetted build and private crew sign-ups persist outside pl
     button("Open private crew sign-up").click();
     assert.match(textOf(root), /Backup: SYNTHETIC_NAME \(SYNTHETIC_CLASS\)/);
     controller.navigate("board");
-    assert.doesNotMatch(textOf(root), /SYNTHETIC_NAME|SYNTHETIC_CLASS|Director: Kenny|Today they build/);
+    assert.doesNotMatch(textOf(root), /SYNTHETIC_NAME|SYNTHETIC_CLASS|Director: Teacher|Today they build/);
     controller.navigate("announcements");
     assert.doesNotMatch(textOf(root), /SYNTHETIC_NAME|SYNTHETIC_CLASS/);
     button("Open private crew sign-up").click();
