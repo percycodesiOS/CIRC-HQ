@@ -296,3 +296,13 @@ Grep report requested in 1B:
 Verified in a real browser served on localhost: 30 of 30 assertions pass (grade to mode and tier derivation, grade-2 and grade-3 both Pilot, grade-2 library shows only K-2, grade-3 library shows only 3-4, view all override, cadet drives littles, legacy migration, grade drops mode). Zero em or en dashes. node syntax check clean. index.html byte identical to mission-control.html.
 
 Historical status when this step closed: not pushed to GitHub. Publication still required Kenny's literal word `push`.
+## 2026-09-09 Day 5 readiness and private crew sign-up
+
+Kenny explicitly authorized the intended CIRC HQ release push. The live CIRC-HQ repository was verified from its Git remote and the September 9 release evidence; the older Mission Control checkout was left untouched.
+
+- Thursday, September 10 is Day 5. A dated Welcome and Today shortcut opens the reviewed cardboard build. The existing mode ID, seven-step plan, manual timers, new-class reset and student projection remain intact. Tape and tabs work without the teacher glue station; freestanding modules work without a checked aerial reference.
+- Replaced the empty browser icon with an original local CIRC circuit/C mark and added the same mark beside the header identity. Both HTML entrypoints remain byte-identical.
+- Added a teacher-supervised crew sign-up screen reached from the top of the announcement studio. It records date, class, first name and primary/backup for 2 announcers, 4 reporters, 2 camera operators and up to 2 optional producers. Kenny remains director. Occupied slots and duplicate class/name assignments on the same date fail without replacing existing data.
+- The versioned crew store is local and separate per teacher context. It re-reads and validates storage before writing and verifies its saved value. Corrupt and unavailable storage fail closed with a private paper fallback. No sign-up fields enter teacher plans, script archives, cloud sync, Board or student directions. A temporary demo cannot write private sign-ups. There is no remote student enrollment or cross-device claim.
+- Meaningful tests cover storage corruption, quotas, invalid dates and role capacity, duplicate/occupied places, teacher/date isolation, save/reload/remove, plan exclusion and Board exclusion. Browser acceptance exercised the actual Ready/Start/student view flow and saved/reloaded a synthetic camera backup on a separate localhost origin.
+- Full suite before final documentation: 538 tests, 536 passed, 2 expected environment skips, 0 failed. All 16 public release gates passed. Final release validation and deployment evidence are recorded in the current task's readiness report.

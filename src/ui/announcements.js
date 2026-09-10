@@ -6,6 +6,7 @@ import {
   evaluateAnnouncementDraft,
   getAnnouncementCrew
 } from "../model/announcements.js";
+import { CREW_SIGNUP_ROLES } from "../model/crew-signup.js";
 
 function resolveDocument(options) {
   const documentRef = options?.document ?? globalThis.document;
@@ -115,6 +116,67 @@ function crewView(documentRef) {
         element(documentRef, "h3", { text: role.label }),
         element(documentRef, "p", { text: role.responsibility })
       ])))
+  ]);
+}
+
+export function buildCrewSignupView(input, options = {}) {
+  const documentRef = resolveDocument(options);
+  const { form, saved, status = "", callbacks = {}, classLabels = [] } = input;
+  const slots = saved.book.dates[form.date] ?? {};
+  const selectField = (field, label, choices) => {
+    const select = element(documentRef, "select", { className: "announcements-input", attributes: { id: `signup-${field}`, name: `signup-${field}` } }, choices.map(choice => element(documentRef, "option", {
+      text: choice.label, attributes: { value: choice.value }
+    })));
+    select.value = form[field];
+    select.addEventListener("change", event => callbacks.onChange?.(field, event.currentTarget.value));
+    return element(documentRef, "label", { className: "announcements-field", attributes: { for: `signup-${field}` } }, [
+      element(documentRef, "span", { className: "announcements-label", text: label }), select
+    ]);
+  };
+  const memberLabel = member => member ? `${member.firstName} (${member.classLabel})` : "Open";
+  const required = CREW_SIGNUP_ROLES.filter(role => !role.optional);
+  const primaryCount = required.filter(role => slots[`${role.id}:primary`]).length;
+  const backupCount = required.filter(role => slots[`${role.id}:backup`]).length;
+  const assignments = CREW_SIGNUP_ROLES.map(role => element(documentRef, "article", { className: "announcements-role" }, [
+    element(documentRef, "h3", { text: `${role.label}${role.optional ? " (optional)" : ""}` }),
+    ...["primary", "backup"].map(side => element(documentRef, "div", { className: "crew-signup-assignment" }, [
+      element(documentRef, "p", { text: `${side === "primary" ? "Primary" : "Backup"}: ${memberLabel(slots[`${role.id}:${side}`])}` }),
+      slots[`${role.id}:${side}`] ? button(documentRef, "Remove", "secondary-action", () => callbacks.onRemove?.(`${role.id}:${side}`), { "aria-label": `Remove ${role.label} ${side}` }) : null
+    ]))
+  ]));
+  return element(documentRef, "section", { className: "announcements crew-signup", attributes: { "data-private-signup": "true", "aria-labelledby": "crew-signup-heading" } }, [
+    element(documentRef, "header", { className: "announcements-header" }, [
+      element(documentRef, "p", { className: "eyebrow", text: "Teacher-supervised sign-up" }),
+      element(documentRef, "h1", { text: "Morning show crew", attributes: { id: "crew-signup-heading" } }),
+      element(documentRef, "p", { text: "Director: Kenny. Choose 2 announcers, 4 reporters and 2 camera operators. Up to 2 producers are optional. Pair every job with a different backup." }),
+      element(documentRef, "p", { className: "announcements-local-notice", text: "Kenny keeps control of this screen while students choose their class, first name, date and available job. Keep this screen off the projector. Names stay in this browser on this device, separate from scripts and cloud sync. This is not a form students can join from other devices." }),
+      button(documentRef, "Back to announcement studio", "secondary-action", () => callbacks.onBack?.())
+    ]),
+    element(documentRef, "section", { className: "announcements-details" }, [
+      element(documentRef, "h2", { text: "Choose a place" }),
+      element(documentRef, "p", { text: "Select the actual broadcast date. One person has one primary or backup job per date. Use a first name plus last initial only when needed to tell classmates apart. A sign-up is a request Kenny reviews; it does not record attendance or approve the broadcast." }),
+      element(documentRef, "div", { className: "crew-signup-fields" }, [
+        textField(documentRef, { id: "signup-date", name: "signup-date", label: "Broadcast date", type: "date", value: form.date, onInput: value => callbacks.onChange?.("date", value) }),
+        textField(documentRef, { id: "signup-classLabel", name: "signup-classLabel", label: "Class / homeroom", value: form.classLabel, attributes: { maxlength: "60", list: "signup-classes", autocomplete: "off" }, onInput: value => callbacks.onChange?.("classLabel", value) }),
+        textField(documentRef, { id: "signup-firstName", name: "signup-firstName", label: "First name", value: form.firstName, attributes: { maxlength: "60", autocomplete: "off" }, onInput: value => callbacks.onChange?.("firstName", value) }),
+        selectField("role", "Job", CREW_SIGNUP_ROLES.map(role => ({ value: role.id, label: `${role.label}${role.optional ? " (optional)" : ""}` }))),
+        selectField("side", "Primary or backup", [{ value: "primary", label: "Primary" }, { value: "backup", label: "Backup" }])
+      ]),
+      element(documentRef, "datalist", { attributes: { id: "signup-classes" } }, classLabels.map(value => element(documentRef, "option", { attributes: { value } }))),
+      button(documentRef, "Save this sign-up", "primary-action", () => callbacks.onSave?.()),
+      element(documentRef, "p", { text: status || "No sign-up is saved until you choose Save this sign-up.", attributes: { role: "status", "aria-live": "polite" } }),
+      ["invalid", "unavailable"].includes(saved.status) ? element(documentRef, "p", { text: "Crew storage is unreadable or unavailable. The saved value is untouched. Use a private paper sheet for today.", attributes: { role: "alert" } }) : null
+    ]),
+    element(documentRef, "section", { className: "announcements-crew" }, [
+      element(documentRef, "h2", { text: `Crew for ${form.date || "the selected date"}` }),
+      element(documentRef, "p", { text: `${primaryCount} of 8 required primary jobs filled. ${backupCount} of 8 required backups filled. Review optional producers and their backups if used.` }),
+      element(documentRef, "div", { className: "announcements-role-grid" }, assignments)
+    ]),
+    element(documentRef, "details", { className: "announcements-details" }, [
+      element(documentRef, "summary", { text: "Saved dates and paper fallback" }),
+      element(documentRef, "p", { text: "Choose any date above to review it. If this browser or device is unavailable, use a private paper sheet with Date, Class, First name, Job and Primary/Backup columns. Kenny keeps the sheet. The school PC and your phone have separate saved lists." }),
+      element(documentRef, "p", { text: Object.keys(saved.book.dates).sort().join(", ") || "No dates saved yet." })
+    ])
   ]);
 }
 
@@ -416,7 +478,8 @@ export function buildAnnouncementsWorkflow(input, options = {}) {
       element(documentRef, "p", {
         className: "announcements-local-notice",
         text: "This is a local draft on this device. Nothing is uploaded or shared by this screen."
-      })
+      }),
+      button(documentRef, "Open private crew sign-up", "secondary-action", () => callbacks.onOpenCrewSignup?.())
     ]),
     status ? element(documentRef, "p", {
       className: "announcements-local-status",

@@ -4672,3 +4672,14 @@ button:disabled {
 @media (max-width: 760px) {
   .replica-lesson-choices { grid-template-columns: 1fr; }
 }
+/* Local CIRC identity and the prepared Day 5 teacher entry. */
+.circ-brand-icon { flex: 0 0 40px; }
+.brand-lockup { display: flex; align-items: center; gap: 12px; }
+.day-five-start { padding: clamp(20px, 3vw, 32px); margin: 20px 0; border: 2px solid #167365; border-radius: 18px; background: #eef9f5; color: #123451; }
+.day-five-start h2 { margin: 8px 0; font-size: clamp(1.5rem, 3vw, 2.2rem); }
+.day-five-start ol { padding-left: 24px; line-height: 1.65; }
+.day-five-start li + li { margin-top: 8px; }
+.day-five-start button { margin: 8px 12px 0 0; }
+.crew-signup-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 16px; }
+.crew-signup-assignment { border-top: 1px solid #dce4e8; padding: 8px 0; }
+.crew-signup-assignment p { overflow-wrap: anywhere; }

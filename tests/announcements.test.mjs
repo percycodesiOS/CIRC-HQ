@@ -1,5 +1,41 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { CREW_SIGNUP_ROLES, CREW_SIGNUP_STORAGE_KEY, loadCrewSignups, saveCrewSignup, removeCrewSignup } from "../src/model/crew-signup.js";
+
+test("private sign-ups keep each date and teacher separate with requested primary and backup capacity", () => {
+  const storage = memoryStorage();
+  const input = { date: "2026-09-10", role: "announcer1", side: "primary", member: { classLabel: "Class A", firstName: "Sample" } };
+  assert.equal(CREW_SIGNUP_ROLES.length, 10);
+  assert.equal(CREW_SIGNUP_ROLES.filter(role => !role.optional).length, 8);
+  saveCrewSignup(storage, "teacher-a", input);
+  saveCrewSignup(storage, "teacher-a", { ...input, side: "backup", member: { classLabel: "Class B", firstName: "Backup" } });
+  saveCrewSignup(storage, "teacher-a", { ...input, date: "2026-09-11" });
+  assert.equal(Object.keys(loadCrewSignups(storage, "teacher-a").book.dates).length, 2);
+  assert.equal(loadCrewSignups(storage, "teacher-b").status, "empty");
+  assert.throws(() => saveCrewSignup(storage, "teacher-a", input), /place is taken/);
+  assert.throws(() => saveCrewSignup(storage, "teacher-a", { ...input, role: "reporter1" }), /already has a job/);
+  assert.throws(() => saveCrewSignup(storage, "teacher-a", { ...input, side: "backup", member: { classLabel: "Class A", firstName: "sample" }, replaceExisting: true }), /already has a job/);
+  removeCrewSignup(storage, "teacher-a", { date: input.date, slot: "announcer1:primary" });
+  const reloaded = loadCrewSignups(storage, "teacher-a").book;
+  assert.equal(reloaded.dates[input.date]["announcer1:primary"], undefined);
+  assert.equal(reloaded.dates[input.date]["announcer1:backup"].firstName, "Backup");
+  assert.equal(reloaded.dates["2026-09-11"]["announcer1:primary"].firstName, "Sample");
+  assert.equal(storage.writes.every(([key]) => key.startsWith(CREW_SIGNUP_STORAGE_KEY)), true);
+});
+
+test("crew sign-up fails closed for corrupt storage, invalid data and unavailable writes", () => {
+  const input = { date: "2026-09-10", role: "reporter1", side: "primary", member: { classLabel: "Class A", firstName: "Sample" } };
+  const corrupt = memoryStorage({ [`${CREW_SIGNUP_STORAGE_KEY}:teacher-a`]: "unreadable" });
+  assert.equal(loadCrewSignups(corrupt, "teacher-a").status, "invalid");
+  assert.throws(() => saveCrewSignup(corrupt, "teacher-a", input), /left untouched/);
+  assert.deepEqual(corrupt.writes, []);
+  for (const patch of [ { date: "2026-02-30" }, { side: "extra" }, { role: "reporter5" }, { member: { classLabel: "", firstName: "Sample" } }, { member: { classLabel: "Class A", firstName: "<script>" } }, { member: { ...input.member, email: "extra" } } ]) {
+    assert.throws(() => saveCrewSignup(memoryStorage(), "teacher-a", { ...input, ...patch }));
+  }
+  assert.throws(() => saveCrewSignup({ getItem: () => null, setItem: () => { throw new Error("quota"); } }, "teacher-a", input), /could not be verified/);
+  assert.throws(() => saveCrewSignup({ getItem: () => null, setItem: () => {} }, "teacher-a", input), /could not be verified/);
+  assert.equal(loadCrewSignups(null, "teacher-a").status, "unavailable");
+});
 
 import {
   ANNOUNCEMENT_CREW_ROLES,

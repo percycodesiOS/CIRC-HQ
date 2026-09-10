@@ -158,10 +158,10 @@ test("the announcements screen explains the Grade 6 responsibility and stays pub
   assert.match(text, /rite-of-passage responsibility/i);
   assert.match(text, /Prepare Rehearse Go live Reset/);
   assert.match(text, /Producer/);
-  assert.match(text, /Lead reader/);
-  assert.match(text, /Co-reader/);
-  assert.match(text, /Timekeeper/);
-  assert.match(text, /Tech lead/);
+  assert.match(text, /Announcers \(2\)/);
+  assert.match(text, /Reporters \(4\)/);
+  assert.match(text, /Camera operators \(2\)/);
+  assert.match(text, /Director: Kenny/);
   assert.match(text, /Assign roles in person or from a private teacher roster/i);
   assert.match(text, /This is a local draft on this device/i);
   assert.doesNotMatch(text, /private-person-sentinel|private-district-sentinel/i);

@@ -38,13 +38,21 @@ The welcome screen also offers two optional paths:
 
 The normal teaching path does not require Settings, a backup file, or Room.
 
+## Ready for Thursday, September 10: Day 5
+
+The September 9-10 welcome screen and Today show **Open Day 5 build**. It opens the reviewed cardboard lesson with a 35-minute plan, a separate current-step timer and an explicit **Start class** action. The lesson also stays available at **Playbooks > Ehrman Crest replica lessons > Day 5: Build the Cardboard School** after the dated shortcut expires. Its existing `replica-cardboard` mode and saved runner remain compatible. This label does not change a private calendar or rotation.
+
+Set out cardboard, rulers, pencils, tape and labeled trays. Students can finish the entire build using tape and tabs. Kenny manages cuts and the existing glue station. When no checked aerial reference is ready, build freestanding modules and leave their placement undecided. Project **Student directions** only. Use **Start this lesson for a new class** for each subsequent class; **Next Step** remains manual. Without a configured schedule, the lesson runs as a preview and its timers reset on reload. With a saved teacher context, the existing local runner persistence applies.
+
+The empty browser icon has been replaced by a local CIRC circuit/C mark, also used beside the header name. It is an original CIRC mark, not an official district seal.
+
 ## Ehrman Crest replica lessons
 
 **Playbooks** and the **Tech Terrarium teacher detail** now show **Ehrman Crest replica lessons**. The same chooser appears on Today when Tech Terrarium is the current experience. These are optional lesson choices; the original Tech Terrarium curriculum and annual modes remain available.
 
 - **Today / Day 3: Sort, Count, Plan** uses loose approved parts, sorting, checked counts, a proposed material use and a handoff for the next crew.
 - **Next session: Aerial Layout & Dry Prototype** uses a confirmed top-view reference, observed versus proposed features and a removable dry layout. If the aerial reference is unavailable, site placement stays undecided while students check inventory and sketch features. Actual school dimensions and parent-drop-off direction are not supplied by the app.
-- **Day 4: Build the Cardboard School** uses the cardboard and existing glue equipment to make one stable school module. Students measure, dry-fit and assemble with tape or tabs; the teacher manages knife cuts, hot glue and cooled joints at a marked station. The tape-and-tab path works without that station. Site placement waits for a confirmed reference, and modules stay removable from the shared base.
+- **Day 5: Build the Cardboard School** uses the cardboard and existing glue equipment to make one stable school module. Students measure, dry-fit and assemble with tape or tabs; the teacher manages knife cuts, hot glue and cooled joints at a marked station. The tape-and-tab path works without that station. Site placement waits for a confirmed reference, and modules stay removable from the shared base.
 - **Friday, September 11: Remember & Serve** combines calm Grades 5-6 historical context with a useful school-community service design. It includes optional sharing, a quiet alternative and teacher-selected media, with no graphic footage or attack reenactment.
 - **Resin unit: Design and Measure a Feature** can run before supplies arrive. Students estimate mold volume, calculate a paper ratio example, compare cardboard with a teacher-cleared cured sample or picture, and save a reasoned design. Any later chemical work is a separate teacher-managed stage. The class timer is never used to decide whether a casting has cured.
 
@@ -65,6 +73,12 @@ The announcement preparation note keeps the crew arrival at 8:50 a.m., the broad
 Friday's factual and care-based framing draws on the 9/11 Memorial & Museum's [Local Heroes](https://911memorial.org/learn/students-and-teachers/lesson-plans/lesson-plans/local-heroes), [Survivor Tree](https://www.911memorial.org/visit/memorial/survivor-tree), and [Talking to Children About Terrorism](https://www.911memorial.org/learn/youth-and-families/talking-children-about-terrorism) guidance. The replica and service-design activities are this project's Grades 5-6 adaptation. No external image or video is loaded automatically.
 
 ## Morning announcements
+
+**Playbooks > Open announcement studio > Open private crew sign-up** opens a teacher-supervised local sign-up sheet. Students choose their class, first name, actual broadcast date, job and primary/backup place while Kenny keeps control of the screen. There are 2 announcers, 4 reporters, 2 camera operators and up to 2 optional producers, with a separate backup place for every role. Kenny is director. The class field suggests local teaching labels when available and also accepts a class typed by the teacher. One class/name identity can fill only one place on a date; occupied places cannot be overwritten from the form. Kenny can confirm a removal before reassigning it.
+
+Crew sign-ups are saved separately per local teacher context under `circHQ.crewSignup.local.v1`, never in teacher plans, script archives, Board, student directions, cloud sync or a public roster. Save re-reads storage, validates it and verifies the stored result. An unreadable store remains untouched; quota/write failures are shown. A temporary demo cannot save sign-ups. The list is limited to 220 saved dates and 2,000,000 serialized characters, with the browser quota also applying. No old date is silently removed.
+
+Keep this screen off the projector and retain control of the teacher computer. It is not a student login or a remotely joinable form. Phone, school computer and other browser origins keep separate lists, and the normal teacher-plan backup does not include these sign-ups. The immediate fallback is a private paper sheet with Date, Class, First name, Job and Primary/Backup columns. A remote student enrollment service would need a separately designed and authorized school identity, access and storage boundary. Sign-ups do not approve broadcast wording or record official attendance; existing rehearsal, approval and crew check-in remain required.
 
 For the first week, open **Playbooks > Open announcement studio > Prepared September 9-11 scripts** and choose the actual date's **Load** button. The complete prepared school notices and lunch lines are bundled with the app, so a school computer can load them without copying an email. Each load asks before replacing nonempty working text, resets preparation/rehearsal/approval/crew checks, and leaves local saved dates unchanged until **Save local draft**. Enter the two approved first names, check for office changes and rehearse before approval. These are prepared copies, not a live office feed; they do not roll forward to future dates.
 

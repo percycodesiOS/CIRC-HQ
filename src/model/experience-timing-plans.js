@@ -134,7 +134,7 @@ export const REPLICA_LESSON_CHOICES = deepFreeze([
   {
     "id": "replica-sort",
     "title": "Sort, Count, Plan",
-    "label": "Today / Day 3: Sort, Count, Plan",
+    "label": "Day 3: Sort, Count, Plan",
     "objective": "I can sort reusable materials, check an inventory, and use evidence to propose a model feature.",
     "summary": "Sort approved loose parts, check quantities, and leave a clear plan for the next crew.",
     "materials": [
@@ -172,7 +172,7 @@ export const REPLICA_LESSON_CHOICES = deepFreeze([
   {
     "id": "replica-cardboard",
     "title": "Build the Cardboard School",
-    "label": "Day 4: Build the Cardboard School",
+    "label": "Day 5: Build the Cardboard School",
     "objective": "I can turn a checked top-view plan into a stable cardboard module, test its fit, and leave a useful handoff.",
     "summary": "Build the aerial school view at the front with cardboard. Preserve the rocks, lizard habitat and technology at the back, and leave a clear handoff for the next crew.",
     "materials": [

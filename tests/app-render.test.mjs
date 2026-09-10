@@ -2,6 +2,67 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { renderApp, runnerStepIconFile } from "../src/app.js";
+import { CREW_SIGNUP_STORAGE_KEY } from "../src/model/crew-signup.js";
+
+test("Day 5 starts the vetted build and private crew sign-ups persist outside plans and student views", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const storage = keyValueStorage();
+  const root = new FakeNode("main");
+  const state = stateWithActiveEvent("teach");
+  const savedPlans = [];
+  let controller;
+  globalThis.document = fakeDocument();
+  globalThis.window = { location: { hostname: "example.test" }, setInterval: () => 1, clearInterval: () => {}, fetch: async () => ({ ok: false }) };
+  const services = {
+    store: { load: () => ({ state, error: null }), save: value => { savedPlans.push(structuredClone(value)); return value; } },
+    announcementStorage: storage, loadPrivateSeed: false, weatherService: {},
+    confirmRemoveCrewSignup: () => true,
+    clock: { now: () => new Date("2026-09-10T08:00:00-04:00") }
+  };
+  const button = label => findAll(root, node => node.tagName === "button" && textOf(node) === label)[0];
+  const fill = (field, value) => {
+    const node = findAll(root, node => node.getAttribute("name") === `signup-${field}`)[0];
+    assert.ok(node, field);
+    node.value = value;
+    node.listeners.get(node.tagName === "select" ? "change" : "input")({ currentTarget: node });
+  };
+  try {
+    controller = renderApp(root, services);
+    await controller.ready;
+    assert.match(textOf(root), /Thursday, September 10, 2026 \| Day 5/);
+    button("Open Day 5 build").click();
+    assert.match(textOf(root), /Build the Cardboard School/);
+    assert.match(textOf(root), /35:00/);
+    assert.match(textOf(root), /Step 1 of 7/);
+    controller.navigate("announcements");
+    button("Open private crew sign-up").click();
+    assert.match(textOf(root), /Director: Kenny/);
+    fill("classLabel", "SYNTHETIC_CLASS");
+    fill("firstName", "SYNTHETIC_NAME");
+    fill("role", "camera1");
+    fill("side", "backup");
+    button("Save this sign-up").click();
+    assert.match(textOf(root), /Backup: SYNTHETIC_NAME \(SYNTHETIC_CLASS\)/);
+    assert.equal(storage.writes.every(([key]) => key.startsWith(CREW_SIGNUP_STORAGE_KEY)), true);
+    assert.doesNotMatch(JSON.stringify(savedPlans), /SYNTHETIC_NAME|SYNTHETIC_CLASS/);
+    controller.destroy();
+    controller = renderApp(root, services);
+    await controller.ready;
+    controller.navigate("announcements");
+    button("Open private crew sign-up").click();
+    assert.match(textOf(root), /Backup: SYNTHETIC_NAME \(SYNTHETIC_CLASS\)/);
+    controller.navigate("board");
+    assert.doesNotMatch(textOf(root), /SYNTHETIC_NAME|SYNTHETIC_CLASS|Director: Kenny|Today they build/);
+    controller.navigate("announcements");
+    assert.doesNotMatch(textOf(root), /SYNTHETIC_NAME|SYNTHETIC_CLASS/);
+    button("Open private crew sign-up").click();
+    findAll(root, node => node.getAttribute("aria-label") === "Remove Camera operator 1 backup")[0].click();
+    assert.doesNotMatch(textOf(root), /SYNTHETIC_NAME/);
+  } finally {
+    controller?.destroy(); globalThis.document = previousDocument; globalThis.window = previousWindow;
+  }
+});
 import {
   ANNOUNCEMENT_ARCHIVE_STORAGE_KEY,
   ANNOUNCEMENT_LOCAL_STORAGE_KEY,
@@ -4109,12 +4170,12 @@ test("replica chooser is explicit, preserves a different saved runner on cancel,
     const button = (label) => findAll(root, (node) => node.tagName === "button" && textOf(node) === label)[0];
     controller.navigate("projects");
     assert.match(textOf(root), /Ehrman Crest replica lessons/);
-    button("Today / Day 3: Sort, Count, Plan").click();
+    button("Day 3: Sort, Count, Plan").click();
     assert.equal(confirmations, 1);
     assert.equal(saves.length, 0);
     assert.match(textOf(root), /Ehrman Crest replica lessons/);
     replacementAllowed = true;
-    button("Today / Day 3: Sort, Count, Plan").click();
+    button("Day 3: Sort, Count, Plan").click();
     assert.equal(saves.at(-1).experienceRunners["teacher:teacher-alpha"].modeId, "replica-sort");
     assert.deepEqual(saves.at(-1).plan, state.plan);
     assert.match(textOf(root), /Sort, Count, Plan/);
@@ -4124,7 +4185,7 @@ test("replica chooser is explicit, preserves a different saved runner on cancel,
     button("Next Step").click();
     const savedCount = saves.length;
     controller.navigate("projects");
-    button("Today / Day 3: Sort, Count, Plan").click();
+    button("Day 3: Sort, Count, Plan").click();
     assert.equal(saves.length, savedCount);
     assert.equal(confirmations, 2);
     assert.match(textOf(root), /TAKE A ROLE/);
@@ -4139,9 +4200,9 @@ test("replica chooser is explicit, preserves a different saved runner on cancel,
 
 
 for (const [modeId, label, title] of [
-  ["replica-sort", "Today / Day 3: Sort, Count, Plan", "Sort, Count, Plan"],
+  ["replica-sort", "Day 3: Sort, Count, Plan", "Sort, Count, Plan"],
   ["replica-layout", "Next session: Aerial Layout & Dry Prototype", "Aerial Layout & Dry Prototype"],
-  ["replica-cardboard", "Day 4: Build the Cardboard School", "Build the Cardboard School"],
+  ["replica-cardboard", "Day 5: Build the Cardboard School", "Build the Cardboard School"],
   ["replica-service", "Friday, September 11: Remember & Serve", "Remember & Serve"],
   ["replica-resin", "Resin unit: Design and Measure a Feature", "Design and Measure a Resin Feature"]
 ]) {
@@ -4218,7 +4279,7 @@ test("replica launches respect a current scheduled end and decline changes to ru
     });
     await controller.ready;
     const button = (name) => findAll(root, (node) => node.tagName === "button" && textOf(node) === name)[0];
-    button("Today / Day 3: Sort, Count, Plan").click();
+    button("Day 3: Sort, Count, Plan").click();
     assert.match(textOf(root), /25:00/);
     button("Start class").click();
     for (const paused of [false, true]) {
@@ -4229,7 +4290,7 @@ test("replica launches respect a current scheduled end and decline changes to ru
       button("Next session: Aerial Layout & Dry Prototype").click();
       assert.equal(saves.length, savedCount);
       assert.deepEqual(saves.at(-1), snapshot);
-      button("Today / Day 3: Sort, Count, Plan").click();
+      button("Day 3: Sort, Count, Plan").click();
       assert.equal(saves.length, savedCount);
       assert.ok(button(paused ? "Resume" : "Pause"));
     }

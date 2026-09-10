@@ -72,28 +72,28 @@ export function resetAnnouncementCrew(draft) {
 export const ANNOUNCEMENT_CREW_ROLES = Object.freeze([
   Object.freeze({
     id: "producer",
-    label: "Producer",
-    responsibility: "Keeps the crew on the checklist and moves each section forward."
+    label: "Producers (up to 2, optional)",
+    responsibility: "Keep the crew on the checklist, time rehearsal and help Kenny prepare. Each producer has a backup."
   }),
   Object.freeze({
     id: "leadReader",
-    label: "Lead reader",
-    responsibility: "Reads the opening and closing, then keeps a clear pace."
+    label: "Announcers (2)",
+    responsibility: "Read the approved script as Announcer 1 and Announcer 2. Each announcer has a rehearsed backup."
   }),
   Object.freeze({
     id: "coReader",
-    label: "Co-reader",
-    responsibility: "Reads the approved school items, events, and weather sections."
+    label: "Reporters (4)",
+    responsibility: "Prepare assigned school stories or segments for teacher review. Each reporter has a backup."
   }),
   Object.freeze({
     id: "timekeeper",
-    label: "Timekeeper",
-    responsibility: "Times rehearsal and signals when the crew needs to speed up or slow down."
+    label: "Camera operators (2)",
+    responsibility: "Practice framing and equipment checks with Kenny. Each camera operator has a backup."
   }),
   Object.freeze({
     id: "techLead",
-    label: "Tech lead",
-    responsibility: "Checks the microphone or display and resets equipment afterward."
+    label: "Director: Kenny",
+    responsibility: "Assigns work, approves the script, handles crew changes and makes the final decision to broadcast."
   })
 ]);
 

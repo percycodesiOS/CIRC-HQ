@@ -1,5 +1,6 @@
 import { admitLocalState, buildBoardProjection } from "./model/access.js";
 import { buildAdminPlanDocument } from "./model/admin-plan.js";
+import { loadCrewSignups, saveCrewSignup, removeCrewSignup } from "./model/crew-signup.js";
 import {
   applyEcmsAnnouncementOutline,
   applyPreparedEcmsAnnouncement,
@@ -60,7 +61,8 @@ import { LocalStore } from "./storage/local-store.js";
 import { buildBoardView } from "./ui/board.js";
 import {
   buildAnnouncementsLiveView,
-  buildAnnouncementsWorkflow
+  buildAnnouncementsWorkflow,
+  buildCrewSignupView
 } from "./ui/announcements.js";
 import { buildRoomView } from "./ui/room.js";
 import { buildScheduleEditor } from "./ui/schedule-editor.js";
@@ -258,6 +260,11 @@ function welcomeRoute(actions) {
       element("p", { className: "eyebrow", text: presentation.eyebrow }),
       element("h1", { text: presentation.title }),
       element("p", { className: "welcome-description", text: presentation.description }),
+      ["2026-09-09", "2026-09-10"].includes(actions.localDate) ? element("div", { className: "day-five-start" }, [
+        element("p", { className: "eyebrow", text: "Thursday, September 10 | Day 5" }),
+        actionButton("Open Day 5 build", "primary-action", () => actions.openRunner(2, { modeId: "replica-cardboard" })),
+        element("p", { text: "Cardboard, rulers, tape and tabs. Start the 35-minute lesson without signing in. This preview's timers reset if the page reloads." })
+      ]) : null,
       element("div", { className: "welcome-actions" }, [setup, sync, preview]),
       element("p", { className: "welcome-privacy", text: "Schedules stay private to the signed-in teacher." })
     ])
@@ -824,7 +831,7 @@ function replicaLessonChooser(actions) {
       element("p", { text: "School aerial view at the front; rocks, lizard habitat and technology at the back. Preserve the habitat and check the aerial reference before placing school features." }),
       element("p", { text: "Choose the lesson your crew needs. Each lesson plan totals 35 minutes; during a scheduled class, the class clock uses its remaining time. Opening the same choice keeps its current step; replacing a different lesson requires confirmation." }),
       element("div", { className: "replica-lesson-choices" }, REPLICA_LESSON_CHOICES.filter((choice) => choice.id !== "replica-resin").map(choiceCard)),
-      element("p", { text: "Ready to build with cardboard? Choose Day 4. Students assemble with tape and tabs while the teacher manages the hot-glue station. Resin is not required for this school-model lesson." }),
+      element("p", { text: "Ready to build with cardboard? Choose Day 5. Students assemble with tape and tabs while the teacher manages the hot-glue station. Resin is not required for this school-model lesson." }),
       currentLesson(false),
       actionButton("Original Tech Terrarium", "secondary-action", () => actions.openRunner(2, { modeId: "build-new" })),
       element("details", { className: "replica-operation-notes" }, [
@@ -994,6 +1001,20 @@ function buildToday(model, actions, options) {
   const presentation = buildTodayPresentation(model, options);
   const projectView = actions.projectView;
   const children = [buildHeading(model, () => actions.navigate("board"))];
+  if (["2026-09-09", "2026-09-10"].includes(actions.localDate)) {
+    children.push(element("section", { className: "day-five-start", attributes: { "aria-labelledby": "day-five-heading" } }, [
+      element("p", { className: "eyebrow", text: "Thursday, September 10, 2026 | Day 5" }),
+      element("h2", { text: "Today they build", attributes: { id: "day-five-heading" } }),
+      element("p", { text: "One stable cardboard school module, a fit check and a clear next-crew label. The full 35-minute lesson is ready." }),
+      element("ol", {}, [
+        element("li", { text: "Set out cardboard, rulers, pencils, tape and labeled trays. Tape and tabs are enough to run the lesson." }),
+        element("li", { text: "Open the build, check the current class, then choose Start class. For each later class, choose Start this lesson for a new class." }),
+        element("li", { text: "Project only Student directions. Both timers stay visible; you choose Next Step. Use freestanding modules if the aerial reference is not ready." })
+      ]),
+      actionButton("Open Day 5 build", "primary-action", () => actions.openRunner(2, { modeId: "replica-cardboard" })),
+      actionButton("Open morning announcements", "secondary-action", actions.openAnnouncements)
+    ]));
+  }
   if (actions.lastCompletion) {
     children.push(element("div", {
       className: "completion-undo",
@@ -1760,6 +1781,8 @@ export function renderApp(root, services = {}) {
   let announcementStatus = loadedAnnouncement.status === "invalid"
     ? "The saved announcement draft could not be read. A fresh local draft is open, and the unreadable saved value was left untouched."
     : "";
+  let crewSignupForm = { date: localDateKey(now()), classLabel: "", firstName: "", role: "announcer1", side: "primary" };
+  let crewSignupStatus = "";
 
   function adoptPersistedState(nextState) {
     state = admitLocalState(nextState);
@@ -2207,7 +2230,7 @@ export function renderApp(root, services = {}) {
   }
 
   function setNavigation() {
-    const activeRoute = ["project-teacher", "project-student", "announcements", "announcements-live"].includes(route)
+    const activeRoute = ["project-teacher", "project-student", "announcements", "announcements-live", "crew-signup"].includes(route)
       ? "projects"
       : route;
     for (const button of navButtons) {
@@ -2315,6 +2338,8 @@ export function renderApp(root, services = {}) {
     lastCompletion = null;
     pendingArtifactHandoff = null;
     selectedTeacherId = teacherId;
+    crewSignupForm = { date: localDateKey(now()), classLabel: "", firstName: "", role: "announcer1", side: "primary" };
+    crewSignupStatus = "";
     selectedProjectNumber = buildProjectHomeView(
       state,
       { teacherId: selectedTeacherId }
@@ -2453,6 +2478,11 @@ export function renderApp(root, services = {}) {
       savedArchive: announcementArchive,
       status: announcementStatus,
       callbacks: {
+        onOpenCrewSignup: () => {
+          crewSignupForm = { ...crewSignupForm, date: announcementDraft.date || localDateKey(now()) };
+          crewSignupStatus = "";
+          navigate("crew-signup");
+        },
         onCrewCheckChange: (slot, field, checked) => updateAnnouncementDraft(
           (draft) => setAnnouncementCrewCheck(draft, slot, field, checked)
         ),
@@ -2480,6 +2510,51 @@ export function renderApp(root, services = {}) {
         onUsePreparedEcms: usePreparedEcmsAnnouncement,
         onClearLocalDraft: clearAnnouncementDraft,
         onGoLive: openAnnouncementBroadcast
+      }
+    }, { document });
+  }
+
+  function crewSignupWorkflow() {
+    const owner = runnerOwnerKey();
+    const saved = loadCrewSignups(announcementStorage, owner);
+    const classLabels = [...new Set([
+      ...(state.classes ?? []).map(item => item.title),
+      ...Object.values(state.plan?.teachers?.find(item => item.id === selectedTeacherId)?.days ?? {}).flat().filter(item => item.type === "teach").map(item => item.label)
+    ].filter(Boolean))].sort();
+    return buildCrewSignupView({
+      form: crewSignupForm, saved, status: crewSignupStatus, classLabels,
+      callbacks: {
+        onBack: () => navigate("announcements"),
+        onChange: (field, value) => {
+          if (!Object.hasOwn(crewSignupForm, field)) return;
+          crewSignupForm = { ...crewSignupForm, [field]: value };
+          crewSignupStatus = "";
+          if (field === "date") render();
+        },
+        onSave: () => {
+          try {
+            if (runtime.getSetupModel().mode === "demo") throw new Error("Exit the temporary demo before saving private crew sign-ups.");
+            saveCrewSignup(announcementStorage, owner, {
+              ...crewSignupForm,
+              member: { classLabel: crewSignupForm.classLabel, firstName: crewSignupForm.firstName }
+            });
+            crewSignupStatus = `Saved ${crewSignupForm.firstName} for ${crewSignupForm.date} in this browser only. Kenny reviews the crew before broadcast.`;
+            crewSignupForm = { ...crewSignupForm, firstName: "" };
+          } catch (error) { crewSignupStatus = error instanceof Error ? error.message : "The sign-up could not be saved."; }
+          render();
+        },
+        onRemove: slot => {
+          const confirmed = typeof services.confirmRemoveCrewSignup === "function"
+            ? services.confirmRemoveCrewSignup() === true
+            : globalThis.window?.confirm?.("Remove this crew assignment from the selected date? Other jobs and dates stay saved.") === true;
+          if (!confirmed) return;
+          try {
+            if (runtime.getSetupModel().mode === "demo") throw new Error("Exit the temporary demo before changing private crew sign-ups.");
+            removeCrewSignup(announcementStorage, owner, { date: crewSignupForm.date, slot });
+            crewSignupStatus = "Assignment removed from this date. Choose an open place for the replacement.";
+          } catch (error) { crewSignupStatus = error instanceof Error ? error.message : "The assignment could not be removed."; }
+          render();
+        }
       }
     }, { document });
   }
@@ -2815,7 +2890,8 @@ export function renderApp(root, services = {}) {
       teacherKey: runnerOwnerKey(),
       schedule: runnerSchedule(model.current),
       previewOnly,
-      currentReplicaLesson: getReplicaLessonChoice(runner?.modeId)
+      currentReplicaLesson: getReplicaLessonChoice(runner?.modeId),
+      localDate: localDateKey(now())
     };
     let view;
     if (route === "welcome") view = welcomeRoute(actions);
@@ -2842,6 +2918,7 @@ export function renderApp(root, services = {}) {
     }
     else if (route === "projects") view = projectsRoute(actions);
     else if (route === "announcements") view = announcementWorkflow();
+    else if (route === "crew-signup") view = crewSignupWorkflow();
     else if (route === "announcements-live") {
       if (evaluateAnnouncementDraft(announcementDraft).canGoLive) {
         view = buildAnnouncementsLiveView({
@@ -3006,7 +3083,7 @@ export function renderApp(root, services = {}) {
     const minuteKey = `${localDateKey(currentTime)}:${currentTime.getHours()}:${currentTime.getMinutes()}`;
     if (route === "experience-runner" || route === "project-student") {
       refreshRunnerView(runner);
-    } else if (minuteKey !== lastRenderedMinute) render();
+    } else if (route !== "crew-signup" && minuteKey !== lastRenderedMinute) render();
   }, 1000);
 
   const handleVisibilityChange = () => {
