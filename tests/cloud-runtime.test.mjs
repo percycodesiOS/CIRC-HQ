@@ -410,6 +410,62 @@ test("file preview and confirmation stay local until the explicit upload gate", 
   assert.equal(app.cloud.calls.some(({ kind }) => kind === "save-private"), false);
 });
 
+test("email signup and sign-in wait for observed identity without persisting credentials or uploading", async () => {
+  for (const method of ["signUpWithEmail", "signInWithEmail"]) {
+    const app = harness();
+    const requests = [];
+    app.cloud[method] = async (credentials) => { requests.push(credentials); return { status: "pending" }; };
+    const credentials = { email: "teacher@school.example", password: "test-only-password" };
+    const actions = app.controller.getSetupActions();
+    const before = JSON.stringify({ state: app.state, metadata: app.store.loadDeviceMetadata() });
+    assert.deepEqual(await actions[method](credentials), { status: "pending" });
+    assert.deepEqual(requests, [credentials]);
+    assert.equal(app.controller.getSetupModel().current, "account");
+    assert.equal(app.controller.getSetupModel().account.status, "pending");
+    assert.doesNotMatch(JSON.stringify(app.controller.getSetupModel()), /test-only-password|teacher@school/);
+    assert.equal(JSON.stringify({ state: app.state, metadata: app.store.loadDeviceMetadata() }), before);
+    app.cloud.emitAuth({ uid: "school-teacher", displayName: null, email: credentials.email });
+    assert.equal(app.controller.getSetupModel().current, "teacher");
+    assert.equal(app.controller.getSetupModel().account.status, "observed");
+    assert.equal(app.cloud.calls.some(({ kind }) => kind === "save-private"), false);
+  }
+});
+
+test("email provider failures preserve local data and password reset does not authenticate", async () => {
+  const app = harness();
+  const actions = app.controller.getSetupActions();
+  const before = JSON.stringify(app.state);
+  app.cloud.signUpWithEmail = async () => ({ status: "provider-disabled" });
+  assert.deepEqual(await actions.signUpWithEmail({ email: "teacher@school.example", password: "test-password" }), { status: "provider-disabled" });
+  assert.match(app.controller.getSetupModel().notice.text, /Email accounts are not enabled/);
+  assert.doesNotMatch(app.controller.getSetupModel().notice.text, /Firebase/);
+  assert.equal(app.controller.getSetupModel().account, null);
+  app.cloud.requestPasswordReset = async () => ({ status: "reset-requested" });
+  assert.deepEqual(await actions.requestPasswordReset({ email: "teacher@school.example" }), { status: "reset-requested" });
+  assert.match(app.controller.getSetupModel().notice.text, /If an account uses/);
+  assert.equal(app.controller.getSetupModel().current, "account");
+  assert.equal(app.controller.getSetupModel().account, null);
+  assert.equal(JSON.stringify(app.state), before);
+});
+
+test("an email request prevents duplicate auth requests and ignores completion after leaving setup", async () => {
+  const app = harness();
+  const waiting = deferred();
+  let requests = 0;
+  app.cloud.signInWithEmail = () => { requests += 1; return waiting.promise; };
+  const actions = app.controller.getSetupActions();
+  const pending = actions.signInWithEmail({ email: "teacher@school.example", password: "test-password" });
+  await actions.signInWithEmail({ email: "teacher@school.example", password: "duplicate" });
+  await actions.continueWithGoogle();
+  assert.equal(requests, 1);
+  assert.equal(app.cloud.calls.some(({ kind }) => kind === "popup"), false);
+  actions.exploreDemo();
+  waiting.resolve({ status: "provider-disabled" });
+  await pending;
+  assert.equal(app.controller.getSetupModel().mode, "demo");
+  assert.notEqual(app.controller.getSetupModel().notice?.kind, "error");
+});
+
 test("roomless explicit upload backs up and verifies all private domains without shared access", async () => {
   const app = harness({
     initialState: stateFixture({ plan: planFixture() }),

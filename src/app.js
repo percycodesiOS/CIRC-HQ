@@ -224,6 +224,17 @@ function buildHeading(model, onBoard) {
   ]);
 }
 
+function fidEntry() {
+  return element("section", { className: "fid-home-entry", attributes: { "aria-label": "Flexible Instruction Day activities" } }, [
+    element("div", {}, [
+      element("p", { className: "eyebrow", text: "Flexible Instruction Day | Grades 5-6" }),
+      element("h2", { text: "Four ways to keep thinking and making" }),
+      element("p", { text: "Independent activities with optional paper or household materials. Think or say your ideas instead. No sign-in or live meeting needed." })
+    ]),
+    element("a", { className: "button-link fid-open-link", text: "Open FID activities", attributes: { href: "fid.html", target: "_blank", rel: "noopener", "aria-label": "Open FID activities in a new tab" } })
+  ]);
+}
+
 function welcomeRoute(actions) {
   const presentation = buildWelcomePresentation();
   const setup = element("button", {
@@ -267,7 +278,9 @@ function welcomeRoute(actions) {
         element("p", { text: "Cardboard, rulers, tape and tabs. Start the 35-minute lesson without signing in. This preview's timers reset if the page reloads." })
       ]) : null,
       element("div", { className: "welcome-actions" }, [setup, sync, preview]),
-      element("p", { className: "welcome-privacy", text: "Schedules stay private to the signed-in teacher." })
+      element("p", {}, [element("a", { className: "button-link", text: "Complete first-use walkthrough", attributes: { href: "walkthrough.html", target: "_blank", rel: "noopener" } })]),
+      element("p", { className: "welcome-privacy", text: "Schedules stay private to the signed-in teacher." }),
+      fidEntry()
     ])
   ]);
 }
@@ -404,7 +417,7 @@ function buildNextCard(next) {
   ]);
 }
 
-export function buildWeatherCard(weather) {
+export function buildWeatherCard(weather, onRefresh, refreshing = false) {
   const copy = weather.status === "unavailable"
     ? [element("p", { className: "weather-unavailable", text: weather.label })]
     : [
@@ -415,6 +428,16 @@ export function buildWeatherCard(weather) {
           ? element("span", { className: "weather-caveat", text: weather.caveat })
           : null
       ];
+  if (typeof onRefresh === "function") {
+    const refresh = element("button", {
+      className: "weather-refresh",
+      text: refreshing ? "Updating weather..." : weather.status === "ready" ? "Refresh weather" : "Retry weather",
+      attributes: { type: "button" }
+    });
+    refresh.disabled = refreshing;
+    refresh.addEventListener("click", onRefresh);
+    copy.push(refresh);
+  }
   return element("section", {
     className: `weather-card ${weather.status}`,
     attributes: {
@@ -1038,7 +1061,7 @@ function buildToday(model, actions, options) {
     const dashboard = presentation.dashboard;
     const companionCards = [
       buildNextCard(dashboard.next),
-      buildWeatherCard(dashboard.weather),
+      buildWeatherCard(dashboard.weather, actions.refreshWeather, options.weatherRefreshing),
       buildDutyCard(dashboard.duty)
     ].filter(Boolean);
     children.push(element("div", { className: "today-overview" }, [
@@ -1187,6 +1210,7 @@ function projectsRoute(actions) {
         actions.openAnnouncements
       )
     ]),
+    fidEntry(),
     replicaLessonChooser(actions),
     element("div", { className: "project-library" }, cards)
   ]);
@@ -1745,6 +1769,8 @@ export function renderApp(root, services = {}) {
   ).currentProject.number;
   let lastCompletion = null;
   let weather = { status: "unavailable", label: "Weather unavailable" };
+  let weatherRefreshing = false;
+  let lastWeatherAttempt = null;
   let previewToken = null;
   let previewOnly = recoveryStatus === "unrecoverable" || !state.plan;
   let configuredPreview = false;
@@ -2888,6 +2914,7 @@ export function renderApp(root, services = {}) {
       completeProject,
       undoCompletion,
       selectTeacher,
+      refreshWeather: () => refreshWeather({ force: true }),
       toggleTimeline,
       privateSeedMessage,
       projectView,
@@ -2908,6 +2935,7 @@ export function renderApp(root, services = {}) {
     }
     else if (route === "today") view = buildToday(model, actions, {
       timelineExpanded,
+      weatherRefreshing,
       artifactContext: teacherArtifactContext(model, projectView.currentProject.number)
     });
     else if (route === "board") {
@@ -3081,8 +3109,33 @@ export function renderApp(root, services = {}) {
       return seedResult;
     });
 
+  async function refreshWeather({ force = false } = {}) {
+    if (appDestroyed || weatherRefreshing || !weatherService?.load) return;
+    weatherRefreshing = true;
+    lastWeatherAttempt = now().getTime();
+    if (route === "today") render();
+    try {
+      const summary = await weatherService.load({ force });
+      if (!appDestroyed) weather = summary;
+    } catch {
+      if (!appDestroyed) weather = { status: "unavailable", label: "Weather unavailable" };
+    } finally {
+      weatherRefreshing = false;
+      if (!appDestroyed && route === "today") render();
+    }
+  }
+
+  function refreshWeatherIfDue() {
+    const refreshAfter = weather.status === "ready" ? 30 * 60 * 1000 : 60 * 1000;
+    if (document.visibilityState !== "hidden" &&
+        (lastWeatherAttempt === null || now().getTime() - lastWeatherAttempt >= refreshAfter)) {
+      void refreshWeather();
+    }
+  }
+
   const timer = window.setInterval(() => {
-    if (recoveryStatus === "unrecoverable") return;
+    if (appDestroyed || recoveryStatus === "unrecoverable") return;
+    refreshWeatherIfDue();
     const currentTime = now();
     const { runner } = reconcileRunner();
     const clockNode = root.querySelector("[data-live-clock]");
@@ -3096,29 +3149,21 @@ export function renderApp(root, services = {}) {
     const minuteKey = `${localDateKey(currentTime)}:${currentTime.getHours()}:${currentTime.getMinutes()}`;
     if (route === "experience-runner" || route === "project-student") {
       refreshRunnerView(runner);
-    } else if (!["crew-signup", "student-studio"].includes(route) && minuteKey !== lastRenderedMinute) render();
+    } else if (!["setup", "crew-signup", "student-studio"].includes(route) && minuteKey !== lastRenderedMinute) render();
   }, 1000);
 
   const handleVisibilityChange = () => {
     if (recoveryStatus === "unrecoverable") return;
     if (document.visibilityState !== "hidden") {
+      refreshWeatherIfDue();
       const { runner } = reconcileRunner();
       if (route === "experience-runner" || route === "project-student") refreshRunnerView(runner);
     }
   };
   document.addEventListener?.("visibilitychange", handleVisibilityChange);
-
-  if (weatherService?.load) {
-    Promise.resolve(weatherService.load())
-      .then((summary) => {
-        weather = summary;
-        if (route === "today") render();
-      })
-      .catch(() => {
-        weather = { status: "unavailable", label: "Weather unavailable" };
-        if (route === "today") render();
-      });
-  }
+  const handleOnline = () => { void refreshWeather({ force: true }); };
+  window.addEventListener?.("online", handleOnline);
+  void refreshWeather();
 
   return {
     navigate,
@@ -3132,6 +3177,7 @@ export function renderApp(root, services = {}) {
       runtime.destroy();
       window.clearInterval(timer);
       document.removeEventListener?.("visibilitychange", handleVisibilityChange);
+      window.removeEventListener?.("online", handleOnline);
       restoreAttributes(siteHeader, siteHeaderSnapshot);
       restoreAttributes(liveStatus, liveStatusSnapshot);
       if (liveStatus) liveStatus.textContent = "";

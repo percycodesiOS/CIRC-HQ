@@ -13,7 +13,7 @@
   --warning-border: #e8d8ae;
   --radius-large: 22px;
   --radius: 15px;
-  font-family: "Helvetica Neue", Arial, system-ui, sans-serif;
+  font-family: "Aptos", "Segoe UI", system-ui, sans-serif;
   color: var(--ink);
   background: var(--canvas);
 }
@@ -419,6 +419,17 @@ h2 { font-size: 1.15rem; }
   background: var(--surface);
 }
 
+.setup-email-auth { margin: 14px 0; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.setup-email-auth > summary { cursor: pointer; padding: 14px 16px; font-weight: 800; min-height: 44px; }
+.setup-email-auth > summary:focus-visible { outline: 3px solid var(--blue-dark); outline-offset: 3px; }
+.setup-email-form { padding: 0 16px 16px; }
+.setup-email-form h2 { font-size: 1.1rem; margin: 8px 0; }
+.setup-email-form input { box-sizing: border-box; display: block; width: 100%; min-height: 44px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: inherit; font: inherit; }
+.setup-email-form [hidden] { display: none; }
+.setup-email-hint { font-size: 0.85rem; }
+.setup-email-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.setup-email-actions button { min-height: 44px; }
+
 .setup-plan-summary,
 .setup-account-summary,
 .setup-complete-summary,
@@ -750,6 +761,17 @@ button:disabled {
   display: flex;
   min-width: 0;
   flex-direction: column;
+}
+
+.weather-refresh {
+  align-self: flex-start;
+  min-height: 44px;
+  max-width: 100%;
+  margin-top: 6px;
+  padding: 6px 8px;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  white-space: normal;
 }
 
 .weather-temp {
@@ -1371,7 +1393,7 @@ button:disabled {
   max-width: 7ch;
   margin-bottom: 10px;
   color: var(--heading);
-  font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  font-family: "Aptos Display", "Bahnschrift", "Segoe UI", sans-serif;
   font-size: clamp(3.7rem, 7vw, 5.8rem);
   font-weight: 950;
   line-height: 0.78;
@@ -4686,7 +4708,7 @@ button:disabled {
 /* Student production surface: public prompts, distinct from teacher backstage. */
 #app-main:has(> .student-studio) { width: min(100%, 1450px); }
 .student-studio { --studio-ink: #142c3b; --studio-lime: #d3f04a; max-width: 1380px; margin: 0 auto; padding: 24px 32px 40px; color: var(--studio-ink); font-family: "Aptos", "Segoe UI", system-ui, sans-serif; }
-.student-studio h1, .student-studio h2, .student-studio h3 { font-family: "Aptos Display", "Franklin Gothic Medium", "Arial Black", sans-serif; color: var(--studio-ink); }
+.student-studio h1, .student-studio h2, .student-studio h3 { font-family: "Aptos Display", "Franklin Gothic Medium", "Segoe UI", sans-serif; color: var(--studio-ink); }
 .student-studio-masthead { display: flex; align-items: center; gap: 16px; padding-bottom: 16px; border-bottom: 2px solid var(--studio-ink); }
 .student-studio-masthead p { margin: 0; font-weight: 800; letter-spacing: .02em; }
 .studio-view-label { color: #24433d; background: #e8f0e2; padding: 5px 8px; font-size: .68rem; font-weight: 850; letter-spacing: .08em; }
@@ -4708,7 +4730,7 @@ button:disabled {
 .student-studio-workspace { display: grid; grid-template-columns: minmax(240px, .8fr) minmax(0, 1.8fr); gap: 24px; align-items: start; }
 .studio-desk-tools { padding: 28px; border-top: 6px solid var(--studio-ink); background: #e8eff2; }
 .studio-desk-tools h2 { font-size: 1.85rem; line-height: 1.1; margin-bottom: 18px; letter-spacing: -.03em; }
-.studio-big-number { font-family: "Aptos Display", "Arial Black", sans-serif; font-size: 4.5rem; font-weight: 850; letter-spacing: -.06em; line-height: 1; margin-bottom: 8px; }
+.studio-big-number { font-family: "Aptos Display", "Segoe UI", sans-serif; font-size: 4.5rem; font-weight: 850; letter-spacing: -.06em; line-height: 1; margin-bottom: 8px; }
 .studio-shot-list { display: grid; gap: 12px; margin: 24px 0; }
 .studio-shot { display: flex; align-items: center; gap: 14px; padding: 16px 14px; background: #fff; border: 1px solid #becbd2; }
 .studio-shot > span { display: grid; place-items: center; min-width: 40px; height: 32px; border: 2px solid #69848c; color: #365965; font-weight: 800; font-size: .7rem; }
@@ -4816,3 +4838,16 @@ button:disabled {
   .studio-shot small { font-size: .75rem; }
   .studio-story-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Public FID entry, shared by the welcome screen and Playbooks. */
+.fid-home-entry { display:flex; align-items:center; justify-content:space-between; gap:26px; padding:26px 28px; margin:24px 0; background:#eaf4fb; border:1px solid #bdd9eb; border-left:5px solid #5e9bc4; border-radius:18px; font-family:"Aptos","Segoe UI",system-ui,sans-serif; }
+.fid-home-entry h2 { font-size:1.45rem; line-height:1.2; margin:4px 0 10px; }
+.fid-home-entry p { margin:0; max-width:660px; color:#395b71; }
+.fid-home-entry .eyebrow { font-size:.66rem; margin-bottom:9px; }
+.fid-open-link { display:inline-flex; align-items:center; justify-content:center; min-height:46px; padding:12px 20px; white-space:nowrap; text-decoration:none; color:#fff; background:#225f87; border-color:#225f87; }
+.fid-open-link:hover { color:#fff; background:#174c70; }
+.welcome-copy .fid-home-entry { display:block; padding:20px; margin:24px 0 0; }
+.welcome-copy .fid-home-entry h2 { font-size:1.1rem; }
+.welcome-copy .fid-home-entry p { font-size:.85rem; }
+.welcome-copy .fid-open-link { margin-top:15px; }
+@media(max-width:680px) { .fid-home-entry { align-items:stretch; flex-direction:column; padding:23px; gap:18px; } .fid-open-link { white-space:normal; } }

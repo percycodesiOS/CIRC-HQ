@@ -41,6 +41,8 @@ const PUBLIC_STATIC_FILES = new Set([
   "assets/icons/warning-circle.svg",
   "assets/morning-show-studio.png",
   "assets/tech-terrarium-hero.webp",
+  "fid.css",
+  "fid.html",
   "firebase-config.js",
   "index.html",
   "mission-control.html",
@@ -79,7 +81,8 @@ const PUBLIC_STATIC_FILES = new Set([
   "src/ui/setup.js",
   "src/ui/student-studio.js",
   "src/ui/today-ui.js",
-  "src/ui/view-model.js"
+  "src/ui/view-model.js",
+  "walkthrough.html"
 ]);
 
 export function getPublicStaticManifest() {

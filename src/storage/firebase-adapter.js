@@ -32,6 +32,9 @@ function lifecycleClient(status) {
       return () => {};
     },
     signInWithGoogle: unavailable,
+    signUpWithEmail: unavailable,
+    signInWithEmail: unavailable,
+    requestPasswordReset: unavailable,
     signOut: unavailable,
     loadPrivateDomains: async () => ({ status, domains: null, revisions: null, updatedAt: null }),
     savePrivateDomain: async () => ({ status, revision: null, value: null }),
@@ -49,7 +52,23 @@ function safeAuthFailureStatus(error) {
   if (code.includes("popup-blocked")) return "popup-blocked";
   if (code.includes("popup-closed-by-user") || code.includes("cancelled-popup-request")) return "popup-closed";
   if (code.includes("unauthorized-domain")) return "unauthorized-domain";
+  if (code.includes("operation-not-allowed")) return "provider-disabled";
+  if (code.includes("invalid-email")) return "invalid-email";
+  if (code.includes("email-already-in-use")) return "email-in-use";
+  if (code.includes("weak-password") || code.includes("password-does-not-meet-requirements")) return "weak-password";
+  if (code.includes("invalid-credential") || code.includes("wrong-password") || code.includes("user-not-found")) return "invalid-credentials";
+  if (code.includes("too-many-requests")) return "too-many-requests";
+  if (code.includes("user-disabled")) return "account-disabled";
   return safeCloudFailureStatus(error);
+}
+
+function emailCredentials(value, requirePassword = true) {
+  const email = typeof value?.email === "string" ? value.email.trim() : "";
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { status: "invalid-email" };
+  if (requirePassword && (typeof value?.password !== "string" || value.password.length === 0)) {
+    return { status: "invalid-credentials" };
+  }
+  return { email, ...(requirePassword ? { password: value.password } : {}) };
 }
 
 export function createFirebaseClient({ config = null, firebase = null, crypto = globalThis.crypto } = {}) {
@@ -57,6 +76,19 @@ export function createFirebaseClient({ config = null, firebase = null, crypto = 
   if (firebase === null || firebase === undefined) return lifecycleClient("cloud-blocked");
   const privateSync = createPrivateCloudSync(firebase);
   const roomSync = createRoomSyncClient({ firebase, crypto });
+
+  async function emailSignIn(method, value) {
+    const credentials = emailCredentials(value);
+    if (credentials.status) return { status: credentials.status };
+    if (method === "createUserWithEmailAndPassword" && credentials.password.length < 6) return { status: "weak-password" };
+    try {
+      await firebase[method](credentials.email, credentials.password);
+      // Identity and setup advancement still come only from observeAuth.
+      return { status: "pending" };
+    } catch (error) {
+      return { status: safeAuthFailureStatus(error) };
+    }
+  }
 
   return {
     status: "ready",
@@ -75,6 +107,20 @@ export function createFirebaseClient({ config = null, firebase = null, crypto = 
         await firebase.signInWithPopup();
         return { status: "pending" };
       } catch (error) {
+        return { status: safeAuthFailureStatus(error) };
+      }
+    },
+    signUpWithEmail: (value) => emailSignIn("createUserWithEmailAndPassword", value),
+    signInWithEmail: (value) => emailSignIn("signInWithEmailAndPassword", value),
+    async requestPasswordReset(value) {
+      const credentials = emailCredentials(value, false);
+      if (credentials.status) return { status: credentials.status };
+      try {
+        await firebase.sendPasswordResetEmail(credentials.email);
+        return { status: "reset-requested" };
+      } catch (error) {
+        // Do not reveal whether a reset address is registered.
+        if (error?.code === "auth/user-not-found") return { status: "reset-requested" };
         return { status: safeAuthFailureStatus(error) };
       }
     },
@@ -113,6 +159,9 @@ async function createBrowserFirebaseDependencies(config) {
     currentUser: () => auth.currentUser,
     observeAuth: (listener) => authModule.onAuthStateChanged(auth, listener, () => listener(null)),
     signInWithPopup: () => authModule.signInWithPopup(auth, new authModule.GoogleAuthProvider()),
+    createUserWithEmailAndPassword: (email, password) => authModule.createUserWithEmailAndPassword(auth, email, password),
+    signInWithEmailAndPassword: (email, password) => authModule.signInWithEmailAndPassword(auth, email, password),
+    sendPasswordResetEmail: (email) => authModule.sendPasswordResetEmail(auth, email),
     signOut: () => authModule.signOut(auth),
     serverTimestamp: () => firestoreModule.serverTimestamp(),
     async getDocument(path) {

@@ -3,6 +3,129 @@ import test from "node:test";
 
 import { renderApp, runnerStepIconFile } from "../src/app.js";
 import { CREW_SIGNUP_STORAGE_KEY } from "../src/model/crew-signup.js";
+import { createWeatherService } from "../src/services/weather.js";
+
+test("minute clock updates preserve an unfinished email signup form without storing credentials", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithoutPlan();
+  const saves = [];
+  let tick;
+  let currentTime = new Date("2026-09-11T08:00:00-04:00");
+  let controller;
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: callback => { tick = callback; return 1; }, clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  try {
+    controller = renderApp(root, {
+      store: { load: () => ({ state, error: null }), save: value => { saves.push(value); return value; } },
+      loadPrivateSeed: false, weatherService: {}, clock: { now: () => currentTime }
+    });
+    await controller.ready;
+    findAll(root, node => node.tagName === "button" && textOf(node) === "Sign in to sync")[0].click();
+    const details = findAll(root, node => node.tagName === "details")[0];
+    const email = findAll(root, node => node.attributes.get("id") === "circ-account-email")[0];
+    const password = findAll(root, node => node.attributes.get("id") === "circ-account-password")[0];
+    details.setAttribute("open", "");
+    email.value = "teacher@school.example";
+    password.value = "local-ui-fixture";
+    const savesBeforeTick = saves.length;
+    currentTime = new Date(currentTime.getTime() + 61_000);
+    tick();
+    assert.equal(findAll(root, node => node.tagName === "details")[0], details);
+    assert.equal(email.value, "teacher@school.example");
+    assert.equal(password.value, "local-ui-fixture");
+    assert.equal(saves.length, savesBeforeTick);
+    assert.doesNotMatch(JSON.stringify(saves), /teacher@school\.example|local-ui-fixture/);
+  } finally {
+    controller?.destroy();
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("weather recovers after startup failure, refreshes during the day and stops after destroy", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const state = stateWithActiveEvent("teach");
+  const listeners = new Map();
+  let tick;
+  let currentTime = new Date("2026-09-11T08:00:00-04:00");
+  let fail = true;
+  let calls = 0;
+  let controller;
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  globalThis.document = fakeDocument();
+  document.visibilityState = "visible";
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: callback => { tick = callback; return 1; }, clearInterval: () => {},
+    addEventListener: (type, callback) => listeners.set(type, callback),
+    removeEventListener: type => listeners.delete(type),
+    fetch: async () => ({ ok: false })
+  };
+  const weatherService = createWeatherService({
+    clock: { now: () => currentTime.getTime() },
+    fetchImpl: async () => {
+      calls += 1;
+      if (fail) throw new Error("offline");
+      return { ok: true, json: async () => ({ current: {
+        time: "2026-09-11T08:00", temperature_2m: 72, apparent_temperature: 70,
+        precipitation: 0, weather_code: 0, wind_speed_10m: 5
+      } }) };
+    }
+  });
+  try {
+    controller = renderApp(root, {
+      store: { load: () => ({ state, error: null }), save: value => value },
+      loadPrivateSeed: false, weatherService, clock: { now: () => currentTime }
+    });
+    await controller.ready;
+    await settle();
+    assert.match(textOf(root), /Weather unavailable/);
+    const retry = findAll(root, node => node.tagName === "button" && textOf(node) === "Retry weather")[0];
+    assert.ok(retry, "a failed startup request offers a retry without reloading the app");
+    retry.click();
+    await settle();
+    assert.match(textOf(root), /Weather unavailable/);
+    assert.equal(calls, 2);
+    fail = false;
+    currentTime = new Date(currentTime.getTime() + 61 * 1000);
+    tick();
+    await settle();
+    assert.match(textOf(root), /72°F/);
+    assert.equal(calls, 3);
+    findAll(root, node => node.tagName === "button" && textOf(node) === "Refresh weather")[0].click();
+    await settle();
+    assert.equal(calls, 4, "manual refresh bypasses the fresh cache");
+    currentTime = new Date(currentTime.getTime() + 31 * 60 * 1000);
+    fail = true;
+    tick();
+    await settle();
+    assert.match(textOf(root), /Updated earlier/);
+    assert.equal(calls, 5);
+    fail = false;
+    listeners.get("online")();
+    await settle();
+    assert.doesNotMatch(textOf(root), /Updated earlier/);
+    assert.equal(calls, 6);
+    controller.destroy();
+    document.dispatchEvent({ type: "visibilitychange" });
+    tick();
+    await settle();
+    assert.equal(calls, 6);
+    assert.equal(listeners.has("online"), false);
+  } finally {
+    controller?.destroy();
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
 
 test("Day 5 starts the vetted build and private crew sign-ups persist outside plans and student views", async () => {
   const previousDocument = globalThis.document;
@@ -560,6 +683,10 @@ test("a device without a plan starts on a calm teacher-first welcome", async () 
     assert.match(rendered, /Set up my schedule/);
     assert.match(rendered, /Sign in to sync/);
     assert.match(rendered, /Preview a lesson/);
+    const walkthrough = findAll(root, node => node.tagName === "a" && textOf(node) === "Complete first-use walkthrough")[0];
+    assert.equal(walkthrough?.getAttribute("href"), "walkthrough.html");
+    assert.equal(walkthrough?.getAttribute("target"), "_blank");
+    assert.equal(walkthrough?.getAttribute("rel"), "noopener");
     assert.doesNotMatch(rendered, /teacher-plan|JSON|setup progress|schema|migration/i);
     const makerImages = findAll(root, (node) =>
       node.tagName === "img" && node.getAttribute("src") === "assets/circ-hq-maker.webp"

@@ -1,6 +1,12 @@
 # Firebase activation gate
 
-CIRC HQ has a separate configured Firebase project, `circ-hq-k6-2026`, and uses Google popup sign-in when the release's Console and authorized-domain gates are complete. The public web configuration is client identification, not an administrator credential. It must not be reused by CyberGrader.
+CIRC HQ has a separate configured Firebase project, `circ-hq-k6-2026`, and supports Google popup sign-in and email/password accounts when the release's provider and authorized-domain gates are complete. The public web configuration is client identification, not an administrator credential. It must not be reused by CyberGrader.
+
+The email entry is **Sign up with any email**, beside the Google option. It accepts school or other email addresses without a Google account. **Create account with email** creates a CIRC HQ account with a separate password. **I already have a CIRC HQ account** switches to **Sign in with email**; **Forgot password** requests recovery instructions. Passwords are passed only to the authentication SDK, cleared from the form, and excluded from teaching state, setup models, and sync metadata. The authentication observer remains the source of account identity.
+
+Owner activation check: in Firebase Console, open **Authentication → Sign-in method → Email/Password** and verify the Email/Password provider is enabled. Email-link sign-in is not required for this flow. Firebase documents [email/password setup](https://firebase.google.com/docs/auth/web/password-auth) and [password reset](https://firebase.google.com/docs/auth/web/manage-users). If the provider is disabled, teachers receive plain guidance that email accounts are not enabled and local mode is still available. No real account creation or recovery email is required for local unit tests.
+
+September 11, 2026 owner action: the authorized coordinator enabled Email/Password in the configured live project, saved it, and re-read both **Email/Password: Enabled** and **Google: Enabled** with a success confirmation. Passwordless email-link sign-in remains off. No account was created, auth email sent, or private data uploaded. This verifies the provider setting only; the new email interface still awaits an authorized repository push and verified Pages deployment.
 
 Configuration in Git is not proof that Google Auth is enabled, Firestore exists in `nam5` production mode, rules are deployed, `percycodesios.github.io` is an authorized domain, Pages is live, or a private plan has been uploaded. Those remain Task 9 evidence gates. No Console action, rules deployment, hosting deployment, billing change, or private-data upload is claimed by this document.
 

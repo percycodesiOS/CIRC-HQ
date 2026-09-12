@@ -125,6 +125,9 @@ function actionsDouble(overrides = {}) {
   const calls = [];
   const actions = Object.fromEntries([
     "continueWithGoogle",
+    "signUpWithEmail",
+    "signInWithEmail",
+    "requestPasswordReset",
     "useAccount",
     "useDifferentAccount",
     "openSchedule",
@@ -231,6 +234,8 @@ test("pending account state does not imply authentication completion", () => {
   const continueButton = findAll(view, (node) => node.tagName === "button" && node.textContent === "Continue with Google")[0];
   assert.equal(continueButton.hasAttribute("disabled"), true);
   assert.match(textOf(view), /waiting for Google|observed/i);
+  assert.match(textOf(view), /Waiting for your account to finish signing in\./);
+  assert.doesNotMatch(textOf(view), /Firebase/);
 });
 
 test("missing schedule offers a plain language builder without a file picker", () => {
@@ -246,6 +251,63 @@ test("missing schedule offers a plain language builder without a file picker", (
   assert.deepEqual(calls, [["openSchedule"]]);
   assert.equal(findAll(view, (node) => node.tagName === "input" && node.getAttribute("type") === "file").length, 0);
   assert.doesNotMatch(textOf(view), /JSON|schema|migration/i);
+});
+
+test("email signup accepts school addresses, confirms passwords and clears secrets before calling the action", () => {
+  const { actions, calls } = actionsDouble();
+  const view = buildSetupView(model(), actions, { document: documentDouble });
+  assert.match(textOf(view), /Sign up with any email/);
+  assert.match(textOf(view), /school or any other email address/);
+  const field = (id) => findAll(view, (node) => node.getAttribute("id") === id)[0];
+  const email = field("circ-account-email");
+  const password = field("circ-account-password");
+  const confirmation = field("circ-account-confirmation");
+  const form = findAll(view, (node) => node.tagName === "form")[0];
+  email.value = "teacher@school.example";
+  password.value = "new-password";
+  confirmation.value = "different-password";
+  form.listeners.get("submit")({ preventDefault() {} });
+  assert.equal(calls.length, 0);
+  assert.match(textOf(view), /passwords do not match/);
+  confirmation.value = password.value;
+  form.listeners.get("submit")({ preventDefault() {} });
+  assert.deepEqual(calls, [["signUpWithEmail", { email: email.value, password: "new-password" }]]);
+  assert.equal(password.value, "");
+  assert.equal(confirmation.value, "");
+  assert.equal(email.getAttribute("type"), "email");
+  assert.equal(email.hasAttribute("pattern"), false);
+  assert.equal(password.getAttribute("autocomplete"), "new-password");
+});
+
+test("existing email sign-in and password reset remain distinct from account creation", () => {
+  const { actions, calls } = actionsDouble();
+  const view = buildSetupView(model(), actions, { document: documentDouble });
+  const fields = findAll(view, (node) => node.tagName === "input");
+  const [email, password, confirmation] = fields;
+  const buttons = findAll(view, (node) => node.tagName === "button");
+  buttons.find((node) => node.textContent === "I already have a CIRC HQ account").click();
+  assert.match(textOf(view), /Sign in with email/);
+  assert.equal(password.getAttribute("autocomplete"), "current-password");
+  assert.equal(password.hasAttribute("minlength"), false);
+  assert.equal(confirmation.hasAttribute("required"), false);
+  assert.equal(confirmation.hasAttribute("disabled"), true);
+  email.value = "teacher@district.example";
+  password.value = "existing-password";
+  findAll(view, (node) => node.tagName === "form")[0].listeners.get("submit")({ preventDefault() {} });
+  assert.deepEqual(calls[0], ["signInWithEmail", { email: email.value, password: "existing-password" }]);
+  password.value = "do-not-include-in-reset";
+  buttons.find((node) => node.textContent === "Forgot password").click();
+  assert.deepEqual(calls[1], ["requestPasswordReset", { email: email.value }]);
+  assert.equal(password.value, "");
+});
+
+test("pending email requests disable all credential controls and preserve the selected sign-in mode", () => {
+  const { actions } = actionsDouble();
+  const view = buildSetupView(model({ emailAuthMode: "sign-in", account: { status: "pending", displayName: null, maskedEmail: null } }), actions, { document: documentDouble });
+  const details = findAll(view, (node) => node.tagName === "details")[0];
+  assert.equal(details.hasAttribute("open"), true);
+  assert.match(textOf(details), /Sign in with email/);
+  for (const node of findAll(details, (node) => node.tagName === "button" || node.tagName === "input")) assert.equal(node.hasAttribute("disabled"), true);
 });
 
 test("schedule step summarizes a local preview and keeps it separate from cloud sync", () => {
@@ -429,4 +491,9 @@ test("setup view uses the authentic Tech Terrarium image and target classes", ()
   assert.match(view.className, /setup-view/);
   assert.equal(findAll(view, (node) => node.tagName === "ol" && node.className.includes("setup-rail")).length, 1);
   assert.equal(findAll(view, (node) => node.className.includes("setup-current-action")).length, 1);
+  const help = buildSetupHelpView(model(), actions, { document: documentDouble });
+  const walkthrough = findAll(help, node => node.tagName === "a" && node.textContent === "Complete first-use walkthrough")[0];
+  assert.equal(walkthrough?.getAttribute("href"), "walkthrough.html");
+  assert.equal(walkthrough?.getAttribute("target"), "_blank");
+  assert.equal(walkthrough?.getAttribute("rel"), "noopener");
 });

@@ -44,7 +44,8 @@ test("builds a complete printable project plan from approved project fields", ()
   assert.match(html, /^<!doctype html>/i);
   assert.match(html, /<html lang="en">/);
   assert.match(html, /<title>Project 2: Tech Terrarium<\/title>/);
-  assert.match(html, /font-family:\s*"Helvetica Neue",\s*Arial,\s*sans-serif/);
+  assert.match(html, /font-family:\s*"Aptos",\s*"Segoe UI",\s*system-ui,\s*sans-serif/);
+  assert.doesNotMatch(html, /Arial/);
 
   for (const expected of [
     "Project 2",

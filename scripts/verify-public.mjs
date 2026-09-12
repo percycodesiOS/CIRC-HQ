@@ -11,6 +11,10 @@ const LEGACY_NORMALIZED_SHA256 =
   "6E7FF5AA3B15A57A44F0D3351C6C6A5A3B3D14813E9B5616AF3D138C5E41B69F";
 const EXPECTED_ROOT_GITIGNORE = "/.superpowers/\n/.worktrees/\n/.firebase/\n/.firebaserc\n/firebase-debug.log\n/firestore-debug.log\n/ui-debug.log\n/node_modules/\n";
 const ALLOWED_UNTRACKED = new Set([
+  "walkthrough.html",
+  "fid.css",
+  "fid.html",
+  "tests/fid.test.mjs",
   "_config.yml",
   "design-qa.md",
   "assets/circ-hq-maker.webp",
@@ -121,6 +125,8 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "assets/icons/warning-circle.svg",
   "assets/morning-show-studio.png",
   "assets/tech-terrarium-hero.webp",
+  "fid.css",
+  "fid.html",
   "firebase-config.js",
   "index.html",
   "mission-control.html",
@@ -159,7 +165,8 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "src/ui/setup.js",
   "src/ui/student-studio.js",
   "src/ui/today-ui.js",
-  "src/ui/view-model.js"
+  "src/ui/view-model.js",
+  "walkthrough.html"
 ]);
 const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "_config.yml",
@@ -205,6 +212,7 @@ const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "tests/cloud-runtime.test.mjs",
   "tests/cloud-sync.test.mjs",
   "tests/dev-server.test.mjs",
+  "tests/fid.test.mjs",
   "tests/firestore-rules.test.mjs",
   "tests/firebase-adapter.test.mjs",
   "tests/room-sync.test.mjs",
@@ -772,6 +780,9 @@ export function countUnsafeRuntimeLinks(text) {
 
 function isPublicRuntimePath(relativePath) {
   return relativePath === "app.css" ||
+    relativePath === "walkthrough.html" ||
+    relativePath === "fid.css" ||
+    relativePath === "fid.html" ||
     relativePath === "index.html" ||
     relativePath === "mission-control.html" ||
     (relativePath.startsWith("assets/icons/") && relativePath.endsWith(".svg")) ||

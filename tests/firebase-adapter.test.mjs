@@ -59,8 +59,9 @@ test("browser client delegates pinned dependency loading to the injectable clien
   assert.equal(client.status, "ready");
   assert.equal("loadPrivateState" in client, false);
   assert.equal("savePrivateState" in client, false);
-  assert.equal("signInWithEmail" in client, false);
-  assert.equal("requestPasswordReset" in client, false);
+  assert.equal(typeof client.signUpWithEmail, "function");
+  assert.equal(typeof client.signInWithEmail, "function");
+  assert.equal(typeof client.requestPasswordReset, "function");
 });
 
 test("auth observation emits only normalized Firebase identity", () => {
@@ -84,6 +85,69 @@ test("auth observation emits only normalized Firebase identity", () => {
   }, null]);
   assert.equal(JSON.stringify(observed).includes("must-not-escape"), false);
   assert.equal(JSON.stringify(observed).includes("providerData"), false);
+});
+
+test("email signup and sign-in call distinct Firebase operations without returning credentials", async () => {
+  const firebase = firebaseDouble();
+  const calls = [];
+  for (const method of ["createUserWithEmailAndPassword", "signInWithEmailAndPassword"]) {
+    firebase[method] = async (...args) => { calls.push([method, ...args]); return { credential: "private-result" }; };
+  }
+  const client = firebaseAdapter.createFirebaseClient({ config: {}, firebase });
+  const credentials = { email: " teacher@school.example ", password: " separate-CIRC-password " };
+  assert.deepEqual(await client.signUpWithEmail(credentials), { status: "pending" });
+  assert.deepEqual(await client.signInWithEmail(credentials), { status: "pending" });
+  assert.deepEqual(calls, [
+    ["createUserWithEmailAndPassword", "teacher@school.example", credentials.password],
+    ["signInWithEmailAndPassword", "teacher@school.example", credentials.password]
+  ]);
+  assert.deepEqual(credentials, { email: " teacher@school.example ", password: " separate-CIRC-password " });
+});
+
+test("email validation rejects invalid fields without calling Firebase and preserves existing password sign-in", async () => {
+  const firebase = firebaseDouble();
+  let requests = 0;
+  firebase.createUserWithEmailAndPassword = firebase.signInWithEmailAndPassword = async () => { requests += 1; };
+  const client = firebaseAdapter.createFirebaseClient({ config: {}, firebase });
+  assert.deepEqual(await client.signUpWithEmail({ email: "not-an-email", password: "long-enough" }), { status: "invalid-email" });
+  assert.deepEqual(await client.signUpWithEmail({ email: "teacher@school.example", password: "short" }), { status: "weak-password" });
+  assert.deepEqual(await client.signInWithEmail({ email: "teacher@school.example", password: "" }), { status: "invalid-credentials" });
+  assert.equal(requests, 0);
+  assert.deepEqual(await client.signInWithEmail({ email: "teacher@school.example", password: "older" }), { status: "pending" });
+  assert.equal(requests, 1);
+});
+
+test("email failures identify provider and recovery states without exposing raw errors", async () => {
+  for (const [code, status] of [
+    ["auth/operation-not-allowed", "provider-disabled"],
+    ["auth/invalid-email", "invalid-email"],
+    ["auth/email-already-in-use", "email-in-use"],
+    ["auth/weak-password", "weak-password"],
+    ["auth/password-does-not-meet-requirements", "weak-password"],
+    ["auth/invalid-credential", "invalid-credentials"],
+    ["auth/wrong-password", "invalid-credentials"],
+    ["auth/user-not-found", "invalid-credentials"],
+    ["auth/too-many-requests", "too-many-requests"],
+    ["auth/user-disabled", "account-disabled"],
+    ["auth/network-request-failed", "offline"]
+  ]) {
+    const firebase = firebaseDouble();
+    firebase.signInWithEmailAndPassword = async () => { throw Object.assign(new Error("secret account details"), { code }); };
+    const client = firebaseAdapter.createFirebaseClient({ config: {}, firebase });
+    assert.deepEqual(await client.signInWithEmail({ email: "teacher@school.example", password: "test-password" }), { status });
+  }
+});
+
+test("password reset sends only the email and does not reveal an unregistered address", async () => {
+  const firebase = firebaseDouble();
+  const calls = [];
+  firebase.sendPasswordResetEmail = async (...args) => calls.push(args);
+  const client = firebaseAdapter.createFirebaseClient({ config: {}, firebase });
+  assert.deepEqual(await client.requestPasswordReset({ email: " teacher@school.example ", password: "must-not-send" }), { status: "reset-requested" });
+  assert.deepEqual(calls, [["teacher@school.example"]]);
+  firebase.sendPasswordResetEmail = async () => { throw Object.assign(new Error("raw email"), { code: "auth/user-not-found" }); };
+  assert.deepEqual(await client.requestPasswordReset({ email: "missing@school.example" }), { status: "reset-requested" });
+  assert.deepEqual(await firebaseAdapter.createFirebaseClient().signUpWithEmail({}), { status: "not-configured" });
 });
 
 test("Google sign-in uses one popup on desktop and mobile-shaped calls", async () => {

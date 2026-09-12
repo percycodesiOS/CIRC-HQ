@@ -90,7 +90,7 @@ export function buildAdminPlanDocument(project = {}) {
       margin: 0;
       color: #111111;
       background: #ffffff;
-      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-family: "Aptos", "Segoe UI", system-ui, sans-serif;
       font-size: 11pt;
       line-height: 1.45;
     }

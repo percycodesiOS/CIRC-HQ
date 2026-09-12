@@ -12,6 +12,9 @@ const SETUP_STEPS = Object.freeze([
 const STEP_IDS = new Set(SETUP_STEPS.map(([id]) => id));
 const ACTION_NAMES = Object.freeze([
   "continueWithGoogle",
+  "signUpWithEmail",
+  "signInWithEmail",
+  "requestPasswordReset",
   "useAccount",
   "useDifferentAccount",
   "openSchedule",
@@ -337,6 +340,89 @@ function runRoomCreation(documentRef, actions, statusNode) {
   }
 }
 
+function emailAccountForm(documentRef, model, actions) {
+  const pending = model.account?.status === "pending";
+  let signingUp = model.emailAuthMode !== "sign-in";
+  const details = element(documentRef, "details", {
+    className: "setup-email-auth",
+    attributes: model.emailAuthMode ? { open: "" } : {}
+  });
+  const title = element(documentRef, "h2");
+  const email = element(documentRef, "input", { attributes: {
+    id: "circ-account-email", name: "email", type: "email", autocomplete: "email",
+    autocapitalize: "none", spellcheck: "false", required: "", maxlength: "254", ...(pending ? { disabled: "" } : {})
+  } });
+  const password = element(documentRef, "input", { attributes: {
+    id: "circ-account-password", name: "password", type: "password", required: "",
+    ...(pending ? { disabled: "" } : {})
+  } });
+  const confirmation = element(documentRef, "input", { attributes: {
+    id: "circ-account-confirmation", name: "password-confirmation", type: "password", autocomplete: "new-password",
+    ...(pending ? { disabled: "" } : {})
+  } });
+  const confirmationField = element(documentRef, "div", {}, [
+    element(documentRef, "label", { text: "Confirm CIRC HQ password", attributes: { for: "circ-account-confirmation" } }), confirmation
+  ]);
+  const submit = element(documentRef, "button", { className: "primary-action", attributes: { type: "submit", ...(pending ? { disabled: "" } : {}) } });
+  const status = statusRegion(documentRef, "");
+  const switchMode = button(documentRef, "", "secondary-action", () => {
+    signingUp = !signingUp;
+    password.value = "";
+    confirmation.value = "";
+    status.textContent = "";
+    updateMode();
+  }, pending ? { disabled: "" } : {});
+  function updateMode() {
+    title.textContent = signingUp ? "Create your CIRC HQ account" : "Sign in to your CIRC HQ account";
+    submit.textContent = signingUp ? "Create account with email" : "Sign in with email";
+    switchMode.textContent = signingUp ? "I already have a CIRC HQ account" : "Create a CIRC HQ account";
+    password.setAttribute("autocomplete", signingUp ? "new-password" : "current-password");
+    if (signingUp) {
+      password.setAttribute("minlength", "6");
+      confirmation.setAttribute("required", "");
+      if (!pending) confirmation.removeAttribute("disabled");
+      confirmationField.removeAttribute("hidden");
+    } else {
+      password.removeAttribute("minlength");
+      confirmation.removeAttribute("required");
+      confirmation.setAttribute("disabled", "");
+      confirmationField.setAttribute("hidden", "");
+    }
+  }
+  updateMode();
+  const reset = button(documentRef, "Forgot password", "secondary-action", () => {
+    if (typeof email.reportValidity === "function" && !email.reportValidity()) return;
+    const address = email.value;
+    password.value = "";
+    confirmation.value = "";
+    actions.requestPasswordReset({ email: address });
+  }, pending ? { disabled: "" } : {});
+  const form = element(documentRef, "form", { className: "setup-email-form" }, [
+    title,
+    element(documentRef, "p", { text: "Use your school or any other email address. Choose a separate CIRC HQ password; a Google account is not required." }),
+    element(documentRef, "label", { text: "Email address", attributes: { for: "circ-account-email" } }), email,
+    element(documentRef, "label", { text: "CIRC HQ password", attributes: { for: "circ-account-password" } }), password,
+    element(documentRef, "p", { className: "setup-email-hint", text: "New passwords need at least 6 characters." }),
+    confirmationField, status,
+    element(documentRef, "div", { className: "setup-email-actions" }, [submit, switchMode, reset])
+  ]);
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (pending) return;
+    if (signingUp && password.value !== confirmation.value) {
+      status.textContent = "The passwords do not match. Re-enter them before creating the account.";
+      confirmation.focus();
+      return;
+    }
+    const credentials = { email: email.value, password: password.value };
+    password.value = "";
+    confirmation.value = "";
+    (signingUp ? actions.signUpWithEmail : actions.signInWithEmail)(credentials);
+  });
+  details.append(element(documentRef, "summary", { text: "Sign up with any email" }), form);
+  return details;
+}
+
 function accountStep(documentRef, model, actions) {
   const children = [
     element(documentRef, "h1", { text: "Get CIRC HQ ready" }),
@@ -345,13 +431,14 @@ function accountStep(documentRef, model, actions) {
     })
   ];
   if (model.account?.status === "pending") {
-    children.push(statusRegion(documentRef, "Waiting for Google to confirm the signed-in account."));
+    children.push(statusRegion(documentRef, model.emailAuthMode ? "Waiting for the email account request to finish." : "Waiting for Google to confirm the signed-in account."));
   }
   const pending = model.account?.status === "pending";
   children.push(button(documentRef, "Continue with Google", "primary-action setup-primary-action", actions.continueWithGoogle, pending ? { disabled: "" } : {}));
+  children.push(emailAccountForm(documentRef, model, actions));
   children.push(element(documentRef, "p", {
     className: "setup-disabled-explanation",
-    text: pending ? "The account will remain pending until Firebase reports the signed-in teacher." : ""
+    text: pending ? "Waiting for your account to finish signing in." : ""
   }));
   children.push(button(documentRef, "Explore a temporary demo", "secondary-action", actions.exploreDemo));
   children.push(element(documentRef, "p", { className: "setup-demo-boundary", text: "Nothing in this demo is saved or synced." }));
@@ -364,7 +451,7 @@ function teacherStep(documentRef, model, actions) {
     element(documentRef, "h1", { text: "Confirm your teacher account" }),
     element(documentRef, "p", { text: "This signed-in account owns only that teacher's private CIRC data." }),
     element(documentRef, "dl", { className: "setup-account-summary" }, [
-      summaryRow(documentRef, "Google account", account?.displayName),
+      summaryRow(documentRef, "Teacher account", account?.displayName ?? "Email account"),
       summaryRow(documentRef, "Email", account?.maskedEmail)
     ]),
     button(documentRef, "Use this account", "primary-action setup-primary-action", actions.useAccount,
@@ -501,6 +588,7 @@ function setupHelp(documentRef, model, actions) {
   const planConflict = model.sync.conflictDomains.includes("plan");
   const children = [
     element(documentRef, "h1", { text: "Setup help" }),
+    element(documentRef, "a", { className: "button-link", text: "Complete first-use walkthrough", attributes: { href: "walkthrough.html", target: "_blank", rel: "noopener" } }),
     element(documentRef, "p", { text: "CIRC HQ keeps the teacher plan private, shares only selected room artifacts, and preserves a local recovery path." }),
     element(documentRef, "dl", { className: "setup-help-summary" }, [
       summaryRow(documentRef, "Signed-in teacher", model.account?.displayName),
@@ -535,6 +623,8 @@ function setupHelp(documentRef, model, actions) {
     element(documentRef, "h2", { text: "If setup is interrupted" }),
     element(documentRef, "p", { text: "Keep teaching locally while offline, preserve the local backup, and return to the current setup step when the account or network is ready." }),
     element(documentRef, "p", { text: "If Google sign-in is blocked, allow pop-ups for this site and try again from the Continue with Google button." }),
+    element(documentRef, "p", { text: "To use a school or other email address, choose Sign up with any email. Create a CIRC HQ account with a separate password, or choose I already have a CIRC HQ account to sign in. Forgot password sends recovery instructions to your account email." }),
+    element(documentRef, "p", { text: "Site owner: if email accounts are not enabled, check Email/Password under Firebase Authentication sign-in methods before inviting teachers to use email signup." }),
     element(documentRef, "p", { text: "If an invitation expired or was already used, ask the room owner for a new one-time invitation." }),
     element(documentRef, "p", { text: "If access is denied or a plan conflicts, keep the local backup and use the recovery choice shown here before syncing again." })
   ];

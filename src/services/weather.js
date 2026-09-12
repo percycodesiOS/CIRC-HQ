@@ -163,6 +163,7 @@ function requestUrl() {
   );
   url.searchParams.set("temperature_unit", "fahrenheit");
   url.searchParams.set("wind_speed_unit", "mph");
+  url.searchParams.set("precipitation_unit", "inch");
   url.searchParams.set("timezone", "America/New_York");
   url.searchParams.set("forecast_days", "1");
   return url.toString();
@@ -180,26 +181,40 @@ function staleSummary(summary) {
 
 export function createWeatherService({
   fetchImpl = globalThis.fetch,
-  clock = { now: () => Date.now() }
+  clock = { now: () => Date.now() },
+  timeoutMilliseconds = 10000
 } = {}) {
   let cache = null;
+  let pending = null;
 
   return {
-    async load() {
+    async load({ force = false } = {}) {
+      if (pending) return structuredClone(await pending);
       const currentTime = clock.now();
-      if (cache && currentTime - cache.savedAt < CACHE_MILLISECONDS) {
+      if (!force && cache && currentTime - cache.savedAt < CACHE_MILLISECONDS) {
         return structuredClone(cache.summary);
       }
+      pending = (async () => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMilliseconds);
+        try {
+          if (typeof fetchImpl !== "function") throw new Error("fetch unavailable");
+          const response = await fetchImpl(requestUrl(), { signal: controller.signal });
+          if (!response?.ok) throw new Error("weather request failed");
+          const summary = getWeatherSummary(await response.json());
+          if (summary.status !== "ready") throw new Error("weather response incomplete");
+          cache = { savedAt: clock.now(), summary: structuredClone(summary) };
+          return summary;
+        } catch {
+          return cache ? staleSummary(cache.summary) : unavailableSummary();
+        } finally {
+          clearTimeout(timer);
+        }
+      })();
       try {
-        if (typeof fetchImpl !== "function") throw new Error("fetch unavailable");
-        const response = await fetchImpl(requestUrl());
-        if (!response?.ok) throw new Error("weather request failed");
-        const summary = getWeatherSummary(await response.json());
-        if (summary.status !== "ready") throw new Error("weather response incomplete");
-        cache = { savedAt: currentTime, summary: structuredClone(summary) };
-        return structuredClone(summary);
-      } catch {
-        return cache ? staleSummary(cache.summary) : unavailableSummary();
+        return structuredClone(await pending);
+      } finally {
+        pending = null;
       }
     }
   };

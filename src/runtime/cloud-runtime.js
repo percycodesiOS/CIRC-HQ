@@ -139,6 +139,20 @@ function authFailureCopy(status) {
   }[status] ?? "Google sign-in could not start. Try again or open Setup help.";
 }
 
+function emailAuthFailureCopy(status) {
+  return {
+    "invalid-email": "Enter a complete email address. A school or other email address is welcome.",
+    "invalid-credentials": "The email and password could not be used to sign in. Check them, or choose Forgot password.",
+    "email-in-use": "That account could not be created. If you already have a CIRC HQ account, sign in or choose Forgot password.",
+    "weak-password": "Choose a stronger CIRC HQ password with at least 6 characters. The account service may require additional characters.",
+    "provider-disabled": "Email accounts are not enabled for CIRC HQ yet. You can still use local mode. Ask the site owner for help.",
+    "too-many-requests": "Too many attempts. Wait a little before trying again.",
+    "account-disabled": "This account cannot sign in. Contact the site owner for help.",
+    "unauthorized-domain": "Email sign-in is not enabled for this CIRC HQ address. Keep using local mode and ask the site owner to check the authorized domain.",
+    offline: "You appear to be offline. Keep teaching from this device and try email sign-in again when connected."
+  }[status] ?? "Email sign-in could not finish. Try again or open Setup help.";
+}
+
 function inviteFailureCopy(status) {
   return {
     "not-found": "That invitation was not found. Ask the room owner for a new one-time invitation.",
@@ -172,6 +186,7 @@ export function createCloudRuntimeController({
   let connectionId = 0;
   let observedUser = null;
   let accountStatus = "signed-out";
+  let emailAuthMode = null;
   let current = "account";
   let mode = "setup";
   let notice = null;
@@ -323,6 +338,7 @@ export function createCloudRuntimeController({
       current,
       completed: completedSteps(),
       account,
+      emailAuthMode,
       plan: currentPlanSummary(),
       room: {
         ...clone(roomPresentation),
@@ -722,6 +738,8 @@ export function createCloudRuntimeController({
   }
 
   function continueWithGoogle() {
+    if (accountStatus === "pending") return Promise.resolve({ status: "pending" });
+    emailAuthMode = null;
     if (!client || client.status !== "ready" || typeof client.signInWithGoogle !== "function") {
       setNotice("warning", "Google sign-in is still getting ready. Try again in a moment.");
       render();
@@ -756,6 +774,42 @@ export function createCloudRuntimeController({
       }
       return { status: "denied" };
     });
+  }
+
+  async function emailAccountAction(method, credentials) {
+    if (accountStatus === "pending") return { status: "pending" };
+    emailAuthMode = method === "signUpWithEmail" ? "sign-up" : "sign-in";
+    if (!client || client.status !== "ready" || typeof client[method] !== "function") {
+      setNotice("warning", "Email sign-in is still getting ready. Try again in a moment.");
+      render();
+      return { status: "not-ready" };
+    }
+    const tokenGeneration = generation;
+    const tokenUid = observedUser?.uid ?? null;
+    const resetting = method === "requestPasswordReset";
+    accountStatus = "pending";
+    setNotice("status", resetting ? "Requesting password reset instructions." : "Waiting for the account service to confirm your email account.");
+    let request;
+    try {
+      request = client[method](credentials);
+    } catch {
+      request = Promise.resolve({ status: "denied" });
+    }
+    // Credentials stay in the request only, never the setup model or local store.
+    credentials = null;
+    render();
+    const outcome = await Promise.resolve(request).catch(() => ({ status: "denied" }));
+    if (!sameIdentityContext(tokenGeneration, tokenUid)) return outcome;
+    if (resetting || outcome?.status !== "pending") {
+      accountStatus = observedUser ? "observed" : "signed-out";
+      if (resetting && outcome?.status === "reset-requested") {
+        setNotice("status", "If an account uses that email address, password reset instructions are on their way. Check your inbox and spam folder.");
+      } else {
+        setNotice("error", emailAuthFailureCopy(outcome?.status));
+      }
+      render();
+    }
+    return outcome;
   }
 
   async function useAccount() {
@@ -1366,6 +1420,9 @@ export function createCloudRuntimeController({
   function getSetupActions() {
     return {
       continueWithGoogle,
+      signUpWithEmail: (credentials) => emailAccountAction("signUpWithEmail", credentials),
+      signInWithEmail: (credentials) => emailAccountAction("signInWithEmail", credentials),
+      requestPasswordReset: (credentials) => emailAccountAction("requestPasswordReset", credentials),
       useAccount,
       useDifferentAccount: signOut,
       choosePlanFile,

@@ -1,5 +1,13 @@
 # CIRC HQ - BUILDLOG
 
+## 2026-09-11 flexible instruction day activities prepared locally
+
+- Added a separate student-facing FID page with four complete grades 5-6 challenges: redesign an everyday thing, debug a doodle bot, explore patterns, and tell a three-part story. Every challenge includes three steps, a finish check, an optional extension, and an equal think-or-say route without required supplies.
+- Added entry links from the welcome screen and Playbooks. The page uses no JavaScript, account, teacher schedule, student-data collection, submission, or live meeting link. Optional teacher facilitation supplies a short launch, quiet try, voluntary share, and revision routine.
+- Matched the existing light blue visual identity with Aptos and Segoe typography. Added mobile, keyboard-focus, reduced-motion, and print layouts. Replaced remaining Arial fallback declarations with the same app typography.
+- Updated the explicit local-server and public-file allowlists and their tests. All 16 verification gates pass. Isolated browser review at 1440 by 1000 and 390 by 844 confirmed working activity links and extensions, zero horizontal overflow or script errors, and all four activities and 12 steps with JavaScript disabled.
+- This entry records local preparation only. No push, deployment, school sign-in, schedule save, cloud configuration, or private-data upload was performed.
+
 ## 2026-09-09 separate resin unit and corrected program scale
 
 - Separated the resin chooser from the Tech Terrarium school-model lessons while preserving saved mode IDs, timers and reset behavior.

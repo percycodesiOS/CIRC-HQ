@@ -119,6 +119,7 @@ test("builds the exact local forecast request and caches success for 30 minutes"
   );
   assert.equal(url.searchParams.get("temperature_unit"), "fahrenheit");
   assert.equal(url.searchParams.get("wind_speed_unit"), "mph");
+  assert.equal(url.searchParams.get("precipitation_unit"), "inch");
   assert.equal(url.searchParams.get("timezone"), "America/New_York");
   assert.equal(url.searchParams.get("forecast_days"), "1");
 });
@@ -157,4 +158,42 @@ test("network failure returns the last successful value marked stale", async () 
   assert.equal(stale.stale, true);
   assert.equal(stale.label, "58°F, feels 56°F (stale)");
   assert.match(stale.detail, /Last available forecast/);
+});
+
+test("manual refresh bypasses a fresh cache and shares an in-flight request", async () => {
+  let calls = 0;
+  let release;
+  const service = createWeatherService({
+    fetchImpl: async () => {
+      calls += 1;
+      if (calls > 1) await new Promise(resolve => { release = resolve; });
+      return { ok: true, json: async () => validPayload() };
+    }
+  });
+  await service.load();
+  const first = service.load({ force: true });
+  const second = service.load({ force: true });
+  assert.equal(calls, 2);
+  release();
+  assert.equal((await first).status, "ready");
+  assert.equal((await second).status, "ready");
+});
+
+test("a stalled request times out and a later retry can recover", async () => {
+  let attempts = 0;
+  let aborted = false;
+  const service = createWeatherService({
+    timeoutMilliseconds: 5,
+    fetchImpl: async (_url, { signal }) => {
+      attempts += 1;
+      if (attempts > 1) return { ok: true, json: async () => validPayload() };
+      return new Promise((_resolve, reject) => signal.addEventListener("abort", () => {
+        aborted = true;
+        reject(new Error("timeout"));
+      }));
+    }
+  });
+  assert.equal((await service.load()).status, "unavailable");
+  assert.equal(aborted, true);
+  assert.equal((await service.load()).status, "ready");
 });

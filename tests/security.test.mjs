@@ -383,6 +383,8 @@ test("public server manifest is an exact reviewed allowlist", () => {
     "assets/icons/warning-circle.svg",
     "assets/morning-show-studio.png",
   "assets/tech-terrarium-hero.webp",
+    "fid.css",
+    "fid.html",
     "firebase-config.js",
     "index.html",
     "mission-control.html",
@@ -421,7 +423,8 @@ test("public server manifest is an exact reviewed allowlist", () => {
     "src/ui/setup.js",
   "src/ui/student-studio.js",
     "src/ui/today-ui.js",
-    "src/ui/view-model.js"
+    "src/ui/view-model.js",
+    "walkthrough.html"
   ]);
 });
 
@@ -1216,11 +1219,15 @@ test("Firebase client exposes no whole-state or credential surface", () => {
   for (const obsolete of [
     "loadPrivateState",
     "savePrivateState",
-    "signInWithEmail",
     "createEmailAccount",
-    "requestPasswordReset"
+    "credentials",
+    "password",
+    "accessToken"
   ]) {
     assert.equal(obsolete in client, false, obsolete);
+  }
+  for (const action of ["signUpWithEmail", "signInWithEmail", "requestPasswordReset"]) {
+    assert.equal(typeof client[action], "function", action);
   }
 });
 

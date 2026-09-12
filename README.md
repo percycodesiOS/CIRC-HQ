@@ -30,6 +30,10 @@ The welcome screen also offers two optional paths:
 
 ## Five main destinations
 
+**FID activities** are also available from the welcome screen and **Playbooks > Open FID activities**. The separate `fid.html` page opens in a new tab and contains four complete, independent Grades 5-6 challenges: redesign an everyday thing, debug the doodle bot, be a pattern detective, and tell a three-part story. Each has three steps, a finish check, an optional extension, and an equally valid think/say path. Ordinary paper or objects are optional. No previous lesson, live meeting, account, camera, upload, printer, or adult helper is required. Optional teacher facilitation is included without a meeting link.
+
+The FID page loads no teacher app scripts, private schedules, cloud clients, or student storage. Its directions are ordinary HTML and work without JavaScript. It does not submit work or establish attendance/assignment completion. Teachers supply any usual assignment and return directions separately. This addition is prepared locally; it is not described as live until a separately authorized release is verified.
+
 - **Today** shows what is happening now, what comes next, the active duty warning, and the current lesson launcher.
 - **Playbooks** opens the 36 reviewed experiences and their teacher plans.
 - **Schedule** opens the ordinary five-day schedule editor.
@@ -118,9 +122,9 @@ The **Special events** section holds the confirmed lunch line and any approved s
 
 ## Private sync and Room are optional
 
-CIRC HQ remains usable locally without an account. Private sync is optional. It begins only after explicit Google sign-in, and an explicit cloud write is required before private schedule data is uploaded.
+CIRC HQ remains usable locally without an account. Private sync is optional. Setup offers **Continue with Google** and **Sign up with any email**. The email option creates a CIRC HQ account using a school or other email address and a separate CIRC HQ password. Existing teachers choose **I already have a CIRC HQ account** to sign in; **Forgot password** requests recovery instructions. Email/Password must be enabled in the configured Firebase project's Authentication settings before the email flow can work in a deployed release. See [the activation gate](docs/FIREBASE-ACTIVATION-GATE.md). Signing in still requires teacher confirmation, and **Upload and verify** remains the explicit gate before private schedule data is uploaded.
 
-Each authenticated teacher has a UID-scoped private cloud namespace. Teachers sign in separately, and each teacher retains a separate private schedule and progress record. A failed or blocked sign-in does not erase the usable local schedule.
+Private sync begins only after explicit Google sign-in or email/password sign-in and teacher confirmation. An explicit cloud write through **Upload and verify** is still required before any private schedule upload. Each authenticated teacher has a UID-scoped private cloud namespace. Teachers sign in separately, and each teacher retains a separate private schedule and progress record. A failed or blocked sign-in does not erase the usable local schedule.
 
 Room is optional. Shared room artifacts and room progress are available only to trusted members of the selected room. Joining or creating a room is not required to build a schedule, open Today, browse Playbooks, or run a class.
 
