@@ -689,7 +689,7 @@ test("a device without a plan starts on a calm teacher-first welcome", async () 
     assert.equal(walkthrough?.getAttribute("rel"), "noopener");
     assert.doesNotMatch(rendered, /teacher-plan|JSON|setup progress|schema|migration/i);
     const makerImages = findAll(root, (node) =>
-      node.tagName === "img" && node.getAttribute("src") === "assets/circ-hq-maker.webp"
+      node.tagName === "img" && node.getAttribute("src") === "assets/tech-terrarium-hero.webp"
     );
     assert.equal(makerImages.length, 1);
     assert.equal(controller.previewOnly, true);

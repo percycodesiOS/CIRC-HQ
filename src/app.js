@@ -262,10 +262,10 @@ function welcomeRoute(actions) {
     element("img", {
       className: "welcome-maker",
       attributes: {
-        src: "assets/circ-hq-maker.webp",
-        alt: "An open playbook growing into colorful maker tools, nature, water, circuitry, and a friendly gear",
-        width: "1254",
-        height: "1254"
+        src: "assets/tech-terrarium-hero.webp",
+        alt: "Technology terrarium with rocks, plants, tools, and electronic parts",
+        width: "1400",
+        height: "875"
       }
     }),
     element("div", { className: "welcome-copy" }, [
