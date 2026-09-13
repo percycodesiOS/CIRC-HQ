@@ -65,6 +65,7 @@ async function withServer(context) {
     writeFixture(root, "src/ui/view-model.js", "GENERIC_VIEW_MODEL"),
     writeFixture(root, "assets/circ-hq-maker.webp", "GENERIC_MAKER_IMAGE"),
     writeFixture(root, "assets/tech-terrarium-hero.webp", "GENERIC_HERO_IMAGE"),
+    writeFixture(root, "assets/tech-terrarium-maker-scene.jpg", "GENERIC_MAKER_SCENE"),
     writeFixture(root, "assets/icons/house.svg", "GENERIC_HOUSE_ICON"),
     writeFixture(root, ".superpowers/private/generic.json", "GENERIC_IGNORED_PRIVATE"),
     writeFixture(root, ".superpowers/sdd/generic-report.md", "GENERIC_INTERNAL_REPORT"),
@@ -167,6 +168,7 @@ test("the real dev server serves only the explicit public runtime allowlist", as
     ["/src/ui/view-model.js", "GENERIC_VIEW_MODEL"],
     ["/assets/circ-hq-maker.webp", "GENERIC_MAKER_IMAGE"],
     ["/assets/tech-terrarium-hero.webp", "GENERIC_HERO_IMAGE"],
+    ["/assets/tech-terrarium-maker-scene.jpg", "GENERIC_MAKER_SCENE"],
     ["/assets/icons/house.svg", "GENERIC_HOUSE_ICON"]
   ]) {
     const response = await request(pathname);
@@ -176,6 +178,7 @@ test("the real dev server serves only the explicit public runtime allowlist", as
 
   assert.equal((await request("/assets/circ-hq-maker.webp")).contentType, "image/webp");
   assert.equal((await request("/assets/tech-terrarium-hero.webp")).contentType, "image/webp");
+  assert.equal((await request("/assets/tech-terrarium-maker-scene.jpg")).contentType, "image/jpeg");
   assert.equal((await request("/assets/icons/house.svg")).contentType, "image/svg+xml; charset=utf-8");
 
   for (const pathname of [

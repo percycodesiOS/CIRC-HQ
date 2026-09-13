@@ -689,9 +689,12 @@ test("a device without a plan starts on a calm teacher-first welcome", async () 
     assert.equal(walkthrough?.getAttribute("rel"), "noopener");
     assert.doesNotMatch(rendered, /teacher-plan|JSON|setup progress|schema|migration/i);
     const makerImages = findAll(root, (node) =>
-      node.tagName === "img" && node.getAttribute("src") === "assets/tech-terrarium-hero.webp"
+      node.tagName === "img" && node.getAttribute("src") === "assets/tech-terrarium-maker-scene.jpg"
     );
     assert.equal(makerImages.length, 1);
+    const fidLink = findAll(root, node => node.tagName === "a" && textOf(node) === "Open FID activities")[0];
+    assert.equal(fidLink?.getAttribute("href"), "fid.html");
+    assert.match(rendered, /Flexible Instruction Day/);
     assert.equal(controller.previewOnly, true);
     assert.equal(findAll(root, (node) => node.tagName === "input").length, 0);
     controller.destroy();

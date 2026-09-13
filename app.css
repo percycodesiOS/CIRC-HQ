@@ -4840,14 +4840,57 @@ button:disabled {
 }
 
 /* Public FID entry, shared by the welcome screen and Playbooks. */
-.fid-home-entry { display:flex; align-items:center; justify-content:space-between; gap:26px; padding:26px 28px; margin:24px 0; background:#eaf4fb; border:1px solid #bdd9eb; border-left:5px solid #5e9bc4; border-radius:18px; font-family:"Aptos","Segoe UI",system-ui,sans-serif; }
-.fid-home-entry h2 { font-size:1.45rem; line-height:1.2; margin:4px 0 10px; }
-.fid-home-entry p { margin:0; max-width:660px; color:#395b71; }
-.fid-home-entry .eyebrow { font-size:.66rem; margin-bottom:9px; }
+.fid-home-entry { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 18px; margin:18px 0; background:#eaf4fb; border:1px solid #bdd9eb; border-left:5px solid #5e9bc4; border-radius:14px; font-family:"Aptos","Segoe UI",system-ui,sans-serif; }
+.fid-home-entry h2 { font-size:1.05rem; line-height:1.25; margin:0 0 4px; }
+.fid-home-entry p { margin:0; max-width:660px; font-size:.9rem; color:#395b71; }
 .fid-open-link { display:inline-flex; align-items:center; justify-content:center; min-height:46px; padding:12px 20px; white-space:nowrap; text-decoration:none; color:#fff; background:#225f87; border-color:#225f87; }
 .fid-open-link:hover { color:#fff; background:#174c70; }
-.welcome-copy .fid-home-entry { display:block; padding:20px; margin:24px 0 0; }
-.welcome-copy .fid-home-entry h2 { font-size:1.1rem; }
-.welcome-copy .fid-home-entry p { font-size:.85rem; }
-.welcome-copy .fid-open-link { margin-top:15px; }
-@media(max-width:680px) { .fid-home-entry { align-items:stretch; flex-direction:column; padding:23px; gap:18px; } .fid-open-link { white-space:normal; } }
+@media(max-width:680px) { .fid-home-entry { align-items:stretch; flex-direction:column; padding:14px; gap:10px; } .fid-open-link { white-space:normal; } }
+
+/* Reuse the complete classroom illustration, with directions below the artwork. */
+.welcome-view.welcome-terrarium {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "art" "copy" "fid";
+  gap: 24px;
+}
+.welcome-terrarium .welcome-maker {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  border-radius: 18px;
+  object-fit: contain;
+}
+.welcome-terrarium > .fid-home-entry { grid-area: fid; margin: 0; }
+.project-hero.project-hero-terrarium { min-height: 0; }
+.project-hero-terrarium .project-hero-art {
+  display: block;
+  position: static;
+  z-index: auto;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+.project-hero-terrarium .project-hero-copy {
+  width: auto;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.project-hero-terrarium .project-quick-actions {
+  position: static;
+  flex-wrap: wrap;
+  padding: 0 24px 24px;
+}
+.runner-focus-art.terrarium-maker-scene,
+.runner-student-art.terrarium-maker-scene {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  aspect-ratio: 1942 / 809;
+  align-self: start;
+  object-fit: contain;
+}

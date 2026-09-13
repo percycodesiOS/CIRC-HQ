@@ -41,6 +41,7 @@ const ALLOWED_UNTRACKED = new Set([
   "assets/icons/warning-circle.svg",
   "assets/morning-show-studio.png",
   "assets/tech-terrarium-hero.webp",
+  "assets/tech-terrarium-maker-scene.jpg",
   "firebase-config.js",
   "src/model/admin-plan.js",
   "src/model/announcements.js",
@@ -125,6 +126,7 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "assets/icons/warning-circle.svg",
   "assets/morning-show-studio.png",
   "assets/tech-terrarium-hero.webp",
+  "assets/tech-terrarium-maker-scene.jpg",
   "fid.css",
   "fid.html",
   "firebase-config.js",
@@ -304,6 +306,10 @@ const REVIEWED_BINARY_ASSETS = new Map([
   [
     "assets/tech-terrarium-hero.webp",
     "0854D643412ADAF5F720818DB9F665397D1942C721CDFCC096CA1A80A9DE2109"
+  ],
+  [
+    "assets/tech-terrarium-maker-scene.jpg",
+    "0039634C6D62512E20B28D6EA3C5E10380CDAA4562CA11BBA7FD4F553DEC6E76"
   ]
 ]);
 

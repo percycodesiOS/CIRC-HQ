@@ -227,9 +227,8 @@ function buildHeading(model, onBoard) {
 function fidEntry() {
   return element("section", { className: "fid-home-entry", attributes: { "aria-label": "Flexible Instruction Day activities" } }, [
     element("div", {}, [
-      element("p", { className: "eyebrow", text: "Flexible Instruction Day | Grades 5-6" }),
-      element("h2", { text: "Four ways to keep thinking and making" }),
-      element("p", { text: "Independent activities with optional paper or household materials. Think or say your ideas instead. No sign-in or live meeting needed." })
+      element("h2", { text: "Flexible Instruction Day" }),
+      element("p", { text: "Grades 5-6. Four independent activities. No sign-in or live meeting needed." })
     ]),
     element("a", { className: "button-link fid-open-link", text: "Open FID activities", attributes: { href: "fid.html", target: "_blank", rel: "noopener", "aria-label": "Open FID activities in a new tab" } })
   ]);
@@ -256,16 +255,16 @@ function welcomeRoute(actions) {
   });
   preview.addEventListener("click", actions.openPreview);
   return element("section", {
-    className: "welcome-view",
+    className: "welcome-view welcome-terrarium",
     attributes: { "data-view": "welcome" }
   }, [
     element("img", {
       className: "welcome-maker",
       attributes: {
-        src: "assets/tech-terrarium-hero.webp",
-        alt: "Technology terrarium with rocks, plants, tools, and electronic parts",
-        width: "1400",
-        height: "875"
+        src: "assets/tech-terrarium-maker-scene.jpg",
+        alt: "Mr. Macek, CIRC grades 5-6. Illustration inspired by our computer-case terrarium, with rock caves, colorful maker creatures, and circuits.",
+        width: "1942",
+        height: "809"
       }
     }),
     element("div", { className: "welcome-copy" }, [
@@ -279,9 +278,9 @@ function welcomeRoute(actions) {
       ]) : null,
       element("div", { className: "welcome-actions" }, [setup, sync, preview]),
       element("p", {}, [element("a", { className: "button-link", text: "Complete first-use walkthrough", attributes: { href: "walkthrough.html", target: "_blank", rel: "noopener" } })]),
-      element("p", { className: "welcome-privacy", text: "Schedules stay private to the signed-in teacher." }),
-      fidEntry()
-    ])
+      element("p", { className: "welcome-privacy", text: "Schedules stay private to the signed-in teacher." })
+    ]),
+    fidEntry()
   ]);
 }
 
@@ -513,8 +512,8 @@ function downloadAdminPlan(project) {
 
 function buildProjectHero(view, actions) {
   const project = view.currentProject;
-  const artwork = projectArtwork(project, "project-hero-art")
-  return element("section", { className: "project-hero" }, [
+  const artwork = projectArtwork(project, "project-hero-art");
+  return element("section", { className: `project-hero${artwork ? " project-hero-terrarium" : ""}` }, [
     artwork,
     element("div", { className: "project-hero-copy" }, [
       element("p", { className: "project-kicker", text: view.projectLabel }),
@@ -543,12 +542,12 @@ function buildProjectHero(view, actions) {
 function projectArtwork(project, className) {
   return project.number === 2 && !project.replicaLesson
     ? element("img", {
-        className,
+        className: `${className} terrarium-maker-scene`,
         attributes: {
-          src: "assets/tech-terrarium-hero.webp",
-          alt: "A student-built technology terrarium with rocks, plants, tools, and electronic parts",
-          width: "1400",
-          height: "875"
+          src: "assets/tech-terrarium-maker-scene.jpg",
+          alt: "Illustration inspired by our computer-case terrarium, with rock caves, colorful maker creatures, and circuits. Mr. Macek, CIRC grades 5-6.",
+          width: "1942",
+          height: "809"
         }
       })
     : null;
