@@ -4,3 +4,35 @@
 @media(max-width:620px){main{padding:27px 17px 22px}.fid-header-inner{padding:14px 17px}.fid-brand{gap:9px}.fid-brand img{width:54px;height:36px}.fid-brand strong{font-size:18px}.fid-brand span{font-size:11px}.fid-grade{font-size:11px;padding:6px 9px}.fid-hero,.fid-grid,.fid-wrap{grid-template-columns:1fr}.fid-hero{gap:24px;margin-bottom:24px}.fid-hero h1{font-size:48px;letter-spacing:-.045em}.fid-lead{font-size:18px}.fid-access{font-size:16px}.fid-start-note{padding:25px}.fid-start-note h2{max-width:240px}.fid-big-four{font-size:220px;right:17px;top:-38px}.fid-jump{gap:8px}.fid-jump a{font-size:12px;padding:13px 10px;gap:8px}.fid-jump span{font-size:19px}.fid-grid{gap:22px}.fid-challenge{padding:25px 23px}.fid-challenge h2{font-size:36px}.fid-wrap{padding:28px 23px}.fid-footer{flex-direction:column;gap:9px}.fid-program{font-size:13px}.fid-skill{font-size:11px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
 @media print{body{font-size:11pt;background:#fff}main{padding:0;max-width:none}.fid-header{border:0}.fid-header-inner{padding:0 0 12px}.fid-hero{display:block;margin:0 0 16px}.fid-hero h1{font-size:28pt}.fid-start-note,.fid-jump,.fid-footer,.fid-big-four{display:none}.fid-lead,.fid-access{font-size:11pt}.fid-grid{display:block}.fid-challenge{break-inside:avoid;border:1px solid #ccc;border-top:3px solid #777;border-radius:0;margin-bottom:20px;padding:18px}.fid-challenge h2{font-size:23pt}.fid-challenge h2 br{display:none}.fid-steps li{font-size:11pt}.fid-wrap{display:block;background:#fff;border:0;padding:12px 0}.fid-teacher{display:none}.fid-finish,.fid-materials,.fid-pattern-example{background:#f5f5f5}.fid-challenge details{display:none}.fid-program{color:#000;background:#f5f5f5}a{text-decoration:none}.skip-link{display:none}}
+
+/* FID attendance notice. Students must log in at their class time to be
+   marked present, so this sits above everything else on the page. */
+.fid-attendance {
+  max-width: 1080px;
+  margin: 22px auto 0;
+  padding: 20px 24px;
+  border: 2px solid #c7efff;
+  border-radius: 18px;
+  background: #07172b;
+  color: #f5f1e8;
+}
+
+.fid-attendance h2 {
+  margin: 0 0 8px;
+  color: #a6eaff;
+  font-size: 1.24rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.fid-attendance p {
+  margin: 0 0 6px;
+  font-size: 1.02rem;
+  line-height: 1.55;
+}
+
+.fid-attendance p:last-child { margin-bottom: 0; }
+
+@media (max-width: 720px) {
+  .fid-attendance { margin: 16px 14px 0; padding: 16px 18px; }
+}

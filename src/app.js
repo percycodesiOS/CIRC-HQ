@@ -228,7 +228,8 @@ function fidEntry() {
   return element("section", { className: "fid-home-entry", attributes: { "aria-label": "Flexible Instruction Day activities" } }, [
     element("div", {}, [
       element("h2", { text: "Flexible Instruction Day" }),
-      element("p", { text: "Grades 5-6. Four independent activities. No sign-in or live meeting needed." })
+      element("p", { text: "On a FID day the schedule is different. Log in at your class time so you get marked present. Times and details are posted in the Specials Team on Microsoft Teams." }),
+      element("p", { text: "Grades 5-6. Four short activities. You can make one up later if you miss it." })
     ]),
     element("a", { className: "button-link fid-open-link", text: "Open FID activities", attributes: { href: "fid.html", target: "_blank", rel: "noopener", "aria-label": "Open FID activities in a new tab" } })
   ]);
