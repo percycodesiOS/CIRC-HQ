@@ -1,15 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 200 200" role="img" aria-label="Weather reporter">
-  <rect width="200" height="200" rx="40" fill="#081b32"/>
-  <rect x="16" y="16" width="168" height="168" rx="32" fill="#0b2b43"/>
-  <circle cx="78" cy="78" r="28" fill="#ffd66e"/>
-  <g stroke="#ffd66e" stroke-width="6" stroke-linecap="round">
-    <line x1="78" y1="34" x2="78" y2="46"/>
-    <line x1="78" y1="110" x2="78" y2="122"/>
-    <line x1="34" y1="78" x2="46" y2="78"/>
-    <line x1="110" y1="78" x2="122" y2="78"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="480" height="360" role="img" aria-label="Weather reporter pointing at a weather map with a sun and a cloud">
+  <rect width="240" height="180" rx="18" fill="#062234"/>
+  <rect x="8" y="8" width="224" height="164" rx="12" fill="#102f46"/>
+  <rect x="82" y="22" width="134" height="100" rx="10" fill="#07172b" stroke="#c7efff" stroke-width="3"/>
+  <circle cx="122" cy="56" r="17" fill="#ffd66e"/>
+  <g stroke="#ffd66e" stroke-width="4" stroke-linecap="round">
+    <line x1="122" y1="28" x2="122" y2="35"/>
+    <line x1="122" y1="77" x2="122" y2="84"/>
+    <line x1="94" y1="56" x2="101" y2="56"/>
+    <line x1="143" y1="56" x2="150" y2="56"/>
   </g>
-  <ellipse cx="128" cy="118" rx="36" ry="22" fill="#9ad7ff"/>
-  <ellipse cx="108" cy="118" rx="22" ry="16" fill="#72e5ef"/>
-  <rect x="120" y="78" width="40" height="54" rx="8" fill="#f5f1e8"/>
-  <rect x="126" y="84" width="28" height="34" rx="4" fill="#0b2b43"/>
+  <path d="M150 96a16 16 0 0 1 31-5 13 13 0 0 1-2 26h-24a11 11 0 0 1-5-21z" fill="#c7efff"/>
+  <g stroke="#a6eaff" stroke-width="4" stroke-linecap="round">
+    <line x1="158" y1="122" x2="154" y2="132"/>
+    <line x1="172" y1="122" x2="168" y2="132"/>
+    <line x1="186" y1="122" x2="182" y2="132"/>
+  </g>
+  <circle cx="44" cy="70" r="16" fill="#f5f1e8"/>
+  <path d="M22 130a22 22 0 0 1 44 0z" fill="#a6eaff"/>
+  <line x1="60" y1="98" x2="88" y2="74" stroke="#f5f1e8" stroke-width="7" stroke-linecap="round"/>
+  <rect x="16" y="146" width="208" height="16" rx="8" fill="#07172b"/>
+  <rect x="16" y="146" width="208" height="5" rx="2.5" fill="#a6eaff"/>
 </svg>

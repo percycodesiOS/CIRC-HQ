@@ -362,6 +362,14 @@ test("public server manifest is an exact reviewed allowlist", () => {
     "app.css",
     "assets/circ-hq-maker.webp",
     "assets/designers-challenge-sketch.webp",
+    "assets/ectv/03-anchor-background.png",
+    "assets/ectv/ECTV-Logo-Transparent.png",
+    "assets/ectv/ECTV-Team-Logo.png",
+    "assets/ectv/imovie-ipad-edit.svg",
+    "assets/ectv/roles/role-anchors.svg",
+    "assets/ectv/roles/role-camera.svg",
+    "assets/ectv/roles/role-computer.svg",
+    "assets/ectv/roles/role-weather.svg",
     "assets/icons/arrow-right.svg",
     "assets/icons/books.svg",
     "assets/icons/calendar-dots.svg",
@@ -384,6 +392,9 @@ test("public server manifest is an exact reviewed allowlist", () => {
     "assets/morning-show-studio.png",
   "assets/tech-terrarium-hero.webp",
   "assets/tech-terrarium-maker-scene.jpg",
+    "ectv-imovie.html",
+    "ectv.css",
+    "ectv.html",
     "fid.css",
     "fid.html",
     "firebase-config.js",
@@ -510,13 +521,13 @@ test("public verifier has a recursive-safe sanitized gate contract", () => {
 
 test("reviewed visual assets are exact and opaque files fail closed", async (context) => {
   assert.equal(typeof verifier.inspectAssetLocks, "function");
-  assert.deepEqual(await verifier.inspectAssetLocks(ROOT), { ok: true, count: 6 });
+  assert.deepEqual(await verifier.inspectAssetLocks(ROOT), { ok: true, count: 9 });
 
   const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-asset-lock-"));
   context.after(() => rm(repository, { recursive: true, force: true }));
   await mkdir(path.join(repository, "assets"), { recursive: true });
   await writeFile(path.join(repository, "assets", "circ-hq-maker.webp"), "TAMPERED");
-  assert.deepEqual(await verifier.inspectAssetLocks(repository), { ok: false, count: 6 });
+  assert.deepEqual(await verifier.inspectAssetLocks(repository), { ok: false, count: 9 });
 
   const counts = verifier.classifyCandidatePaths([
     "assets/circ-hq-maker.webp",

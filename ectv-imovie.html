@@ -4,123 +4,224 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ECTV | How we edit stories in iMovie</title>
+  <meta name="description" content="The iMovie steps ECTV reporters use on the iPad: Magic Movie, export, upload to OneDrive, and share with Mr. Macek before it airs.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2307172b'/%3E%3Crect x='10' y='18' width='30' height='24' rx='5' fill='%23a6eaff'/%3E%3Cpolygon points='42,26 54,19 54,41 42,34' fill='%23ffd66e'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="ectv.css">
+  <script>
+    (function () {
+      var inFrame = false;
+      try { inFrame = window.self !== window.top; } catch (e) { inFrame = true; }
+      if (inFrame || /(?:^|[?&])embed=1(?:&|$)/.test(location.search)) {
+        document.documentElement.classList.add("is-embed");
+      }
+    })();
+  </script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
+
   <header class="site-header">
     <div class="container nav-wrap">
       <a class="brand" href="ectv.html">
-        <img src="assets/ectv/ECTV-Logo-Transparent.png" alt="ECTV">
-        <span>ECTV<small>Ehrman Crest</small></span>
+        <img src="assets/ectv/ECTV-Logo-Transparent.png" alt="">
+        <span>
+          <b>ECTV</b>
+          <small>Ehrman Crest</small>
+        </span>
       </a>
-      <div class="nav-groups">
-        <nav class="nav-links" aria-label="On this page">
-          <span class="nav-label">On this page</span>
-          <a href="#before">Before</a>
-          <a href="#magic">Magic Movie</a>
-          <a href="#finish">Export and share</a>
-          <a href="#review">Review</a>
-        </nav>
-        <nav class="nav-links nav-pages" aria-label="Other pages">
-          <span class="nav-label">Other pages</span>
-          <a href="ectv.html">ECTV home</a>
-          <a href="https://teams.cloud.microsoft/l/channel/19%3Adc676f3340994a268cf75cf07393aeeb%40thread.tacv2/5)%20Studio%20Media?groupId=39e3ebb9-440c-4663-a5aa-c19df3a43e41&tenantId=eecf4f9f-ed70-4095-8022-4a6db067abef" target="_blank" rel="noopener noreferrer">Resources</a>
-        </nav>
-      </div>
+      <nav class="nav-links" aria-label="Main">
+        <a href="#film">Before iMovie</a>
+        <a href="#magic">Magic Movie</a>
+        <a href="#export">Export</a>
+        <a href="#share">Share</a>
+        <a class="page-link" href="ectv.html">ECTV home</a>
+        <a class="page-link" href="index.html">CIRC HQ</a>
+      </nav>
     </div>
   </header>
 
-  <section class="hero hero-imovie">
-    <div class="container hero-grid">
-      <div>
-        <p class="eyebrow">Reporters and computer</p>
-        <h1>How we edit stories in <span>iMovie</span></h1>
-        <p class="hero-copy">Same workflow as the student PDF in Studio Media. Keep it short. Keep it true. No watermarks.</p>
-        <div class="button-row">
-          <a class="button secondary" href="ectv.html">Back to ECTV home</a>
-          <a class="button" href="https://teams.cloud.microsoft/l/channel/19%3Adc676f3340994a268cf75cf07393aeeb%40thread.tacv2/5)%20Studio%20Media?groupId=39e3ebb9-440c-4663-a5aa-c19df3a43e41&tenantId=eecf4f9f-ed70-4095-8022-4a6db067abef" target="_blank" rel="noopener noreferrer">Open Studio Media Resources</a>
-        </div>
-      </div>
-      <div class="hero-art">
-        <img src="assets/ectv/imovie-ipad-edit.svg" alt="iPad timeline editing graphic">
-      </div>
+  <section class="page-hero">
+    <div class="container">
+      <p class="eyebrow">Reporters and computer crew</p>
+      <h1>How we edit stories in <span>iMovie</span></h1>
+      <p>These are the same steps as the student guide in Studio Media. Keep it short. Keep it true. Mr. Macek watches it before the school does.</p>
+      <p class="button-row" style="margin-top: 24px">
+        <a class="button secondary" href="ectv.html">Back to ECTV home</a>
+        <a class="button" href="https://teams.cloud.microsoft/l/channel/19%3Adc676f3340994a268cf75cf07393aeeb%40thread.tacv2/5)%20Studio%20Media?groupId=39e3ebb9-440c-4663-a5aa-c19df3a43e41&tenantId=eecf4f9f-ed70-4095-8022-4a6db067abef" target="_blank" rel="noopener noreferrer">Open Studio Media</a>
+      </p>
     </div>
   </section>
 
   <main id="main">
-    <section class="section" id="before">
+    <section class="section" id="film">
       <div class="container">
         <div class="section-heading">
-          <div>
-            <p class="kicker">01 / Prep</p>
-            <h2>Before iMovie</h2>
-          </div>
+          <h2>Before you open iMovie</h2>
+          <p>Good filming makes editing easy. Do these four things first.</p>
         </div>
-        <div class="timeline">
-          <article class="rule-card"><div class="rule-time">1</div><div><h3>Topic approved</h3><p>Get the topic approved before you film.</p></div></article>
-          <article class="rule-card"><div class="rule-time">2</div><div><h3>Three shots</h3><p>Film wide, close-up evidence, and a clear ending.</p></div></article>
-          <article class="rule-card"><div class="rule-time">3</div><div><h3>Sound test</h3><p>Record a 5-second sound test and listen.</p></div></article>
+        <p class="homeroom-banner">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#a6eaff" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M3 10.5 12 4l9 6.5"/><path d="M5 10v9h14v-9"/><path d="M10 19v-5h4v5"/></svg>
+          <span>Don't forget: check in with your homeroom teacher first, always.</span>
+        </p>
+        <div class="steps-grid">
+          <article class="step">
+            <span class="step-num" aria-hidden="true">1</span>
+            <div>
+              <h3>Get your topic approved</h3>
+              <p>Ask Mr. Macek before you film. That way you never lose work on a story we cannot use.</p>
+            </div>
+          </article>
+          <article class="step">
+            <span class="step-num" aria-hidden="true">2</span>
+            <div>
+              <h3>Film three shots</h3>
+              <p>One wide shot to show where you are, one close shot that shows the proof, and one clear ending.</p>
+            </div>
+          </article>
+          <article class="step">
+            <span class="step-num" aria-hidden="true">3</span>
+            <div>
+              <h3>Test the sound</h3>
+              <p>Record five seconds, play it back, and listen. If you cannot hear the words, move somewhere quieter and film again.</p>
+            </div>
+          </article>
+          <article class="step">
+            <span class="step-num" aria-hidden="true">4</span>
+            <div>
+              <h3>Check what is in frame</h3>
+              <p>No student work, screens, or faces that should not be filmed. When you are not sure, ask first.</p>
+            </div>
+          </article>
         </div>
-        <div class="homeroom-banner" style="margin-top:22px">Don't forget: check in with your homeroom teacher first, always.</div>
       </div>
     </section>
 
     <section class="section alt" id="magic">
-      <div class="container guide-visual">
-        <div>
-          <div class="section-heading">
+      <div class="container">
+        <div class="section-heading">
+          <h2>Build it with Magic Movie</h2>
+          <p>This is the path we use on the school iPads.</p>
+        </div>
+        <div class="guide-visual">
+          <div class="steps-grid" style="grid-template-columns: 1fr">
+            <article class="step">
+              <span class="step-num" aria-hidden="true">1</span>
+              <div>
+                <h3>Start New Project, then Magic Movie</h3>
+                <p>Open iMovie. Tap <strong>Start New Project</strong>, then tap <strong>Magic Movie</strong>.</p>
+              </div>
+            </article>
+            <article class="step">
+              <span class="step-num" aria-hidden="true">2</span>
+              <div>
+                <h3>Choose your media</h3>
+                <p>Select the clips and photos for your story, then tap <strong>Create Magic Movie</strong>.</p>
+              </div>
+            </article>
+            <article class="step">
+              <span class="step-num" aria-hidden="true">3</span>
+              <div>
+                <h3>Aim for 30 to 45 seconds</h3>
+                <p>Trim the waiting and the mistakes. Keep one clear title that says the main fact.</p>
+                <p>Ask for a different length only if Mr. Macek tells you to.</p>
+              </div>
+            </article>
+            <article class="step">
+              <span class="step-num" aria-hidden="true">4</span>
+              <div>
+                <h3>Check your facts and your sound</h3>
+                <p>Play the whole thing once. Is every name and number right? Can you hear every word? Fix it now, not later.</p>
+              </div>
+            </article>
+          </div>
+          <aside class="visual-panel">
+            <img src="assets/ectv/imovie-ipad-edit.svg" alt="An iPad showing an iMovie project with a preview window and a row of clips on the timeline">
+            <p>Your student path: Start New Project, Magic Movie, choose media, Create Magic Movie.</p>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="section dark" id="export">
+      <div class="container">
+        <div class="section-heading">
+          <h2>Export your movie</h2>
+          <p>Exporting makes the video file. Keep the iMovie project too, in case we need a change.</p>
+        </div>
+        <div class="steps-grid">
+          <article class="step">
+            <span class="step-num" aria-hidden="true">1</span>
             <div>
-              <p class="kicker">02 / Magic Movie</p>
-              <h2>Build the project</h2>
+              <h3>Export the finished movie</h3>
+              <p>Use the share or export option in iMovie to make the video file.</p>
             </div>
-          </div>
-          <div class="info-grid">
-            <article class="card"><span class="number">1</span><h3>Start New Project</h3><p>Open iMovie. Choose <strong>Start New Project</strong>, then <strong>Magic Movie</strong>.</p></article>
-            <article class="card"><span class="number">2</span><h3>Select clips</h3><p>Select your clips and photos for the story.</p></article>
-            <article class="card"><span class="number">3</span><h3>Create Magic Movie</h3><p>Tap <strong>Create Magic Movie</strong>. Aim for <strong>30 to 45 seconds</strong> unless Mr. Macek says otherwise.</p></article>
-          </div>
-          <div class="note" style="margin-top:22px">Trim waiting and mistakes if needed. Keep one clear title with the main fact. Check facts. Remove anything private or unapproved.</div>
-        </div>
-        <aside class="visual-panel">
-          <img src="assets/ectv/imovie-ipad-edit.svg" alt="">
-          <p>Default student path: Start New Project, Magic Movie, select media, Create Magic Movie.</p>
-        </aside>
-      </div>
-    </section>
-
-    <section class="section dark" id="finish">
-      <div class="container">
-        <div class="section-heading">
-          <div>
-            <p class="kicker">03 / Finish</p>
-            <h2>Export, upload, share</h2>
-          </div>
-          <p>Do these steps before review.</p>
-        </div>
-        <div class="workflow">
-          <article class="workflow-step"><span>1</span><h3>Export</h3><p>Export the finished Magic Movie from iMovie. Keep the editable project.</p></article>
-          <article class="workflow-step"><span>2</span><h3>Upload to school OneDrive</h3><p>Upload the export to your school OneDrive folder for ECTV.</p></article>
-          <article class="workflow-step"><span>3</span><h3>Share with Mr. Macek</h3><p>Share that OneDrive file with Mr. Macek. Do not publish it yourself.</p></article>
+          </article>
+          <article class="step">
+            <span class="step-num" aria-hidden="true">2</span>
+            <div>
+              <h3>Choose 1080p if you see it</h3>
+              <p>If iMovie offers a quality choice, pick <span class="pill">1080p</span>. If you do not see that choice, just continue.</p>
+            </div>
+          </article>
+          <article class="step">
+            <span class="step-num" aria-hidden="true">3</span>
+            <div>
+              <h3>Turn HDR off if you see it</h3>
+              <p>If iMovie offers <span class="pill">HDR</span>, switch it off. HDR can look wrong on the school screens. If you do not see it, just continue.</p>
+            </div>
+          </article>
+          <article class="step">
+            <span class="step-num" aria-hidden="true">4</span>
+            <div>
+              <h3>Save it to Photos</h3>
+              <p>Save the export to Photos on the iPad. That is where you will find it in the next step.</p>
+            </div>
+          </article>
         </div>
       </div>
     </section>
 
-    <section class="section" id="review">
+    <section class="section" id="share">
       <div class="container">
         <div class="section-heading">
-          <div>
-            <p class="kicker">04 / Review</p>
-            <h2>Review before airing</h2>
-          </div>
-          <p>Review comes after export, upload, and share. It comes before the story airs.</p>
+          <h2>Share it and wait for review</h2>
+          <p>Nothing airs until Mr. Macek has watched it. That is the rule, every time.</p>
         </div>
-        <div class="info-grid">
-          <article class="card"><span class="number">1</span><h3>Partner check</h3><p>Ask a partner what the story is about. Fix anything confusing.</p></article>
-          <article class="card"><span class="number">2</span><h3>Teacher review</h3><p>Mr. Macek reviews the shared OneDrive file before airing.</p></article>
-          <article class="card"><span class="number">3</span><h3>Ready for show</h3><p>Only then can the story be used on ECTV.</p></article>
+        <div class="steps-grid">
+          <article class="step">
+            <span class="step-num" aria-hidden="true">1</span>
+            <div>
+              <h3>Upload to your school OneDrive</h3>
+              <p>Put the video from Photos into your school OneDrive folder for ECTV.</p>
+            </div>
+          </article>
+          <article class="step">
+            <span class="step-num" aria-hidden="true">2</span>
+            <div>
+              <h3>Share it with Mr. Macek</h3>
+              <p>Share that OneDrive file with Mr. Macek by name. Do not post it anywhere else and do not publish it yourself.</p>
+            </div>
+          </article>
+          <article class="step">
+            <span class="step-num" aria-hidden="true">3</span>
+            <div>
+              <h3>Tell him it is ready</h3>
+              <p>Sharing a file does not send an alert on its own. Tell Mr. Macek in the ECTV Team or in person that your story is ready.</p>
+            </div>
+          </article>
+          <article class="step">
+            <span class="step-num" aria-hidden="true">4</span>
+            <div>
+              <h3>Wait for his review</h3>
+              <p>He watches it and tells you if it is ready or needs a change. Only after that can your story go on ECTV.</p>
+            </div>
+          </article>
         </div>
-        <p style="margin-top:22px"><a class="button" href="mailto:macekkw@svsd.net">Email Mr. Macek</a> <a class="button secondary" href="ectv.html">ECTV home</a></p>
+        <p class="note" style="margin-top: 24px">A good check before you share: ask a partner to watch it once and tell you what the story was about. If they cannot say it in one sentence, make it clearer.</p>
+        <p class="button-row" style="margin-top: 24px">
+          <a class="button" href="mailto:macekkw@svsd.net">Email Mr. Macek</a>
+          <a class="button secondary" href="ectv.html">Back to ECTV home</a>
+        </p>
       </div>
     </section>
   </main>
@@ -128,7 +229,11 @@
   <footer class="site-footer">
     <div class="container footer-row">
       <p>ECTV - iMovie guide - Ehrman Crest Middle School</p>
-      <p><a href="ectv.html">ECTV home</a> · <a href="mailto:macekkw@svsd.net">Email Mr. Macek</a></p>
+      <p>
+        <a href="ectv.html">ECTV home</a> -
+        <a href="index.html">CIRC HQ</a> -
+        <a href="mailto:macekkw@svsd.net">Email Mr. Macek</a>
+      </p>
     </div>
   </footer>
 </body>
