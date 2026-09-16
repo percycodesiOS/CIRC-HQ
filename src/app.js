@@ -234,7 +234,69 @@ function fidEntry() {
   ]);
 }
 
+function welcomeEntranceCards(actions) {
+  const card = (kind, title, blurb, cta, onClick) => {
+    const button = element("button", {
+      className: `entrance-cta ${kind === "student" ? "primary-action" : "secondary-action"}`,
+      text: cta,
+      attributes: { type: "button" }
+    });
+    button.addEventListener("click", onClick);
+    return element("article", { className: `entrance-card entrance-${kind}` }, [
+      element("h2", { text: title }),
+      element("p", { text: blurb }),
+      button
+    ]);
+  };
+  return element("div", { className: "welcome-entrances", attributes: { "aria-label": "Choose your entrance" } }, [
+    card(
+      "student",
+      "I am a student",
+      "See what your class is doing right now. Your teacher runs the clock and the steps.",
+      "Open student view",
+      () => actions.setWelcomeEntrance("student")
+    ),
+    card(
+      "teacher",
+      "I am a teacher",
+      "Set up your schedule, open a lesson, and run the class from this device.",
+      "Open teacher setup",
+      () => actions.setWelcomeEntrance("teacher")
+    )
+  ]);
+}
+
+function studentEntranceRoute(actions) {
+  const back = element("button", {
+    className: "secondary-action",
+    text: "Back",
+    attributes: { type: "button" }
+  });
+  back.addEventListener("click", () => actions.setWelcomeEntrance(null));
+  return element("section", {
+    className: "welcome-view welcome-student-entrance",
+    attributes: { "data-view": "welcome-student" }
+  }, [
+    element("div", { className: "welcome-copy" }, [
+      element("p", { className: "eyebrow", text: "Student view" }),
+      element("h1", { text: "Wait for your teacher to start" }),
+      element("p", { className: "welcome-description", text: "There is no class running on this device yet. When your teacher starts the lesson, the step and the directions show up here." }),
+      element("section", { className: "student-waiting-card" }, [
+        element("h2", { text: "While you wait" }),
+        element("ol", {}, [
+          element("li", { text: "Check in with your homeroom teacher first, always." }),
+          element("li", { text: "Get your materials out and clear your table space." }),
+          element("li", { text: "Look at the board for today's lesson name." })
+        ])
+      ]),
+      element("p", { className: "welcome-privacy", text: "You cannot start, skip or finish the lesson from here. Your teacher runs the class." }),
+      element("div", { className: "welcome-actions" }, [back])
+    ])
+  ]);
+}
+
 function welcomeRoute(actions) {
+  if (actions.welcomeEntrance === "student") return studentEntranceRoute(actions);
   const presentation = buildWelcomePresentation();
   const setup = element("button", {
     className: "primary-action welcome-primary",
@@ -276,12 +338,27 @@ function welcomeRoute(actions) {
         actionButton("Open Day 5 build", "primary-action", () => actions.openRunner(2, { modeId: "replica-cardboard" })),
         element("p", { text: "Cardboard, rulers, tape and tabs. Start the 35-minute lesson without signing in. This preview's timers reset if the page reloads." })
       ]) : null,
-      element("div", { className: "welcome-actions" }, [setup, sync, preview]),
-      element("p", {}, [element("a", { className: "button-link", text: "Complete first-use walkthrough", attributes: { href: "walkthrough.html", target: "_blank", rel: "noopener" } })]),
-      element("p", { className: "welcome-privacy", text: "Schedules stay private to the signed-in teacher." })
+      actions.welcomeEntrance === "teacher"
+        ? element("div", { className: "welcome-teacher-actions" }, [
+            element("div", { className: "welcome-actions" }, [setup, sync, preview]),
+            element("p", {}, [element("a", { className: "button-link", text: "Complete first-use walkthrough", attributes: { href: "walkthrough.html", target: "_blank", rel: "noopener" } })]),
+            element("p", { className: "welcome-privacy", text: "Schedules stay private to the signed-in teacher." }),
+            backToEntrances(actions)
+          ])
+        : welcomeEntranceCards(actions)
     ]),
     fidEntry()
   ]);
+}
+
+function backToEntrances(actions) {
+  const back = element("button", {
+    className: "button-link welcome-back",
+    text: "Not a teacher? Go back",
+    attributes: { type: "button" }
+  });
+  back.addEventListener("click", () => actions.setWelcomeEntrance(null));
+  return element("p", {}, [back]);
 }
 
 function buildTeacherPicker(model, onSelect) {
@@ -821,17 +898,57 @@ function sharedArtifactCard(context, actions) {
 function replicaProjectContext(project, runner) {
   const choice = project.number === 2 ? getReplicaLessonChoice(runner?.modeId) : null;
   if (!choice) return project;
+  // The teacher script and the student directions must both describe the lesson
+  // that is actually selected, not the broader Tech Terrarium project.
+  const lessonSteps = getExperienceTimingPlan(2, { modeId: choice.id })?.steps ?? [];
   return {
     ...project,
     replicaLesson: true,
+    lessonSteps,
     title: choice.title,
     objective: choice.objective,
     materials: choice.materials,
     safety: choice.safety,
     teacherSay: [],
     teacherDo: choice.teacherContext,
+    studentSteps: lessonSteps.length
+      ? lessonSteps.map((step) => `${step.label} (${step.minutes} min): ${step.directions.join(" ")}`)
+      : project.studentSteps,
     fastFinish: { title: "Check and hand off", directions: choice.fastFinish }
   };
+}
+
+function lessonSequenceCard(project) {
+  const steps = project.lessonSteps ?? [];
+  if (!steps.length) return null;
+  const totalMinutes = steps.reduce((sum, step) => sum + step.minutes, 0);
+  return element("section", { className: "project-detail-card wide lesson-sequence-card" }, [
+    element("h2", { text: `Lesson sequence (${steps.length} steps, ${totalMinutes} minutes)` }),
+    element("p", {
+      className: "lesson-sequence-note",
+      text: "This is the selected lesson. The student directions and the class timer use this same sequence."
+    }),
+    element("ol", { className: "lesson-sequence" }, steps.map((step) => element("li", {
+      className: "lesson-sequence-step"
+    }, [
+      element("p", { className: "lesson-step-head" }, [
+        element("strong", { text: step.label }),
+        element("span", { className: "lesson-step-minutes", text: `${step.minutes} min` })
+      ]),
+      step.teacherDirections.length
+        ? element("div", { className: "lesson-step-block" }, [
+            element("p", { className: "lesson-step-label", text: "Teacher" }),
+            textList(step.teacherDirections)
+          ])
+        : null,
+      step.directions.length
+        ? element("div", { className: "lesson-step-block" }, [
+            element("p", { className: "lesson-step-label", text: "Students" }),
+            textList(step.directions)
+          ])
+        : null
+    ].filter(Boolean))))
+  ]);
 }
 
 function replicaLessonChooser(actions) {
@@ -1271,15 +1388,15 @@ function teacherProjectRoute(project, actions) {
         element("h2", { text: "Goal" }),
         element("p", { text: project.objective })
       ]),
-      element("section", { className: "project-detail-card" }, [
+      project.replicaLesson ? null : element("section", { className: "project-detail-card" }, [
         element("h2", { text: "Say this" }),
         textList(project.teacherSay)
       ]),
       element("section", { className: "project-detail-card" }, [
-        element("h2", { text: "Teacher moves" }),
+        element("h2", { text: project.replicaLesson ? "Before you start" : "Teacher moves" }),
         textList(project.teacherDo)
       ]),
-      element("section", { className: "project-detail-card wide" }, [
+      project.replicaLesson ? lessonSequenceCard(project) : element("section", { className: "project-detail-card wide" }, [
         element("h2", { text: "Student build path" }),
         textList(project.studentSteps)
       ]),
@@ -1757,6 +1874,11 @@ export function renderApp(root, services = {}) {
   let state = loaded.state;
   let recoveryStatus = loaded.status;
   let route = recoveryStatus === "unrecoverable" ? "recovery" : state.plan ? "today" : "welcome";
+  // Which entrance the visitor picked on the splash: null, "student" or "teacher".
+  // This chooses which doorway to show. It is NOT an authorization boundary and
+  // never grants teacher rights; real teacher access stays with the existing
+  // sign-in and the server-side rules.
+  let welcomeEntrance = null;
   let selectedTeacherId =
     services.teacherId ??
     state.preferences?.teacherId ??
@@ -2922,7 +3044,12 @@ export function renderApp(root, services = {}) {
       schedule: runnerSchedule(model.current),
       previewOnly,
       currentReplicaLesson: getReplicaLessonChoice(runner?.modeId),
-      localDate: localDateKey(now())
+      localDate: localDateKey(now()),
+      welcomeEntrance,
+      setWelcomeEntrance: (value) => {
+        welcomeEntrance = value;
+        render();
+      }
     };
     let view;
     if (route === "welcome") view = welcomeRoute(actions);
@@ -2972,7 +3099,10 @@ export function renderApp(root, services = {}) {
     }
     else if (route === "project-teacher") {
       view = teacherProjectRoute(
-        getProjectByNumber(selectedProjectNumber) ?? projectView.currentProject,
+        replicaProjectContext(
+          getProjectByNumber(selectedProjectNumber) ?? projectView.currentProject,
+          runner
+        ),
         actions
       );
     }
@@ -2985,11 +3115,14 @@ export function renderApp(root, services = {}) {
             actions,
             teacherArtifactContext(model, project.number, true)
           )
-        : teacherProjectRoute(project, actions);
+        : teacherProjectRoute(replicaProjectContext(project, runner), actions);
     }
     else if (route === "project-student") {
       view = studentProjectRoute(
-        getProjectByNumber(selectedProjectNumber) ?? projectView.currentProject,
+        replicaProjectContext(
+          getProjectByNumber(selectedProjectNumber) ?? projectView.currentProject,
+          runner
+        ),
         {
           navigate: actions.navigate,
           teacherKey: actions.teacherKey,

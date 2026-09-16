@@ -624,3 +624,20 @@ test("replica lessons add five explicit complete paths without replacing the ori
   assert.match(resinTeacher, /classroom timer never confirms a chemical cure/i);
   assert.match(resinTeacher, /Do not treat equal volume as equal weight/);
 });
+
+test("Day 3 Sort, Count, Plan keeps the verified seven-step 35-minute sequence", () => {
+  const steps = getModel().getExperienceTimingPlan(2, { modeId: "replica-sort" }).steps;
+  assert.deepEqual(
+    steps.map((step) => [step.label, step.minutes]),
+    [
+      ["MEET THE PROJECT", 3],
+      ["TAKE A ROLE", 4],
+      ["SORT THE PARTS", 8],
+      ["COUNT AND CHECK", 4],
+      ["SKETCH ONE USE", 7],
+      ["LABEL AND RESET", 5],
+      ["LEAVE THE NEXT STEP", 4]
+    ]
+  );
+  assert.equal(steps.reduce((total, step) => total + step.minutes, 0), 35);
+});

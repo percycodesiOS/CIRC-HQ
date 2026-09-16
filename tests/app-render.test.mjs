@@ -5,6 +5,17 @@ import { renderApp, runnerStepIconFile } from "../src/app.js";
 import { CREW_SIGNUP_STORAGE_KEY } from "../src/model/crew-signup.js";
 import { createWeatherService } from "../src/services/weather.js";
 
+// The splash now asks whether you are a student or a teacher before it shows
+// the teacher actions. These tests exercise the teacher side, so they step
+// through that doorway first. It is a no-op when the splash is not showing.
+function openTeacherEntrance(root) {
+  const entry = findAll(
+    root,
+    (node) => node.tagName === "button" && textOf(node) === "Open teacher setup"
+  )[0];
+  if (entry) entry.click();
+}
+
 test("minute clock updates preserve an unfinished email signup form without storing credentials", async () => {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
@@ -26,6 +37,7 @@ test("minute clock updates preserve an unfinished email signup form without stor
       loadPrivateSeed: false, weatherService: {}, clock: { now: () => currentTime }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     findAll(root, node => node.tagName === "button" && textOf(node) === "Sign in to sync")[0].click();
     const details = findAll(root, node => node.tagName === "details")[0];
     const email = findAll(root, node => node.attributes.get("id") === "circ-account-email")[0];
@@ -86,6 +98,7 @@ test("weather recovers after startup failure, refreshes during the day and stops
       loadPrivateSeed: false, weatherService, clock: { now: () => currentTime }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     await settle();
     assert.match(textOf(root), /Weather unavailable/);
     const retry = findAll(root, node => node.tagName === "button" && textOf(node) === "Retry weather")[0];
@@ -153,6 +166,7 @@ test("Day 5 starts the vetted build and private crew sign-ups persist outside pl
   try {
     controller = renderApp(root, services);
     await controller.ready;
+    openTeacherEntrance(root);
     assert.match(textOf(root), /Thursday, September 10, 2026 \| Day 5/);
     button("Open Day 5 build").click();
     assert.match(textOf(root), /Build the Cardboard School/);
@@ -186,6 +200,7 @@ test("Day 5 starts the vetted build and private crew sign-ups persist outside pl
     controller.destroy();
     controller = renderApp(root, services);
     await controller.ready;
+    openTeacherEntrance(root);
     controller.navigate("announcements");
     button("Open private crew sign-up").click();
     assert.match(textOf(root), /Backup: SYNTHETIC_NAME \(SYNTHETIC_CLASS\)/);
@@ -484,6 +499,7 @@ async function renderBoard(state) {
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     controller.navigate("board");
     return textOf(root);
   } finally {
@@ -511,6 +527,7 @@ async function renderRoute(state, route) {
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     controller.navigate(route);
     return root;
   } finally {
@@ -585,6 +602,7 @@ async function exerciseTeachingEventBoundary({ pauseRunner }) {
       clock: { now: () => currentTime }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     if (pauseRunner) {
@@ -677,6 +695,7 @@ test("a device without a plan starts on a calm teacher-first welcome", async () 
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     const rendered = textOf(root);
     assert.match(rendered, /CIRC HQ/);
@@ -735,6 +754,7 @@ test("welcome lesson preview performs no durable work and returns cleanly", asyn
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     const preview = findAll(root, (node) =>
       node.tagName === "button" && node.textContent === "Preview a lesson"
@@ -794,6 +814,7 @@ test("guided setup exposes no plan or teaching mutation before account confirmat
       clock: { now: () => new Date("2026-08-29T12:00:00.000Z") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     const syncSetup = findAll(root, (node) =>
       node.tagName === "button" && node.textContent === "Sign in to sync"
@@ -880,6 +901,7 @@ test("lesson preview to Settings remains read-only and cannot Apply a backup", a
       clock: { now: () => new Date("2026-08-29T12:00:00.000Z") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     findAll(root, (node) =>
       node.tagName === "button" && node.textContent === "Preview a lesson"
@@ -925,6 +947,7 @@ test("Settings retains access to the plain-language Schedule route", async () =>
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     controller.navigate("settings");
 
     assert.match(textOf(root), /Settings/);
@@ -982,6 +1005,7 @@ test("a valid local plan renders Today before a deferred cloud client resolves",
 
     resolveClient(createFirebaseClient());
     await controller.ready;
+    openTeacherEntrance(root);
     assert.match(textOf(root), /Today/);
     controller.destroy();
   } finally {
@@ -1070,6 +1094,7 @@ test("app readiness waits for the first auth observation and its authorized clou
       updatedAt: { plan: null, progress: null, preferences: null, content: null }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     assert.equal(ready, true);
     controller.destroy();
   } finally {
@@ -1107,11 +1132,13 @@ test("late cloud preload may observe auth while lesson preview remains read-only
       weatherService: {},
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
+    openTeacherEntrance(root);
     findAll(root, (node) =>
       node.tagName === "button" && node.textContent === "Preview a lesson"
     )[0].click();
     cloudPreload.resolve(cloudClient);
     await controller.ready;
+    openTeacherEntrance(root);
 
     assert.deepEqual(calls, ["observe"]);
     assert.equal(controller.previewOnly, true);
@@ -1152,8 +1179,10 @@ test("a validated localhost plan import leaves guided Setup for Today", async ()
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
 
+    openTeacherEntrance(root);
     assert.match(textOf(root), /Set up my schedule/);
     await controller.ready;
+    openTeacherEntrance(root);
     assert.match(textOf(root), /Today/);
     assert.doesNotMatch(textOf(root), /Set up this device|Preview without saving/);
     controller.destroy();
@@ -1332,6 +1361,7 @@ test("Today and the project 2 teacher runner derive a private-safe artifact disp
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     assert.match(textOf(root), /Define the system/);
     assert.match(textOf(root), /Inspect and map the system/);
@@ -1378,6 +1408,7 @@ test("Today and the project 2 teacher runner derive a private-safe artifact disp
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     assert.match(textOf(root), /Mark living and nonliving zones/);
     assert.equal(saves.length, 2);
     controller.destroy();
@@ -1432,6 +1463,7 @@ test("a teaching boundary into no current or non-teaching work clears pending ha
         clock: { now: () => currentTime }
       });
       await controller.ready;
+    openTeacherEntrance(root);
 
       findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
       findAll(root, (node) => node.tagName === "button" && textOf(node) === "Repeat")[0].click();
@@ -1494,6 +1526,7 @@ test("Preview, no plan, no current event, and a current non-teaching event canno
         clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
       });
       await controller.ready;
+    openTeacherEntrance(root);
       if (scenario === "preview") {
         findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview a lesson")[0].click();
         findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview experience")[0].click();
@@ -1549,6 +1582,7 @@ test("overlapping current teaching events retain deterministic first-match hando
         clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
       });
       await controller.ready;
+    openTeacherEntrance(root);
       findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
       findAll(root, (node) => node.tagName === "button" && textOf(node) === "Repeat")[0].click();
       findAll(root, (node) => node.tagName === "button" && textOf(node) === "Confirm handoff")[0].click();
@@ -1600,6 +1634,7 @@ test("a clock rollback cannot crash or write a confirmed artifact handoff", asyn
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Ready")[0].click();
@@ -1701,6 +1736,7 @@ test("Playbooks features the Grade 6 announcements studio without adding a sixth
       clock: { now: () => new Date("2026-09-03T08:00:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     controller.navigate("projects");
 
     assert.match(textOf(root), /Grade 6 Morning Announcements/);
@@ -1761,6 +1797,7 @@ test("the ECMS outline preserves a saved custom draft on cancel and replaces onl
       clock: { now: () => new Date("2026-10-15T08:00:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     controller.navigate("announcements");
     const field = (name) => findAll(root, (node) => node.getAttribute("name") === name)[0];
     const action = (label) => findAll(root, (node) => node.tagName === "button" && textOf(node) === label)[0];
@@ -1825,6 +1862,7 @@ test("prepared broadcast replacement protects local saved scripts and resets che
       clock: { now: () => new Date("2026-09-09T08:00:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     controller.navigate("announcements");
     const field = name => findAll(root, node => node.getAttribute("name") === name)[0];
     const action = label => findAll(root, node => node.tagName === "button" && textOf(node) === label)[0];
@@ -1891,6 +1929,7 @@ test("weekly scripts survive app reload and explicit Load protects unsaved chang
     };
     controller = renderApp(root, services);
     await controller.ready;
+    openTeacherEntrance(root);
     controller.navigate("announcements");
     for (let day = 14; day <= 18; day += 1) {
       edit("announcement-date", `2026-09-${day}`);
@@ -1904,6 +1943,7 @@ test("weekly scripts survive app reload and explicit Load protects unsaved chang
     controller.destroy();
     controller = renderApp(root, services);
     await controller.ready;
+    openTeacherEntrance(root);
     controller.navigate("announcements");
     assert.equal(field("announcement-date").value, "2026-09-18");
     const storageBefore = new Map(announcementStorage.values);
@@ -1969,6 +2009,7 @@ test("legacy script approval survives private crew confirmation and only local s
       clock: { now: () => new Date("2026-09-03T08:50:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     controller.navigate("announcements");
     const field = (name) => findAll(root, (node) => node.getAttribute("name") === name)[0];
     const action = (label) => findAll(root, (node) => node.tagName === "button" && textOf(node) === label)[0];
@@ -2039,6 +2080,7 @@ test("only a teacher-approved announcement draft can enter the student-safe broa
       clock: { now: () => new Date("2026-09-03T08:00:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     controller.navigate("announcements");
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Go live")[0].click();
 
@@ -2118,6 +2160,7 @@ test("Open class runner opens one live runner and Student directions keeps its t
       clock: { now: () => currentTime }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner");
     assert.equal(run.length, 1);
@@ -2226,6 +2269,7 @@ test("a teacher can build and save a first schedule without uploading a file", a
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     controller.navigate("schedule");
 
     const inputNamed = (name) => findAll(root, (node) => node.getAttribute?.("name") === name)[0];
@@ -2562,6 +2606,7 @@ test("scheduled class launch saves a stationary ready runner and renders compact
       clock: { now: () => new Date("2026-08-20T10:24:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     const rendered = textOf(root);
@@ -2655,6 +2700,7 @@ test("teacher detour controls hold the step, stay out of Student directions, and
       clock: { now: () => currentTime }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Question Detour").length, 0);
@@ -2826,6 +2872,7 @@ test("opening a stale same-project ready runner rebases it to the current schedu
       clock: { now: () => new Date("2026-08-20T10:24:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     assert.equal(saveCount, 1);
@@ -2888,6 +2935,7 @@ test("opening same-project running and paused runners preserves their active lif
         clock: { now: () => new Date("2026-08-20T10:24:00-04:00") }
       });
       await controller.ready;
+    openTeacherEntrance(root);
 
       findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
       assert.equal(saveCount, 0, expected);
@@ -2931,6 +2979,7 @@ test("temporary demo opens a working in-memory preview runner that cannot save o
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview a lesson")[0].click();
     const preview = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview experience");
@@ -2992,6 +3041,7 @@ test("temporary demo clocks advance in memory without writing local state", asyn
       clock: { now: () => currentTime }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview a lesson")[0].click();
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview experience")[0].click();
@@ -3054,6 +3104,7 @@ test("no-plan Today remains read-only instead of starting a local runner", async
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     controller.navigate("today");
 
     const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner");
@@ -3095,6 +3146,7 @@ test("a persisted email teacher keeps the Today schedule and launches a namespac
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     assert.match(textOf(root), /Email teacher live schedule/);
     const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner");
@@ -3156,6 +3208,7 @@ test("a real default teacher cannot adopt the synthetic local runner or progress
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     assert.match(textOf(root), /Experience 2 of 36/);
     assert.doesNotMatch(textOf(root), /Experience 19 of 36/);
@@ -3205,6 +3258,7 @@ test("a malformed saved runner is ignored until Run replaces it without breaking
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     assert.doesNotThrow(() => controller.navigate("projects"));
     assert.doesNotThrow(() => timerCallback());
@@ -3271,6 +3325,7 @@ test("a saved runner from the future is ignored until Run safely replaces it", a
       clock: { now: () => currentTime }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     assert.doesNotThrow(() => timerCallback());
     const run = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner");
@@ -3322,6 +3377,7 @@ test("ordinary runner ticks update timer text without replacing the root or chec
       clock: { now: () => currentTime }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Start class")[0].click();
@@ -3393,6 +3449,7 @@ test("last-step completion needs confirmation and then replaces runner controls 
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     assert.match(textOf(root), new RegExp(`Step ${runner.steps.length} of ${runner.steps.length}`));
@@ -3448,6 +3505,7 @@ test("destroy removes the runner visibility handler so stale views do not reconc
       clock: { now: () => currentTime }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     const renderedCount = root.replaceChildrenCount;
 
@@ -3503,6 +3561,7 @@ test("completing the current project persists the next project while previews ca
       clock: { now: () => new Date("2026-08-29T12:00:00.000Z") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     controller.navigate("project-teacher");
     const complete = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Complete experience and move to next");
     assert.equal(complete.length, 1);
@@ -3594,6 +3653,7 @@ test("the completed final project stays reviewable without another completion ac
       clock: { now: () => new Date("2026-08-29T12:00:00.000Z") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     controller.navigate("project-teacher");
 
     assert.match(textOf(root), /All 36 experiences complete/);
@@ -3685,6 +3745,7 @@ test("an actionable private-seed failure keeps Today usable and shows one Settin
         clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
       });
       const result = await controller.ready;
+    openTeacherEntrance(root);
       const rendered = textOf(root);
       const recovery = findAll(root, (node) => /\bprivate-seed-recovery\b/.test(node.className));
       const settingsActions = findAll(root, (node) =>
@@ -3744,6 +3805,7 @@ test("Board and the live lesson runner hide the real header until Today or destr
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     controller.navigate("experience-runner");
     assert.equal(header.hasAttribute("hidden"), true);
@@ -3841,6 +3903,7 @@ test("Board keeps the live region isolated across timer boundaries and restores 
       clock: { now: () => currentTime }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     controller.navigate("board");
     assert.equal(status.hasAttribute("hidden"), true);
@@ -3899,6 +3962,7 @@ test("a recovered backup renders a visible truthful recovery notice", async () =
       clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     const notices = findAll(root, (node) =>
       /recovered.*local backup/i.test(textOf(node)) &&
@@ -3990,6 +4054,7 @@ test("unrecoverable state stays visibly locked until a valid full-state backup i
       clock: { now: () => new Date("2026-08-31T09:10:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     assert.match(textOf(root), /saved state.*could not be read|unrecoverable/i);
     assert.match(textOf(root), /read-only/i);
@@ -4044,6 +4109,7 @@ test("unrecoverable state stays visibly locked until a valid full-state backup i
       "preferences",
       "content"
     ]);
+    openTeacherEntrance(root);
     assert.match(textOf(root), /Set up my schedule|Sign in to sync/);
     assert.doesNotMatch(textOf(root), /unrecoverable|do not clear.*site data/i);
     controller.destroy();
@@ -4098,6 +4164,7 @@ test("configured Preview lesson is in memory, exits cleanly, then live runner st
       clock: { now: () => currentTime }
     });
     await controller.ready;
+    openTeacherEntrance(root);
 
     const preview = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview lesson");
     const live = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner");
@@ -4177,6 +4244,7 @@ test("Settings backup chooser has a visible associated name when enabled and in 
         clock: { now: () => new Date("2026-08-20T09:10:00-04:00") }
       });
       await controller.ready;
+    openTeacherEntrance(root);
       if (!configured) {
         findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview a lesson")[0].click();
       }
@@ -4236,6 +4304,7 @@ test("artifact handoff controls are inert after one event visit, across detached
       clock: { now: () => currentTime }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     const ready = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Ready")[0];
     assert.ok(ready, textOf(root));
@@ -4262,6 +4331,7 @@ test("artifact handoff controls are inert after one event visit, across detached
       clock: { now: () => currentTime }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
     for (const label of ["Ready", "Repeat", "Park", "Confirm handoff"]) {
       assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === label).length, 0, `reload:${label}`);
@@ -4311,6 +4381,7 @@ test("replica chooser is explicit, preserves a different saved runner on cancel,
       clock: { now: () => new Date("2026-08-20T08:05:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     const button = (label) => findAll(root, (node) => node.tagName === "button" && textOf(node) === label)[0];
     controller.navigate("projects");
     assert.match(textOf(root), /Ehrman Crest replica lessons/);
@@ -4368,6 +4439,7 @@ for (const [modeId, label, title] of [
         clock: { now: () => new Date("2026-09-08T08:05:00-04:00") }
       });
       await controller.ready;
+    openTeacherEntrance(root);
       const button = (name) => findAll(root, (node) => node.tagName === "button" && textOf(node) === name)[0];
       controller.navigate("projects");
       button(label).click();
@@ -4422,6 +4494,7 @@ test("replica launches respect a current scheduled end and decline changes to ru
       clock: { now: () => new Date("2026-08-20T09:05:00-04:00") }
     });
     await controller.ready;
+    openTeacherEntrance(root);
     const button = (name) => findAll(root, (node) => node.tagName === "button" && textOf(node) === name)[0];
     button("Day 3: Sort, Count, Plan").click();
     assert.match(textOf(root), /25:00/);
@@ -4441,5 +4514,94 @@ test("replica launches respect a current scheduled end and decline changes to ru
     assert.equal(confirms, 2);
   } finally {
     controller?.destroy(); globalThis.document = previousDocument; globalThis.window = previousWindow;
+  }
+});
+
+test("the Teacher script shows the selected replica lesson, not the broader terrarium project", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  let controller;
+  try {
+    controller = renderApp(root, {
+      store: { load: () => ({ state: stateWithoutPlan(), error: null }), save: (state) => state },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-09-08T08:05:00-04:00") }
+    });
+    await controller.ready;
+    openTeacherEntrance(root);
+    const button = (name) => findAll(root, (node) => node.tagName === "button" && textOf(node) === name)[0];
+    controller.navigate("projects");
+    button("Day 3: Sort, Count, Plan").click();
+
+    controller.navigate("project-teacher");
+    const script = textOf(root);
+    const steps = EXPERIENCE_TIMING_PLANS[1].modeVariants["replica-sort"].steps;
+
+    // The teacher script names the selected lesson and its real sequence.
+    assert.ok(findAll(root, (node) => node.tagName === "h1" && textOf(node) === "Sort, Count, Plan").length);
+    assert.match(script, /Lesson sequence \(7 steps, 35 minutes\)/);
+    for (const step of steps) assert.ok(script.includes(step.label), step.label);
+
+    // The generic project-2 script cards are replaced, so the teacher is not
+    // reading a different lesson than the students are following.
+    assert.doesNotMatch(script, /Say this/);
+    assert.doesNotMatch(script, /Student build path/);
+  } finally {
+    controller?.destroy();
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});
+
+test("the student entrance offers no way to start, advance or complete the lesson", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const root = new FakeNode("main");
+  const saves = [];
+  globalThis.document = fakeDocument();
+  globalThis.window = {
+    location: { hostname: "example.test" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    fetch: async () => ({ ok: false })
+  };
+  let controller;
+  try {
+    controller = renderApp(root, {
+      store: { load: () => ({ state: stateWithoutPlan(), error: null }), save: (state) => { saves.push(state); return state; } },
+      loadPrivateSeed: false,
+      weatherService: {},
+      clock: { now: () => new Date("2026-09-08T08:05:00-04:00") }
+    });
+    await controller.ready;
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open student view")[0].click();
+
+    const labels = findAll(root, (node) => node.tagName === "button").map(textOf);
+    for (const forbidden of [
+      "Start class",
+      "Next Step",
+      "Finish Lesson",
+      "Previous",
+      "Set up my schedule",
+      "Complete experience and move to next"
+    ]) {
+      assert.equal(labels.includes(forbidden), false, forbidden);
+    }
+    assert.match(textOf(root), /Wait for your teacher to start/);
+    assert.match(textOf(root), /check in with your homeroom teacher first, always/i);
+    assert.equal(saves.length, 0);
+  } finally {
+    controller?.destroy();
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
   }
 });
