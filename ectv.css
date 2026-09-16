@@ -98,7 +98,7 @@ h1 span { display: block; color: var(--cyan); }
 .button.secondary { color: var(--cream); background: transparent; border-color: rgba(245, 241, 232, .7); }
 .button.secondary:hover, .button.secondary:focus { color: var(--deep-navy); }
 .hero-art { display: flex; justify-content: center; }
-.hero-art img { width: min(100%, 360px); filter: drop-shadow(0 18px 18px rgba(0, 0, 0, .25)); }
+.hero-art img { width: min(100%, 520px); filter: drop-shadow(0 18px 18px rgba(0, 0, 0, .25)); }
 
 main { overflow: hidden; }
 .section { padding: 90px 0; }
@@ -201,4 +201,15 @@ main { overflow: hidden; }
   h1 { font-size: 2.8rem; }
   .roles-grid { grid-template-columns: 1fr; }
   .button { width: 100%; }
+}
+
+@media (max-width: 720px) {
+  .hero:after { display: none; }
+  .hero-grid { gap: 28px; padding: 42px 0 48px; }
+  h1 { font-size: clamp(2.4rem, 11vw, 3.4rem); }
+  .hero-art img { width: min(100%, 420px); }
+  .info-grid, .roles-grid, .values, .timeline, .roster-box { grid-template-columns: 1fr; }
+  .roles-grid { grid-template-columns: 1fr 1fr; }
+  .section { padding: 54px 0; }
+  .nav-wrap { flex-direction: column; align-items: flex-start; padding: 12px 0; gap: 10px; }
 }
