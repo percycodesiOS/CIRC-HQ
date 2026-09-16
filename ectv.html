@@ -5,13 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ECTV | The Morning Ehrman Show</title>
   <link rel="stylesheet" href="ectv.css">
+  <script>
+    (function () {
+      var inFrame = false;
+      try { inFrame = window.self !== window.top; } catch (e) { inFrame = true; }
+      if (inFrame || /(?:^|[?&])embed=1(?:&|$)/.test(location.search)) {
+        document.documentElement.classList.add('is-embed');
+      }
+    })();
+  </script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
     <div class="container nav-wrap">
       <a class="brand" href="ectv.html">
-        <img src="assets/ectv/ECTV-Logo-Transparent.png" alt="">
+        <img src="assets/ectv/ECTV-Logo-Transparent.png" alt="ECTV">
         <span>ECTV<small>Ehrman Crest</small></span>
       </a>
       <nav class="nav-links" aria-label="On this page">

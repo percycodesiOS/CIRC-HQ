@@ -175,41 +175,61 @@ main { overflow: hidden; }
 .footer-row p { margin: 0; }
 .footer-row a { color: var(--cyan); font-weight: 700; }
 
+html, body { max-width: 100%; overflow-x: hidden; }
+
 @media (max-width: 900px) {
   .hero-grid, .crew-layout, .guide-grid { grid-template-columns: 1fr; }
-  .hero-grid { min-height: 0; padding: 64px 0 74px; }
+  .hero-grid { min-height: 0; padding: 48px 0 56px; gap: 28px; }
+  .hero:after { display: none; }
   .hero-art { order: -1; justify-content: flex-start; }
-  .hero-art img { width: 230px; }
-  .roles-grid { grid-template-columns: repeat(3, 1fr); }
-  .guide-side { position: static; }
-}
-@media (max-width: 650px) {
-  .container { width: min(100% - 28px, 1180px); }
-  .nav-wrap { align-items: flex-start; flex-direction: column; justify-content: center; padding: 15px 0; }
-  .nav-links { justify-content: flex-start; gap: 8px 14px; }
-  .section { padding: 62px 0; }
-  .section-heading { display: block; }
-  .section-heading p { margin-top: 13px; }
-  .info-grid, .values, .timeline, .roster-box { grid-template-columns: 1fr; }
+  .hero-art img { width: min(100%, 340px); }
   .roles-grid { grid-template-columns: repeat(2, 1fr); }
-  .rule-card { grid-template-columns: 1fr; gap: 12px; }
-  .rule-time { font-size: 2rem; }
-  .crew-callout, .guide-card { padding: 25px; }
-  .footer-row { align-items: flex-start; flex-direction: column; }
-}
-@media (max-width: 400px) {
-  h1 { font-size: 2.8rem; }
-  .roles-grid { grid-template-columns: 1fr; }
-  .button { width: 100%; }
+  .guide-side { position: static; }
+  .nav-wrap { flex-direction: column; align-items: flex-start; padding: 12px 0; gap: 10px; min-height: 0; }
+  .section-heading { display: block; }
+  .section-heading p { margin-top: 12px; }
 }
 
-@media (max-width: 720px) {
-  .hero:after { display: none; }
-  .hero-grid { gap: 28px; padding: 42px 0 48px; }
-  h1 { font-size: clamp(2.4rem, 11vw, 3.4rem); }
-  .hero-art img { width: min(100%, 420px); }
-  .info-grid, .roles-grid, .values, .timeline, .roster-box { grid-template-columns: 1fr; }
+@media (max-width: 680px) {
+  .container { width: min(100% - 24px, 1180px); }
+  .brand img { width: 44px; max-height: 40px; }
+  .nav-links { justify-content: flex-start; gap: 8px 12px; }
+  .nav-links a { font-size: .88rem; }
+  h1 { font-size: clamp(2.1rem, 10vw, 3rem); }
+  .hero-copy { margin: 16px 0 20px; font-size: 1.02rem; }
+  .hero-grid { padding: 28px 0 36px; gap: 18px; }
+  .hero-art img { width: min(100%, 280px); }
+  .section { padding: 42px 0; }
+  .info-grid, .values, .timeline, .roster-box { grid-template-columns: 1fr; }
   .roles-grid { grid-template-columns: 1fr 1fr; }
-  .section { padding: 54px 0; }
-  .nav-wrap { flex-direction: column; align-items: flex-start; padding: 12px 0; gap: 10px; }
+  .rule-card { grid-template-columns: 1fr; gap: 10px; padding: 20px; }
+  .rule-time { font-size: 1.8rem; }
+  .crew-callout, .guide-card, .card { padding: 20px; }
+  .footer-row { align-items: flex-start; flex-direction: column; }
+  .button { min-height: 44px; }
 }
+
+@media (max-width: 420px) {
+  .roles-grid { grid-template-columns: 1fr; }
+  .button { width: 100%; }
+  .brand span { display: none; }
+}
+
+/* Moodle iframe / embed=1: one logo, tighter stack, no wasted chrome */
+html.is-embed .site-header .brand span { display: none; }
+html.is-embed .site-header .brand img { width: 52px; max-height: 48px; }
+html.is-embed .hero-art { display: none; }
+html.is-embed .hero-grid { padding: 24px 0 28px; gap: 0; min-height: 0; }
+html.is-embed .hero:after { display: none; }
+html.is-embed h1 { font-size: clamp(1.9rem, 9vw, 2.6rem); }
+html.is-embed .section { padding: 34px 0; }
+html.is-embed .section-heading h2,
+html.is-embed .crew-callout h2 { font-size: clamp(1.7rem, 7vw, 2.4rem); }
+html.is-embed .info-grid,
+html.is-embed .roles-grid,
+html.is-embed .values,
+html.is-embed .timeline,
+html.is-embed .roster-box,
+html.is-embed .crew-layout { grid-template-columns: 1fr; }
+html.is-embed .roles-grid { grid-template-columns: 1fr 1fr; }
+html.is-embed .nav-links a { font-size: .84rem; }
