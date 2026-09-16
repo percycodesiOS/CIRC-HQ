@@ -4,238 +4,161 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ECTV | The Morning Ehrman Show</title>
-  <style>
-    :root {
-      --navy: #0b2b43;
-      --navy2: #081b32;
-      --cyan: #72e5ef;
-      --cream: #f5f1e8;
-      --ink: #152e43;
-      --muted: #254357;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
-      font-size: 18px;
-      line-height: 1.55;
-      color: var(--ink);
-      background: #e8eef2;
-    }
-    .wrap {
-      width: min(1120px, 100%);
-      margin: 0 auto;
-      padding: 16px;
-    }
-    .card {
-      overflow: hidden;
-      border-radius: 24px;
-      background: var(--cream);
-      box-shadow: 0 16px 48px #0b263523;
-    }
-    .hero {
-      padding: clamp(24px, 4vw, 48px);
-      background:
-        radial-gradient(ellipse at 100% 0%, #155976 0%, transparent 65%),
-        linear-gradient(135deg, var(--navy2), #10334b);
-      border-bottom: 5px solid var(--cyan);
-      color: #fffdf6;
-    }
-    .eyebrow {
-      margin: 0 0 10px;
-      color: #9fe8ef;
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-    }
-    .hero h1 {
-      margin: 0 0 12px;
-      font-family: "Segoe Print", "Trebuchet MS", sans-serif;
-      font-size: clamp(28px, 5vw, 46px);
-      line-height: 1.2;
-    }
-    .hero p { margin: 0; max-width: 720px; color: #e0f0f4; }
-    .logos {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      align-items: center;
-      margin-top: 22px;
-    }
-    .logos img {
-      max-height: 72px;
-      width: auto;
-      background: #fff;
-      border-radius: 12px;
-      padding: 8px;
-    }
-    .body { padding: clamp(20px, 3vw, 36px); }
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin: 0 0 28px;
-    }
-    a.btn {
-      display: inline-block;
-      padding: 14px 18px;
-      border-radius: 12px;
-      background: var(--cyan);
-      color: #082139;
-      font-weight: 800;
-      text-decoration: underline;
-      text-underline-offset: 3px;
-    }
-    a.btn.secondary {
-      background: var(--navy);
-      color: #fffdf6;
-    }
-    .panel {
-      margin: 0 0 22px;
-      padding: 22px;
-      border-radius: 16px;
-      background: var(--navy);
-      color: #e6f4f8;
-    }
-    .panel h2 { margin: 0 0 10px; color: #fffdf6; font-size: 24px; }
-    .panel p { margin: 0 0 14px; }
-    .grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 14px;
-    }
-    .tile {
-      flex: 1 1 230px;
-      min-width: 0;
-      background: #fffdf6;
-      border: 1px solid #d9e4e4;
-      border-radius: 16px;
-      padding: 20px;
-    }
-    .tile .label {
-      margin: 0 0 6px;
-      color: #17586a;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-    }
-    .tile h3 { margin: 0 0 8px; font-size: 21px; color: #0a2945; }
-    .tile p { margin: 0; color: #263f50; }
-    .note {
-      margin-top: 22px;
-      padding: 18px 20px;
-      border-left: 5px solid #198497;
-      background: #fff;
-      border-radius: 0 14px 14px 0;
-    }
-    .foot {
-      padding: 18px clamp(20px, 3vw, 36px);
-      background: #e6eeea;
-      border-top: 1px solid #d4dfdb;
-      font-size: 16px;
-      color: var(--muted);
-    }
-    .values {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 18px;
-    }
-    .values span {
-      background: #10334b;
-      color: var(--cyan);
-      border: 1px solid #2a5a72;
-      border-radius: 999px;
-      padding: 8px 14px;
-      font-weight: 700;
-      font-size: 15px;
-    }
-  </style>
+  <link rel="stylesheet" href="ectv.css">
 </head>
 <body>
-  <div class="wrap">
-    <article class="card">
-      <header class="hero">
-        <p class="eyebrow">ECTV / Ehrman Crest</p>
-        <h1>The Morning Ehrman Show</h1>
-        <p>Students tell the news, share the weather, and work the cameras. The show starts at 8:55 every school day.</p>
-        <div class="logos">
-          <img src="assets/ectv/ECTV-Logo-Transparent.png" alt="ECTV">
-          <img src="assets/ectv/ECTV-Team-Logo.png" alt="The Morning Ehrman Show">
-        </div>
-        <div class="values">
-          <span>Kind</span>
-          <span>Curious</span>
-          <span>Clear</span>
-        </div>
-      </header>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="ectv.html">
+        <img src="assets/ectv/ECTV-Logo-Transparent.png" alt="">
+        <span>ECTV<small>Ehrman Crest</small></span>
+      </a>
+      <nav class="nav-links" aria-label="On this page">
+        <a href="#watch">Watch</a>
+        <a href="#crew">Crew</a>
+        <a href="#jobs">Jobs</a>
+        <a href="#time">Times</a>
+        <a href="ectv-imovie.html">Edit stories</a>
+      </nav>
+    </div>
+  </header>
 
-      <div class="body">
-        <div class="actions">
-          <a class="btn" href="#watch">How to watch</a>
-          <a class="btn" href="https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=n0_P7nDtlUCAIkptsGer7wH_44XX4f1OqTDRlViq6B1UM0o3MlY0WjBXQ0dBODY4RzNGNjJQQTNMSy4u" target="_blank" rel="noopener noreferrer">Join the crew</a>
-          <a class="btn secondary" href="https://senecavalley.sharepoint.com/sites/ECTV/Lists/ECTV%20Approved%20Crew/AllItems.aspx" target="_blank" rel="noopener noreferrer">Confirmed roster</a>
-          <a class="btn secondary" href="ectv-imovie.html">How we edit stories</a>
-        </div>
-
-        <section class="panel" id="watch">
-          <h2>How to watch</h2>
-          <p>In classrooms, open School Channel on a school computer the way your teacher shows you. Mr. Macek checks the receiving classroom before we go live.</p>
-          <p>This page does not start the school broadcast. It just explains the show.</p>
-        </section>
-
-        <section class="panel">
-          <h2>Join the crew</h2>
-          <p>Sign-up is a request. Mr. Macek confirms the approved crew. Check in with your homeroom teacher and get permission before you come to the studio.</p>
-          <p>Approved crew aims for 8:50. The show starts at 8:55.</p>
-          <a class="btn" href="https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=n0_P7nDtlUCAIkptsGer7wH_44XX4f1OqTDRlViq6B1UM0o3MlY0WjBXQ0dBODY4RzNGNjJQQTNMSy4u" target="_blank" rel="noopener noreferrer">Open the crew form</a>
-        </section>
-
-        <h2 style="margin:0 0 12px;font-size:24px;color:#0a2945;">Jobs on the show</h2>
-        <div class="grid">
-          <div class="tile">
-            <p class="label">Tell the story</p>
-            <h3>Anchors</h3>
-            <p>Welcome the school, read clearly, and stay on your mark. Two anchors work as a pair.</p>
-          </div>
-          <div class="tile">
-            <p class="label">Make it useful</p>
-            <h3>Weather</h3>
-            <p>Check a real forecast, write a short line, and say only what the source supports.</p>
-          </div>
-          <div class="tile">
-            <p class="label">Stay curious</p>
-            <h3>Reporters</h3>
-            <p>Find one useful school story. Most reporter work happens outside the morning booth.</p>
-          </div>
-          <div class="tile">
-            <p class="label">Frame it</p>
-            <h3>Camera</h3>
-            <p>Two camera operators: one shooting, one watching cables and framing.</p>
-          </div>
-          <div class="tile">
-            <p class="label">Run the board</p>
-            <h3>Computer / media</h3>
-            <p>Two operators keep the player, graphics, and next cue ready.</p>
-          </div>
-          <div class="tile">
-            <p class="label">Call the show</p>
-            <h3>Producer</h3>
-            <p>Calls mute, marks, and who walks next. Keeps the morning moving.</p>
-          </div>
-        </div>
-
-        <div class="note">
-          <strong>Studio files:</strong> In the ECTV Team, open <strong>5) Studio Media</strong>, then <strong>Shared</strong>. Use your school account.
+  <section class="hero">
+    <div class="container hero-grid">
+      <div>
+        <p class="eyebrow">Student voice of Ehrman Crest</p>
+        <h1>The Morning <span>Ehrman Show</span></h1>
+        <p class="hero-copy">News, weather, cameras, and a calm start to the day. Students run the show. Mr. Macek keeps it ready.</p>
+        <div class="button-row">
+          <a class="button" href="https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=n0_P7nDtlUCAIkptsGer7wH_44XX4f1OqTDRlViq6B1UM0o3MlY0WjBXQ0dBODY4RzNGNjJQQTNMSy4u" target="_blank" rel="noopener noreferrer">Join the crew</a>
+          <a class="button secondary" href="https://senecavalley.sharepoint.com/sites/ECTV/Lists/ECTV%20Approved%20Crew/AllItems.aspx" target="_blank" rel="noopener noreferrer">Confirmed roster</a>
+          <a class="button secondary" href="#watch">How to watch</a>
         </div>
       </div>
+      <div class="hero-art">
+        <img src="assets/ectv/ECTV-Team-Logo.png" alt="The Morning Ehrman Show">
+      </div>
+    </div>
+  </section>
 
-      <footer class="foot">
-        <strong>Homeroom first.</strong> A form request is not permission to leave class. Mr. Macek posts the confirmed crew for each day.
-      </footer>
-    </article>
-  </div>
+  <main id="main">
+    <section class="section" id="watch">
+      <div class="container">
+        <div class="section-heading">
+          <div>
+            <p class="kicker">01 / Watch</p>
+            <h2>How classrooms tune in</h2>
+          </div>
+          <p>This page explains the show. It does not start the school broadcast.</p>
+        </div>
+        <div class="info-grid">
+          <article class="card">
+            <span class="number">1</span>
+            <h3>School Channel</h3>
+            <p>On a school computer, open School Channel the way your teacher shows you.</p>
+          </article>
+          <article class="card">
+            <span class="number">2</span>
+            <h3>Picture check</h3>
+            <p>Mr. Macek checks a receiving classroom before we go live.</p>
+          </article>
+          <article class="card">
+            <span class="number">3</span>
+            <h3>Studio files</h3>
+            <p>In the ECTV Team, open <strong>5) Studio Media</strong>, then <strong>Shared</strong>. Use your school account.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section alt" id="crew">
+      <div class="container crew-layout">
+        <div class="crew-callout">
+          <p class="kicker">02 / Crew</p>
+          <h2>Sign up. Wait for yes.</h2>
+          <p>A form request is not a confirmed job. Mr. Macek posts the approved crew. Check in with homeroom and get permission before you come down.</p>
+          <a class="button" href="https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=n0_P7nDtlUCAIkptsGer7wH_44XX4f1OqTDRlViq6B1UM0o3MlY0WjBXQ0dBODY4RzNGNjJQQTNMSy4u" target="_blank" rel="noopener noreferrer">Open the crew form</a>
+        </div>
+        <div class="roster-box">
+          <article class="card">
+            <h3>Confirmed roster</h3>
+            <p>See who is on for a broadcast day. School account required.</p>
+            <a class="text-link" href="https://senecavalley.sharepoint.com/sites/ECTV/Lists/ECTV%20Approved%20Crew/AllItems.aspx" target="_blank" rel="noopener noreferrer">View the roster</a>
+          </article>
+          <article class="card">
+            <h3>Buddy mornings</h3>
+            <p>Studio mornings use pairs: two anchors, two camera, two computer. Weather and producer stay in the booth. Reporters usually work outside the morning booth unless it is their story day.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section dark" id="jobs">
+      <div class="container">
+        <div class="section-heading">
+          <div>
+            <p class="kicker">03 / Jobs</p>
+            <h2>Many jobs. One show.</h2>
+          </div>
+          <p>Pick what you want to learn. Bring your best work.</p>
+        </div>
+        <div class="roles-grid">
+          <div class="role"><strong>Anchors</strong><span>Welcome the school. Stay on your mark. Read clearly.</span></div>
+          <div class="role"><strong>Weather</strong><span>Check a real forecast. Keep it short and accurate.</span></div>
+          <div class="role"><strong>Reporters</strong><span>Find one useful school story. Check your facts.</span></div>
+          <div class="role"><strong>Camera</strong><span>One shooting. One watching framing and cables.</span></div>
+          <div class="role"><strong>Computer</strong><span>Player, graphics, next cue. Keep the board ready.</span></div>
+        </div>
+        <p style="margin-top:22px"><a class="button" href="ectv-imovie.html">How we edit stories in iMovie</a></p>
+      </div>
+    </section>
+
+    <section class="section" id="time">
+      <div class="container">
+        <div class="section-heading">
+          <div>
+            <p class="kicker">04 / Day</p>
+            <h2>Know the clock</h2>
+          </div>
+          <p>Homeroom release comes first. Always.</p>
+        </div>
+        <div class="timeline">
+          <article class="rule-card">
+            <div class="rule-time">8:50</div>
+            <div>
+              <h3>Approved crew arrives</h3>
+              <p>Check in at homeroom. Come only when released. Earlier is better.</p>
+            </div>
+          </article>
+          <article class="rule-card">
+            <div class="rule-time">8:55</div>
+            <div>
+              <h3>Show starts</h3>
+              <p>Music stops before speech. Producer calls mute and marks. We do not pass lapel mics around.</p>
+            </div>
+          </article>
+        </div>
+        <div class="note" style="margin-top:22px">Kind. Curious. Clear. Good questions. Accurate stories.</div>
+      </div>
+    </section>
+
+    <section class="section alt">
+      <div class="container">
+        <div class="values">
+          <article class="value"><h3>Kind</h3><p>Talk about people the way you want to be talked about.</p></article>
+          <article class="value"><h3>Curious</h3><p>Ask useful questions. Check the source before you say it on air.</p></article>
+          <article class="value"><h3>Clear</h3><p>Say the point once. Make it easy for a fifth grader to follow.</p></article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-row">
+      <p>ECTV - The Morning Ehrman Show - Ehrman Crest Middle School</p>
+      <p><a href="ectv-imovie.html">iMovie guide</a></p>
+    </div>
+  </footer>
 </body>
 </html>
