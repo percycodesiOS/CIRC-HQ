@@ -1,6 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 180 180" role="img" aria-label="Anchors">
-  <rect width="180" height="180" rx="36" fill="#081b32"/>
-  <rect x="14" y="14" width="152" height="152" rx="28" fill="#0b2b43"/>
-  <circle cx="142" cy="38" r="8" fill="#72e5ef"/>
-  <g fill="none" stroke="#72e5ef" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">M40 70h80v40H40z M70 55a15 15 0 1 1 0.1 0 M110 55a15 15 0 1 1 0.1 0</g>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 200 200" role="img" aria-label="Anchors">
+  <rect width="200" height="200" rx="40" fill="#081b32"/>
+  <rect x="16" y="16" width="168" height="168" rx="32" fill="#0b2b43"/>
+  <circle cx="70" cy="72" r="18" fill="#f5f1e8"/>
+  <circle cx="130" cy="72" r="18" fill="#f5f1e8"/>
+  <rect x="48" y="100" width="44" height="36" rx="12" fill="#72e5ef"/>
+  <rect x="108" y="100" width="44" height="36" rx="12" fill="#72e5ef"/>
+  <rect x="88" y="128" width="24" height="34" rx="8" fill="#ffd66e"/>
+  <circle cx="100" cy="118" r="10" fill="#081b32"/>
 </svg>
