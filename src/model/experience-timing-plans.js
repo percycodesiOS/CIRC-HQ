@@ -240,19 +240,20 @@ export const REPLICA_LESSON_CHOICES = deepFreeze([
     "title": "Set Up Your Laptop",
     "label": "Device setup: laptop, Teams, OneDrive, printer",
     "objective": "I can set up my school laptop so it is comfortable to use, and I can reach Teams, OneDrive and the right printer on my own.",
-    "summary": "One-time setup for a class that has not done it yet. Battery, night light, Teams, OneDrive and the correct hallway printer. Expect it to fill the whole period.",
+    "summary": "One-time setup for a class that has not done it yet. Trackpad, best performance, night light, Teams settings and the blue cloud. Expect it to fill the whole period.",
     "materials": [
       "One school laptop per student, charged",
       "Student school account sign-in",
-      "The printer name for this hallway, written where everyone can see it",
+      "The hallway printer name on the board, only if you have time for the optional last step",
       "A projected copy of the teacher screen"
     ],
     "safety": "Nobody signs in as anybody else. If a student cannot get into their account, they pair with a neighbour and watch rather than borrowing a login. Laptops stay on the table, not on laps, and go back on the cart at the end.",
     "teacherContext": [
       "Run this once per class, before any lesson that needs OneDrive or printing. It reliably fills a 35 minute period, so do not plan other content on top of it.",
       "The step times below are ESTIMATES for a first run. Use the class clock to record what each step actually took, then adjust. The point of the first run is measurement.",
-      "OneDrive is the step that splits the class. Some students are already signed in and finish in a minute; others hit the sign-in wall. Pair the finished students with the stuck ones rather than waiting.",
-      "The printer differs by hallway, so grade 5 and grade 6 install different printers. Write the correct printer name on the board before the class starts; do not read it aloud only."
+      "OneDrive is the step that splits the class. Blue cloud means signed in, grey cloud with a line means not. Give students that check and they can diagnose it themselves all year. Pair blue-cloud students with grey-cloud ones rather than waiting.",
+      "Teach left click and right click FIRST. The very next step needs a right-click on the battery icon, so a student who cannot right-click is stuck for the whole period.",
+      "The printer is the lowest priority and is now the only optional item. Drop it rather than rushing OneDrive. If you do want it, write the hallway printer name on the board first; grade 5 and grade 6 are different."
     ],
     "fastFinish": "Help someone at your table who is not finished yet, then check your own night light is back at 25 percent."
   }
@@ -274,117 +275,128 @@ function replicaParallelJobs() {
 }
 
 function deviceSetupVariant() {
-  // Times are ESTIMATES for a first run. The whole point of running this once
-  // is to find out what each step actually costs, then correct these numbers.
+  // Kenny's actual routine, in his order. Trackpad comes FIRST because the very
+  // next step needs a right-click, and a student who cannot right-click is stuck
+  // at step two. Times are estimates until the first real run.
   return {
     "setup-devices": {
       ...defineModeVariant(2, [
         [
-          "setup-display",
-          "BATTERY AND NIGHT LIGHT",
+          "setup-trackpad",
+          "LEFT AND RIGHT CLICK",
           "ready",
-          7,
+          4,
           [
-            "Open Settings, then System, then Power and battery. Turn your power mode up.",
-            "Now find Night light. Slide it ALL the way to the right. Look how orange that is.",
-            "Slide it back down to 25 percent and leave it there.",
-            "Hand up if you cannot find one of them. Do not guess."
+            "Find the two bottom corners of the trackpad.",
+            "LEFT click picks something. It is the one you use most.",
+            "RIGHT click opens a menu of choices. You need it in one minute.",
+            "Practise: right-click on the desktop. A menu should appear. Press Escape to close it."
           ],
           [
-            "Project your own screen and go one click at a time. Wait for hands before moving on.",
-            "Make them push night light to full first. Seeing the extreme is what makes 25 percent stick.",
-            "Walk the room and check screens are actually back near 25, not left on full."
+            "Do not skip this. The next step needs a right-click, and a student who cannot right-click is stuck for the whole period.",
+            "Watch hands, not screens. The ones who struggle are using one finger on a whole trackpad.",
+            "These are brand new machines. Say it now: we treat them with respect."
+          ]
+        ],
+        [
+          "setup-performance",
+          "BEST PERFORMANCE",
+          "work",
+          6,
+          [
+            "RIGHT-click the battery icon at the bottom right.",
+            "Choose Power and battery settings.",
+            "Find the power mode boxes. There are TWO: On battery, and Plugged in.",
+            "Set BOTH of them to Best performance.",
+            "Stay on this screen. You need it next."
+          ],
+          [
+            "Both boxes. Students set the plugged-in one and stop, then wonder why it is slow on the cart.",
+            "Right-clicking the battery icon is faster than digging through Settings. That is why the trackpad step came first.",
+            "Keep the window open, and maximize it, for the night light step."
+          ]
+        ],
+        [
+          "setup-nightlight",
+          "NIGHT LIGHT",
+          "work",
+          7,
+          [
+            "Maximize this window so you can see the whole thing.",
+            "At the top there is a search box that says Find a setting. Type: night light.",
+            "Toggle Night light ON. Slide it ALL the way to the right.",
+            "Look at how orange that is. Now bring it back to 25 percent.",
+            "Close Settings."
+          ],
+          [
+            "Explain WHY while they are looking at full orange: screens put out blue light, blue light is the part that tires your eyes and gives some people headaches, and night light takes the blue out.",
+            "Full orange first is what makes 25 percent stick. They need to see the extreme.",
+            "Walk the room and check screens are actually near 25, not left on full or switched back off."
           ]
         ],
         [
           "setup-teams",
-          "OPEN TEAMS",
-          "work",
-          4,
-          [
-            "Open Microsoft Teams.",
-            "Sign in with your school account if it asks.",
-            "Wait until you can see your class teams."
-          ],
-          [
-            "Expect a slow first load. Clicking repeatedly makes it slower, not faster.",
-            "Students who load fast start helping their table now, not at the end."
-          ]
-        ],
-        [
-          "setup-teams-options",
           "TEAMS SETTINGS",
           "work",
-          5,
+          6,
           [
-            "Click the three dots next to your profile picture.",
-            "Turn OFF the three settings your teacher has written on the board.",
-            "Check your neighbour turned off the same three."
+            "Open Microsoft Teams and sign in with your school account.",
+            "Click the three dots next to your profile picture, then Settings.",
+            "You will see FOUR checkboxes. Turn them all OFF.",
+            "They are about auto-starting Teams, running in the background, and staying open when you close it.",
+            "Read the exact wording off your own screen and check your neighbour."
           ],
           [
-            "TEACHER: write the exact three settings on the board before class. They are not in this lesson because they were never written down.",
-            "Show all three on the projector, then let the class do all three at once."
+            "There are four checkboxes. The exact wording shifts between Teams versions, so read the current ones aloud from the projector rather than trusting a printed list.",
+            "The point is that Teams should not launch itself or keep running after it is closed, on a shared cart machine.",
+            "Expect a slow first sign-in. Clicking repeatedly makes it slower."
           ]
         ],
         [
           "setup-onedrive",
-          "SIGN IN TO ONEDRIVE",
+          "THE BLUE CLOUD",
           "work",
           8,
           [
-            "In the search bar at the bottom, type just the letters O N.",
-            "OneDrive will appear in the list. Open it.",
-            "Follow the prompts: Next, Next, Use this folder, and Keep yes.",
-            "If it will not let you in, hand up and keep watching a neighbour."
+            "Open OneDrive and look at the cloud icon.",
+            "BLUE cloud means you are signed in. You are done, help someone near you.",
+            "GREY cloud with a line through it means you are NOT signed in.",
+            "If it is grey: LEFT-click it once and follow each prompt. Next, Next, Use this folder, Keep yes.",
+            "Hand up if it will not let you in."
           ],
           [
-            "This is the step that splits the class. Some are already signed in and finish in a minute.",
-            "Send finished students to sit beside stuck ones. Do not hold the whole room.",
-            "A student who cannot sign in does NOT borrow anyone else's login. They pair and watch."
-          ]
-        ],
-        [
-          "setup-printer",
-          "INSTALL YOUR PRINTER",
-          "work",
-          6,
-          [
-            "Your printer depends on which hallway you are in.",
-            "Use the printer name your teacher wrote on the board.",
-            "Add that printer, then wait until it says ready."
-          ],
-          [
-            "TEACHER: write the correct printer name on the board first. Grade 5 and grade 6 are different hallways and different printers.",
-            "The names are not in this lesson because they were never written down. Do not let students pick from the list by guessing."
+            "Blue means in, grey with a line means out. Give them that one check and they can diagnose it themselves all year.",
+            "This is the step that splits the class. Send the blue-cloud students to sit beside the grey-cloud ones.",
+            "Nobody signs in as anybody else. A student who cannot get in pairs up and watches."
           ]
         ],
         [
           "setup-check",
           "CHECK EACH OTHER",
           "cleanup",
-          3,
+          2,
           [
-            "Check your partner: night light at 25, Teams open, OneDrive signed in, printer added.",
-            "Fix anything that is missing together.",
-            "Laptop back on the cart, plugged in."
+            "Check your partner: night light at 25, both power boxes on Best performance, blue cloud.",
+            "Only if there is time left, add the printer your teacher wrote on the board."
           ],
           [
-            "Pairs catch more than you can walking the room.",
-            "Collect who is still stuck. That is your follow-up list, not a problem to solve now."
+            "The printer is the lowest priority. Drop it rather than rushing the OneDrive step.",
+            "Collect who still has a grey cloud. That is your follow-up list."
           ]
         ],
         [
-          "setup-exit",
-          "WHAT WORKED",
+          "setup-respect",
+          "RESPECT THE MACHINE",
           "exit",
           2,
           [
-            "Tell your teacher the one step that did not work for you.",
-            "Say one thing you could now do that you could not do before."
+            "These laptops are brand new. Close the lid gently with two hands.",
+            "Back on the cart, plugged in, cable not crushed.",
+            "Tell your teacher the one step that did not work for you."
           ],
           [
-            "Write down what each step actually took. These times are estimates until you run it once.",
-            "Accept a spoken answer. Do not require writing."
+            "Say it plainly: these are new, they are shared, and they are not replaced if they are broken.",
+            "Write down what each step actually took. The times in this lesson are estimates until you run it once."
           ]
         ]
       ], replicaParallelJobs(), { preserveExisting: true, requiresTeacherPlan: false, dismantleGluedStructure: false }),

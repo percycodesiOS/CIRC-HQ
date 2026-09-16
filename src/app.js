@@ -969,8 +969,8 @@ function replicaLessonChooser(actions) {
     }, [
       element("p", { className: "section-kicker", text: "One-time class setup" }),
       element("h2", { text: "Devices and accounts", attributes: { id: "device-setup-heading" } }),
-      element("p", { text: "Run this once with a class that has not done it. Battery, night light, Teams, OneDrive and the hallway printer. It fills a whole period, so do not plan other content on top of it." }),
-      element("p", { text: "Write the three Teams settings and the correct printer name on the board before the class starts. Grade 5 and grade 6 use different printers." }),
+      element("p", { text: "Run this once with a class that has not done it. Trackpad, best performance, night light, Teams settings and the blue cloud. It fills a whole period, so do not plan other content on top of it." }),
+      element("p", { text: "Teach left click and right click first. The battery step needs a right-click, so a student who cannot right-click is stuck at step two." }),
       element("div", { className: "replica-lesson-choices" }, REPLICA_LESSON_CHOICES.filter((choice) => choice.id === "setup-devices").map(choiceCard))
     ]),
     element("section", {
