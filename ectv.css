@@ -177,59 +177,72 @@ main { overflow: hidden; }
 
 html, body { max-width: 100%; overflow-x: hidden; }
 
+
+.nav-groups { display: flex; flex-wrap: wrap; gap: 18px 28px; justify-content: flex-end; align-items: flex-start; }
+.nav-label { display: block; width: 100%; color: rgba(114, 229, 239, .85); font-size: .68rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 4px; }
+.nav-pages a { color: #ffd66e; }
+.about-grid .number { font-size: .9rem; }
+.role-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.role-card { padding: 18px; border-radius: 20px; background: rgba(114, 229, 239, .1); border: 1px solid rgba(114, 229, 239, .28); color: var(--cream); }
+.role-card img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 16px; margin-bottom: 12px; background: #0b2b43; }
+.role-card h3 { margin: 0 0 8px; color: var(--cyan); font-size: 1.25rem; }
+.role-card p { margin: 0; color: rgba(245, 241, 232, .8); font-size: .95rem; }
+.role-cards-compact .role-card { background: rgba(255,255,255,.06); }
+.jobs-note { margin: 22px 0; color: rgba(245, 241, 232, .8); }
+.resources-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: stretch; }
+.resources-panel > div { padding: 28px; border-radius: var(--radius); background: var(--white); box-shadow: var(--shadow); }
+.example-script { background: #fff8dd !important; border-left: 6px solid var(--yellow); }
+.example-label { display: inline-block; margin: 0 0 8px; padding: 4px 10px; border-radius: 999px; background: var(--navy); color: var(--cyan); font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.homeroom-banner { margin: 0 0 22px; padding: 16px 18px; border-radius: 14px; background: #0b2b43; color: #72e5ef; font-weight: 800; font-size: 1.05rem; }
+.contact-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 24px; align-items: start; }
+.contact-grid h2 { margin: 8px 0 12px; font-size: clamp(2rem, 4vw, 3.2rem); color: var(--navy); }
+.guide-visual { display: grid; grid-template-columns: 1.3fr .7fr; gap: 24px; align-items: start; }
+.visual-panel { padding: 18px; border-radius: var(--radius); background: var(--deep-navy); color: var(--cream); }
+.visual-panel img { width: 100%; border-radius: 14px; margin-bottom: 12px; }
+.workflow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.workflow-step { padding: 24px; border-radius: var(--radius); background: var(--white); box-shadow: var(--shadow); }
+.workflow-step span { display: inline-grid; place-items: center; width: 36px; height: 36px; margin-bottom: 12px; border-radius: 12px; background: var(--cyan); color: var(--deep-navy); font-weight: 900; }
+.workflow-step h3 { margin: 0 0 8px; color: var(--navy); }
+.workflow-step p { margin: 0; color: var(--muted); }
+.hero-imovie { background-image: linear-gradient(90deg, rgba(8, 27, 50, .96) 0%, rgba(8, 27, 50, .88) 55%, rgba(8, 27, 50, .7) 100%), url("assets/ectv/03-anchor-background.png"); }
+
+html, body { max-width: 100%; overflow-x: hidden; }
+
 @media (max-width: 900px) {
-  .hero-grid, .crew-layout, .guide-grid { grid-template-columns: 1fr; }
+  .hero-grid, .crew-layout, .guide-grid, .resources-panel, .contact-grid, .guide-visual, .workflow { grid-template-columns: 1fr; }
+  .role-cards { grid-template-columns: repeat(2, 1fr); }
   .hero-grid { min-height: 0; padding: 48px 0 56px; gap: 28px; }
   .hero:after { display: none; }
   .hero-art { order: -1; justify-content: flex-start; }
   .hero-art img { width: min(100%, 340px); }
-  .roles-grid { grid-template-columns: repeat(2, 1fr); }
-  .guide-side { position: static; }
   .nav-wrap { flex-direction: column; align-items: flex-start; padding: 12px 0; gap: 10px; min-height: 0; }
+  .nav-groups { justify-content: flex-start; }
   .section-heading { display: block; }
   .section-heading p { margin-top: 12px; }
 }
 
 @media (max-width: 680px) {
   .container { width: min(100% - 24px, 1180px); }
+  .role-cards { grid-template-columns: 1fr; }
   .brand img { width: 44px; max-height: 40px; }
-  .nav-links { justify-content: flex-start; gap: 8px 12px; }
-  .nav-links a { font-size: .88rem; }
   h1 { font-size: clamp(2.1rem, 10vw, 3rem); }
-  .hero-copy { margin: 16px 0 20px; font-size: 1.02rem; }
   .hero-grid { padding: 28px 0 36px; gap: 18px; }
-  .hero-art img { width: min(100%, 280px); }
   .section { padding: 42px 0; }
   .info-grid, .values, .timeline, .roster-box { grid-template-columns: 1fr; }
-  .roles-grid { grid-template-columns: 1fr 1fr; }
   .rule-card { grid-template-columns: 1fr; gap: 10px; padding: 20px; }
-  .rule-time { font-size: 1.8rem; }
-  .crew-callout, .guide-card, .card { padding: 20px; }
-  .footer-row { align-items: flex-start; flex-direction: column; }
   .button { min-height: 44px; }
 }
 
 @media (max-width: 420px) {
-  .roles-grid { grid-template-columns: 1fr; }
   .button { width: 100%; }
   .brand span { display: none; }
 }
 
-/* Moodle iframe / embed=1: one logo, tighter stack, no wasted chrome */
 html.is-embed .site-header .brand span { display: none; }
-html.is-embed .site-header .brand img { width: 52px; max-height: 48px; }
 html.is-embed .hero-art { display: none; }
 html.is-embed .hero-grid { padding: 24px 0 28px; gap: 0; min-height: 0; }
 html.is-embed .hero:after { display: none; }
 html.is-embed h1 { font-size: clamp(1.9rem, 9vw, 2.6rem); }
 html.is-embed .section { padding: 34px 0; }
-html.is-embed .section-heading h2,
-html.is-embed .crew-callout h2 { font-size: clamp(1.7rem, 7vw, 2.4rem); }
-html.is-embed .info-grid,
-html.is-embed .roles-grid,
-html.is-embed .values,
-html.is-embed .timeline,
-html.is-embed .roster-box,
-html.is-embed .crew-layout { grid-template-columns: 1fr; }
-html.is-embed .roles-grid { grid-template-columns: 1fr 1fr; }
-html.is-embed .nav-links a { font-size: .84rem; }
+html.is-embed .role-cards, html.is-embed .info-grid, html.is-embed .workflow, html.is-embed .resources-panel, html.is-embed .contact-grid { grid-template-columns: 1fr; }
+html.is-embed .role-cards { grid-template-columns: 1fr 1fr; }

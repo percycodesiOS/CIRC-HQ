@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 180 180" role="img" aria-label="Computer">
+  <rect width="180" height="180" rx="36" fill="#081b32"/>
+  <rect x="14" y="14" width="152" height="152" rx="28" fill="#0b2b43"/>
+  <circle cx="142" cy="38" r="8" fill="#ff8d75"/>
+  <g fill="none" stroke="#ff8d75" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">M40 55h90v55H40z M55 125h60</g>
+</svg>
