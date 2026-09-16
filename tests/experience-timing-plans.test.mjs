@@ -595,8 +595,12 @@ test("timing plan source data contains no em dash or en dash", () => {
 
 test("replica lessons add five explicit complete paths without replacing the original annual modes", () => {
   const { REPLICA_LESSON_CHOICES, getExperienceTimingPlan, validateExperienceTimingPlan } = getModel();
-  assert.equal(REPLICA_LESSON_CHOICES.length, 5);
-  assert.deepEqual(REPLICA_LESSON_CHOICES.map(({ id }) => id), ["replica-sort", "replica-layout", "replica-cardboard", "replica-service", "replica-resin"]);
+  // The five replica lessons are still exactly five. "setup-devices" is a
+  // separate one-time device/account setup lesson that shares the same runner,
+  // so it lives in the same choice list but is not a replica lesson.
+  const replicaOnly = REPLICA_LESSON_CHOICES.filter(({ id }) => id !== "setup-devices");
+  assert.equal(replicaOnly.length, 5);
+  assert.deepEqual(replicaOnly.map(({ id }) => id), ["replica-sort", "replica-layout", "replica-cardboard", "replica-service", "replica-resin"]);
   for (const choice of REPLICA_LESSON_CHOICES) {
     const plan = getExperienceTimingPlan(2, { modeId: choice.id });
     assert.equal(plan.title, choice.title);

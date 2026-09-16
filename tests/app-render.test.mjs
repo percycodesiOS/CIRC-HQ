@@ -2443,9 +2443,9 @@ test("every current lesson path resolves to a reviewed meaning-based icon", () =
     "warning-circle"
   ]);
 
-  assert.equal(paths.length, 47);
-  assert.equal(steps.length, 375);
-  assert.equal(uniqueSteps.size, 266);
+  assert.equal(paths.length, 48);
+  assert.equal(steps.length, 382);
+  assert.equal(uniqueSteps.size, 273);
   for (const step of steps) assert.equal(reviewedFiles.has(runnerStepIconFile(step)), true);
 
   const distribution = Object.fromEntries(
@@ -2459,11 +2459,11 @@ test("every current lesson path resolves to a reviewed meaning-based icon", () =
     books: 21,
     "calendar-dots": 32,
     "chalkboard-teacher": 4,
-    "gear-six": 93,
+    "gear-six": 94,
     house: 1,
-    "play-circle": 15,
-    "presentation-chart": 41,
-    student: 6,
+    "play-circle": 16,
+    "presentation-chart": 42,
+    student: 10,
     "warning-circle": 45
   });
 

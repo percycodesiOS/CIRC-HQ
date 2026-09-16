@@ -965,13 +965,23 @@ function replicaLessonChooser(actions) {
   return element("div", { className: "replica-unit-choices" }, [
     element("section", {
       className: "replica-lessons",
+      attributes: { "aria-labelledby": "device-setup-heading" }
+    }, [
+      element("p", { className: "section-kicker", text: "One-time class setup" }),
+      element("h2", { text: "Devices and accounts", attributes: { id: "device-setup-heading" } }),
+      element("p", { text: "Run this once with a class that has not done it. Battery, night light, Teams, OneDrive and the hallway printer. It fills a whole period, so do not plan other content on top of it." }),
+      element("p", { text: "Write the three Teams settings and the correct printer name on the board before the class starts. Grade 5 and grade 6 use different printers." }),
+      element("div", { className: "replica-lesson-choices" }, REPLICA_LESSON_CHOICES.filter((choice) => choice.id === "setup-devices").map(choiceCard))
+    ]),
+    element("section", {
+      className: "replica-lessons",
       attributes: { "aria-labelledby": "replica-lessons-heading" }
     }, [
       element("p", { className: "section-kicker", text: "Tech Terrarium lesson choices" }),
       element("h2", { text: "Ehrman Crest replica lessons", attributes: { id: "replica-lessons-heading" } }),
       element("p", { text: "School aerial view at the front; rocks, lizard habitat and technology at the back. Preserve the habitat and check the aerial reference before placing school features." }),
       element("p", { text: "Choose the lesson your crew needs. Each lesson plan totals 35 minutes; during a scheduled class, the class clock uses its remaining time. Opening the same choice keeps its current step; replacing a different lesson requires confirmation." }),
-      element("div", { className: "replica-lesson-choices" }, REPLICA_LESSON_CHOICES.filter((choice) => choice.id !== "replica-resin").map(choiceCard)),
+      element("div", { className: "replica-lesson-choices" }, REPLICA_LESSON_CHOICES.filter((choice) => !["replica-resin", "setup-devices"].includes(choice.id)).map(choiceCard)),
       element("p", { text: "Ready to build with cardboard? Choose Day 5. Students assemble with tape and tabs while the teacher manages the hot-glue station. Resin is not required for this school-model lesson." }),
       currentLesson(false),
       actionButton("Original Tech Terrarium", "secondary-action", () => actions.openRunner(2, { modeId: "build-new" })),

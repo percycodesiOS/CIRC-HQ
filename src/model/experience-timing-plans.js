@@ -234,6 +234,27 @@ export const REPLICA_LESSON_CHOICES = deepFreeze([
       "The classroom step timer is not a resin cure timer. Record the actual product, pour time and manufacturer conditions separately; pieces remain at the protected station until the teacher confirms the required cure and safe handling. Do not promise next-period demolding."
     ],
     "fastFinish": "Compare a paper prototype with a fully cured game or art piece, then explain whether the material and curing time meet the design need."
+  },
+  {
+    "id": "setup-devices",
+    "title": "Set Up Your Laptop",
+    "label": "Device setup: laptop, Teams, OneDrive, printer",
+    "objective": "I can set up my school laptop so it is comfortable to use, and I can reach Teams, OneDrive and the right printer on my own.",
+    "summary": "One-time setup for a class that has not done it yet. Battery, night light, Teams, OneDrive and the correct hallway printer. Expect it to fill the whole period.",
+    "materials": [
+      "One school laptop per student, charged",
+      "Student school account sign-in",
+      "The printer name for this hallway, written where everyone can see it",
+      "A projected copy of the teacher screen"
+    ],
+    "safety": "Nobody signs in as anybody else. If a student cannot get into their account, they pair with a neighbour and watch rather than borrowing a login. Laptops stay on the table, not on laps, and go back on the cart at the end.",
+    "teacherContext": [
+      "Run this once per class, before any lesson that needs OneDrive or printing. It reliably fills a 35 minute period, so do not plan other content on top of it.",
+      "The step times below are ESTIMATES for a first run. Use the class clock to record what each step actually took, then adjust. The point of the first run is measurement.",
+      "OneDrive is the step that splits the class. Some students are already signed in and finish in a minute; others hit the sign-in wall. Pair the finished students with the stuck ones rather than waiting.",
+      "The printer differs by hallway, so grade 5 and grade 6 install different printers. Write the correct printer name on the board before the class starts; do not read it aloud only."
+    ],
+    "fastFinish": "Help someone at your table who is not finished yet, then check your own night light is back at 25 percent."
   }
 ]);
 
@@ -250,6 +271,127 @@ function replicaParallelJobs() {
     ["record", "Record Team", ["Record the result and the next action."]],
     ["share", "Share Team", ["Explain one result and help reset the space."]]
   ]);
+}
+
+function deviceSetupVariant() {
+  // Times are ESTIMATES for a first run. The whole point of running this once
+  // is to find out what each step actually costs, then correct these numbers.
+  return {
+    "setup-devices": {
+      ...defineModeVariant(2, [
+        [
+          "setup-display",
+          "BATTERY AND NIGHT LIGHT",
+          "ready",
+          7,
+          [
+            "Open Settings, then System, then Power and battery. Turn your power mode up.",
+            "Now find Night light. Slide it ALL the way to the right. Look how orange that is.",
+            "Slide it back down to 25 percent and leave it there.",
+            "Hand up if you cannot find one of them. Do not guess."
+          ],
+          [
+            "Project your own screen and go one click at a time. Wait for hands before moving on.",
+            "Make them push night light to full first. Seeing the extreme is what makes 25 percent stick.",
+            "Walk the room and check screens are actually back near 25, not left on full."
+          ]
+        ],
+        [
+          "setup-teams",
+          "OPEN TEAMS",
+          "work",
+          4,
+          [
+            "Open Microsoft Teams.",
+            "Sign in with your school account if it asks.",
+            "Wait until you can see your class teams."
+          ],
+          [
+            "Expect a slow first load. Clicking repeatedly makes it slower, not faster.",
+            "Students who load fast start helping their table now, not at the end."
+          ]
+        ],
+        [
+          "setup-teams-options",
+          "TEAMS SETTINGS",
+          "work",
+          5,
+          [
+            "Click the three dots next to your profile picture.",
+            "Turn OFF the three settings your teacher has written on the board.",
+            "Check your neighbour turned off the same three."
+          ],
+          [
+            "TEACHER: write the exact three settings on the board before class. They are not in this lesson because they were never written down.",
+            "Show all three on the projector, then let the class do all three at once."
+          ]
+        ],
+        [
+          "setup-onedrive",
+          "SIGN IN TO ONEDRIVE",
+          "work",
+          8,
+          [
+            "In the search bar at the bottom, type just the letters O N.",
+            "OneDrive will appear in the list. Open it.",
+            "Follow the prompts: Next, Next, Use this folder, and Keep yes.",
+            "If it will not let you in, hand up and keep watching a neighbour."
+          ],
+          [
+            "This is the step that splits the class. Some are already signed in and finish in a minute.",
+            "Send finished students to sit beside stuck ones. Do not hold the whole room.",
+            "A student who cannot sign in does NOT borrow anyone else's login. They pair and watch."
+          ]
+        ],
+        [
+          "setup-printer",
+          "INSTALL YOUR PRINTER",
+          "work",
+          6,
+          [
+            "Your printer depends on which hallway you are in.",
+            "Use the printer name your teacher wrote on the board.",
+            "Add that printer, then wait until it says ready."
+          ],
+          [
+            "TEACHER: write the correct printer name on the board first. Grade 5 and grade 6 are different hallways and different printers.",
+            "The names are not in this lesson because they were never written down. Do not let students pick from the list by guessing."
+          ]
+        ],
+        [
+          "setup-check",
+          "CHECK EACH OTHER",
+          "cleanup",
+          3,
+          [
+            "Check your partner: night light at 25, Teams open, OneDrive signed in, printer added.",
+            "Fix anything that is missing together.",
+            "Laptop back on the cart, plugged in."
+          ],
+          [
+            "Pairs catch more than you can walking the room.",
+            "Collect who is still stuck. That is your follow-up list, not a problem to solve now."
+          ]
+        ],
+        [
+          "setup-exit",
+          "WHAT WORKED",
+          "exit",
+          2,
+          [
+            "Tell your teacher the one step that did not work for you.",
+            "Say one thing you could now do that you could not do before."
+          ],
+          [
+            "Write down what each step actually took. These times are estimates until you run it once.",
+            "Accept a spoken answer. Do not require writing."
+          ]
+        ]
+      ], replicaParallelJobs(), { preserveExisting: true, requiresTeacherPlan: false, dismantleGluedStructure: false }),
+      title: "Set Up Your Laptop",
+      safetyTags: []
+    }
+  };
 }
 
 function replicaModeVariants() {
@@ -945,6 +1087,7 @@ const PLAN_DEFINITIONS = [
           },
         ),
         ...replicaModeVariants(),
+        ...deviceSetupVariant(),
       },
     },
   ),
