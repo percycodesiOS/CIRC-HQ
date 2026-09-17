@@ -108,6 +108,7 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "assets/ectv/03-anchor-background.png",
   "assets/ectv/ECTV-Logo-Transparent.png",
   "assets/ectv/ECTV-Team-Logo.png",
+  "assets/ectv/flag-us.svg",
   "assets/ectv/imovie-ipad-edit.svg",
   "assets/ectv/roles/role-anchors.svg",
   "assets/ectv/roles/role-camera.svg",
