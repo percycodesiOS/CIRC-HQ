@@ -5226,3 +5226,25 @@ button:disabled {
 
   @page { size: letter landscape; margin: 0.4in; }
 }
+
+/* Settings > Advanced backup and restore: same padding and rhythm as the Schedule screen's box. */
+.advanced-settings-body {
+  display: grid;
+  gap: 18px;
+  padding: 14px;
+}
+
+.advanced-settings-body > section {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.advanced-settings-body h3 {
+  margin: 0;
+  color: var(--heading);
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.advanced-settings-body p { margin: 0; }
