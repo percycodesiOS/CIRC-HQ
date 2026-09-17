@@ -82,6 +82,7 @@ import {
 import { buildSetupHelpView, buildSetupView } from "./ui/setup.js";
 import { buildTodayPresentation, buildWelcomePresentation } from "./ui/today-ui.js";
 import { buildTodayViewModel } from "./ui/view-model.js";
+import { buildWeekModel } from "./model/week.js";
 
 function localhostName(hostname) {
   return ["127.0.0.1", "localhost", "::1", "[::1]"].includes(hostname);
@@ -199,13 +200,21 @@ function restoreAttributes(node, snapshot) {
   for (const [name, value] of snapshot) node.setAttribute(name, value);
 }
 
-function buildHeading(model, onBoard) {
+function buildHeading(model, onBoard, onWeek = null) {
   const boardButton = element("button", {
     className: "board-button",
     text: "Open Board",
     attributes: { type: "button" }
   });
   boardButton.addEventListener("click", onBoard);
+  const weekButton = onWeek
+    ? element("button", {
+        className: "board-button week-button",
+        text: "My week",
+        attributes: { type: "button" }
+      })
+    : null;
+  weekButton?.addEventListener("click", onWeek);
   const cycle = model.cycle.day ? `Day ${model.cycle.day}` : "No cycle day";
   return element("div", { className: "page-heading" }, [
     element("div", {}, [
@@ -220,7 +229,9 @@ function buildHeading(model, onBoard) {
         })
       ])
     ]),
-    boardButton
+    weekButton
+      ? element("div", { className: "page-heading-actions" }, [weekButton, boardButton])
+      : boardButton
   ]);
 }
 
@@ -1151,7 +1162,11 @@ function studentRunnerRoute(project, runner, actions) {
 function buildToday(model, actions, options) {
   const presentation = buildTodayPresentation(model, options);
   const projectView = actions.projectView;
-  const children = [buildHeading(model, () => actions.navigate("board"))];
+  const children = [buildHeading(
+    model,
+    () => actions.navigate("board"),
+    () => actions.navigate("week")
+  )];
   if (["2026-09-09", "2026-09-10"].includes(actions.localDate)) {
     children.push(element("section", { className: "day-five-start", attributes: { "aria-labelledby": "day-five-heading" } }, [
       element("p", { className: "eyebrow", text: "Thursday, September 10, 2026 | Day 5" }),
@@ -1474,6 +1489,88 @@ function studentProjectRoute(project, actions, runner) {
       element("p", { text: project.fastFinish.directions }),
       element("p", { className: "stretch-line", text: `Stretch: ${project.stretch}` })
     ])
+  ]);
+}
+
+function weekRoute(week, actions) {
+  const printButton = actionButton("Print my week", "secondary-action week-print", () => {
+    globalThis.window?.print?.();
+  });
+  const heading = element("div", { className: "page-heading" }, [
+    element("div", {}, [
+      element("p", { className: "eyebrow", text: "The Playbook" }),
+      element("h1", { text: "My week" }),
+      element("p", {
+        className: "date-line",
+        text: week.status === "ready"
+          ? [week.teacherName, week.rangeLabel].filter(Boolean).join(" | ")
+          : "Your next school days in one place"
+      })
+    ]),
+    element("div", { className: "page-heading-actions" }, [
+      week.status === "ready" ? printButton : null,
+      actionButton("Back to Today", "board-button", () => actions.navigate("today"))
+    ].filter(Boolean))
+  ]);
+  if (week.status !== "ready") {
+    return element("section", { attributes: { "data-view": "week" } }, [
+      heading,
+      element("section", { className: "setup-card week-empty" }, [
+        element("p", { text: week.nextAction }),
+        actionButton("Open Schedule", "primary-action", () => actions.navigate("schedule"))
+      ])
+    ]);
+  }
+  const dayCards = week.days.map((day) => {
+    const headingId = `week-day-${day.dateKey}`;
+    const blocks = day.blocks.length
+      ? element("ol", { className: "week-blocks" }, day.blocks.map((block) => element("li", {
+          className: "week-block",
+          attributes: {
+            "data-type": block.type,
+            "data-state": block.state,
+            ...(block.state === "current" ? { "aria-current": "time" } : {})
+          }
+        }, [
+          element("span", { className: "week-block-time", text: block.timeLabel }),
+          element("span", { className: "week-block-title", text: block.title })
+        ])))
+      : null;
+    return element("article", {
+      className: "week-day",
+      attributes: {
+        "aria-labelledby": headingId,
+        "data-today": day.isToday ? "true" : "false",
+        "data-school": day.cycleDay ? "true" : "false"
+      }
+    }, [
+      element("header", { className: "week-day-head" }, [
+        element("div", {}, [
+          element("h2", {
+            text: day.isToday ? `${day.weekday} (today)` : day.weekday,
+            attributes: { id: headingId }
+          }),
+          element("p", { className: "week-day-date", text: day.shortDate })
+        ]),
+        element("span", { className: "week-cycle", text: day.cycleLabel })
+      ]),
+      day.cycleDay
+        ? element("p", {
+            className: "week-day-count",
+            text: day.classCount === 1 ? "1 class" : `${day.classCount} classes`
+          })
+        : null,
+      day.note ? element("p", { className: "week-day-note", text: day.note }) : null,
+      blocks
+    ]);
+  });
+  return element("section", { attributes: { "data-view": "week" } }, [
+    heading,
+    element("div", { className: "week-grid" }, dayCards),
+    element("p", {
+      className: "week-footnote",
+      text: "Times come from your schedule. Cycle days follow the district calendar. Change either one in Schedule or Settings."
+    })
   ]);
 }
 
@@ -2393,7 +2490,9 @@ export function renderApp(root, services = {}) {
   function setNavigation() {
     const activeRoute = ["project-teacher", "project-student", "announcements", "announcements-live", "crew-signup", "student-studio"].includes(route)
       ? "projects"
-      : route;
+      : route === "week"
+        ? "today"
+        : route;
     for (const button of navButtons) {
       const active = button.dataset.route === activeRoute;
       if (active) button.setAttribute("aria-current", "page");
@@ -3141,6 +3240,15 @@ export function renderApp(root, services = {}) {
         },
         runner
       );
+    }
+    else if (route === "week") {
+      const currentTime = now();
+      view = weekRoute(buildWeekModel({
+        plan: state.plan,
+        teacherId: selectedTeacherId,
+        dateKey: localDateKey(currentTime),
+        nowMinutes: currentTime.getHours() * 60 + currentTime.getMinutes()
+      }), actions);
     }
     else if (route === "schedule") view = scheduleRoute(scheduleEditorContext());
     else if (route === "room") view = roomRoute(state, runtime.getRoomPresentation());

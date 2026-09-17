@@ -77,6 +77,7 @@ const PUBLIC_STATIC_FILES = new Set([
   "src/model/step-timer.js",
   "src/model/teacher-plan-v1.js",
   "src/model/teacher-plan.js",
+  "src/model/week.js",
   "src/runtime/cloud-runtime.js",
   "src/services/weather.js",
   "src/storage/cloud-domains.js",

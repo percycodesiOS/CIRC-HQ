@@ -161,6 +161,7 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "src/model/step-timer.js",
   "src/model/teacher-plan-v1.js",
   "src/model/teacher-plan.js",
+  "src/model/week.js",
   "src/runtime/cloud-runtime.js",
   "src/services/weather.js",
   "src/storage/cloud-domains.js",
@@ -253,7 +254,8 @@ const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "tests/today-render.test.mjs",
   "tests/today-ui.test.mjs",
   "tests/view-model.test.mjs",
-  "tests/weather.test.mjs"
+  "tests/weather.test.mjs",
+  "tests/week.test.mjs"
 ]);
 const EXPECTED_FIREBASE_EXAMPLE = `export const firebaseConfig = {
   apiKey: "YOUR_API_KEY",

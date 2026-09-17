@@ -418,6 +418,7 @@ test("public server manifest is an exact reviewed allowlist", () => {
     "src/model/step-timer.js",
     "src/model/teacher-plan-v1.js",
     "src/model/teacher-plan.js",
+    "src/model/week.js",
     "src/runtime/cloud-runtime.js",
     "src/services/weather.js",
     "src/storage/cloud-domains.js",
