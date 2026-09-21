@@ -20,6 +20,16 @@
   --font: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
 }
 
+/* The iMovie guide uses purple accents while keeping the ECTV layout. */
+.imovie-guide {
+  --panel-deep: #241039;
+  --panel-mid: #42235e;
+  --panel-dark: #32184b;
+  --control: #dec5ff;
+  --control-border: #ecdcff;
+}
+.imovie-guide .homeroom-banner svg { stroke: var(--control); }
+
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 html, body { max-width: 100%; overflow-x: hidden; }
