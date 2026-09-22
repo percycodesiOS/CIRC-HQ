@@ -35,6 +35,7 @@ import {
   validateExperienceRunner
 } from "./model/experience-runner.js";
 import { PROJECTS, getProjectByNumber } from "./model/project-catalog.js";
+import { CIRC_YEAR_ROUTE } from "./model/circ-year-route.js";
 import {
   addScheduleEvent,
   compileScheduleDraft,
@@ -916,6 +917,7 @@ function replicaProjectContext(project, runner) {
   return {
     ...project,
     replicaLesson: true,
+    yearMeeting: CIRC_YEAR_ROUTE.find((meeting) => meeting.lessonId === choice.id)?.contact,
     lessonSteps,
     title: choice.title,
     objective: choice.objective,
@@ -1077,7 +1079,7 @@ function experienceRunnerRoute(project, runner, actions, artifactContext = null)
     runnerCommandBar(step, runner, controls),
     element("div", { className: "runner-heading" }, [
       actionButton("Back to Today", "detail-back", () => actions.navigate("today")),
-      element("p", { className: "project-kicker", text: `Experience ${project.number} of ${PROJECTS.length}` }),
+      element("p", { className: "project-kicker", text: project.yearMeeting ? `Class meeting ${project.yearMeeting} of ${CIRC_YEAR_ROUTE.length}` : `Experience ${project.number} of ${PROJECTS.length}` }),
       element("h1", { text: project.title }),
       actions.previewOnly
         ? element("p", { className: "runner-preview-label", text: "Preview only" })
@@ -1144,6 +1146,7 @@ function studentRunnerRoute(project, runner, actions) {
     element("div", { className: "board-heading" }, [
       element("p", { className: "eyebrow", text: "Student directions" }),
       element("h1", { text: project.title }),
+      project.yearMeeting ? element("p", { className: "board-lesson", text: project.objective }) : null,
       actions.previewOnly
         ? element("p", { className: "runner-preview-label", text: "Preview only" })
         : null,
@@ -1166,7 +1169,7 @@ function buildToday(model, actions, options) {
     model,
     () => actions.navigate("board"),
     () => actions.navigate("week")
-  )];
+  ), actionButton("Open our CIRC year guide", "primary-action", () => actions.navigate("projects"))];
   if (["2026-09-09", "2026-09-10"].includes(actions.localDate)) {
     children.push(element("section", { className: "day-five-start", attributes: { "aria-labelledby": "day-five-heading" } }, [
       element("p", { className: "eyebrow", text: "Thursday, September 10, 2026 | Day 5" }),
@@ -1304,6 +1307,52 @@ function boardRoute(board, navigate) {
   ]);
 }
 
+function classroomYearGuide(actions) {
+  const selected = element("select", {
+    attributes: { id: "circ-year-meeting", "aria-label": "Choose our class meeting" }
+  }, CIRC_YEAR_ROUTE.map((meeting) => element("option", {
+    text: `${meeting.contact}. ${meeting.title}`,
+    attributes: { value: meeting.contact }
+  })));
+  const currentMeeting = CIRC_YEAR_ROUTE.find((meeting) => meeting.lessonId && meeting.lessonId === actions.currentReplicaLesson?.id) ?? CIRC_YEAR_ROUTE[0];
+  selected.value = String(currentMeeting.contact);
+  const purpose = element("p", { text: currentMeeting.purpose });
+  selected.addEventListener("change", () => {
+    purpose.textContent = CIRC_YEAR_ROUTE.find((meeting) => String(meeting.contact) === selected.value)?.purpose ?? "";
+  });
+  const open = actionButton("Open this lesson", "primary-action", () => {
+    const meeting = CIRC_YEAR_ROUTE.find((item) => String(item.contact) === selected.value);
+    if (meeting) actions.openRunner(meeting.projectNumber, meeting.modeId ? { modeId: meeting.modeId } : {});
+  });
+  return element("section", {
+    className: "classroom-year-guide",
+    attributes: { "aria-labelledby": "circ-year-title" }
+  }, [
+    element("p", { className: "section-kicker", text: "Start here for class" }),
+    element("h2", { text: "Our CIRC year", attributes: { id: "circ-year-title" } }),
+    element("p", { text: "Choose your class's next meeting. Open the lesson, then choose Student directions for our big-screen steps and timer." }),
+    element("label", { text: "Today's lesson", attributes: { for: "circ-year-meeting" } }),
+    selected, purpose, open,
+    element("div", { className: "classroom-year-downloads" }, [
+      element("a", {
+        className: "secondary-action",
+        text: "Teacher guide PDF",
+        attributes: { href: "assets/guides/CIRC-Teacher-Guide.pdf", target: "_blank", rel: "noopener" }
+      }),
+      element("a", {
+        className: "secondary-action",
+        text: "Classroom screen cards PDF",
+        attributes: { href: "assets/guides/CIRC-Classroom-Cards.pdf", target: "_blank", rel: "noopener" }
+      })
+    ]),
+    element("p", { className: "date-line", text: "31 class meetings, each planned for 35 minutes. Repeat a meeting when your class needs more time. Grade 5 uses CIRC Tank Jr; grade 6 uses CIRC Tank. This sequence does not change your school calendar." }),
+    element("details", {}, [
+      element("summary", { text: "See the year at a glance" }),
+      element("ol", {}, CIRC_YEAR_ROUTE.map((meeting) => element("li", { text: meeting.title })))
+    ])
+  ]);
+}
+
 function projectsRoute(actions) {
   const cards = PROJECTS.map((project) => {
     const button = element("button", {
@@ -1324,10 +1373,11 @@ function projectsRoute(actions) {
     element("div", { className: "page-heading projects-heading" }, [
       element("div", {}, [
         element("p", { className: "eyebrow", text: "The Playbook" }),
-        element("h1", { text: "All 36 Experiences" }),
-        element("p", { className: "date-line", text: "Thirty-six separate experiences for grades 5 and 6" })
+        element("h1", { text: "Our classroom guide" }),
+        element("p", { className: "date-line", text: "Choose the lesson. Make, test, and improve together." })
       ])
     ]),
+    classroomYearGuide(actions),
     element("section", {
       className: "announcements-feature",
       attributes: { "aria-labelledby": "announcements-feature-heading" }
@@ -1354,6 +1404,8 @@ function projectsRoute(actions) {
     ]),
     fidEntry(),
     replicaLessonChooser(actions),
+    element("h2", { text: "All 36 Experiences" }),
+    element("p", { text: "Extra choices and original guides stay here when you need them." }),
     element("div", { className: "project-library" }, cards)
   ]);
 }

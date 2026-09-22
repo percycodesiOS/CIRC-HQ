@@ -1698,11 +1698,35 @@ test("Year Map route exposes all 36 choices without private schedule content", a
   const rendered = textOf(root);
 
   assert.match(rendered, /All 36 Experiences/);
+  assert.match(rendered, /Our CIRC year/);
+  assert.match(rendered, /Neuro art and book checkout/);
+  assert.match(rendered, /Tank 15: Share and reflect/);
+  const yearSelect = findAll(root, (node) => node.getAttribute("id") === "circ-year-meeting")[0];
+  assert.equal(yearSelect.children.length, 31);
+  assert.equal(yearSelect.value, "1", "start with neuro art when no year lesson is active");
   assert.match(rendered, /Meet the CIRC Teacher and the Outdoor Classroom/);
   assert.match(rendered, /Demo Day/);
   assert.equal(findAll(root, (node) => /\bproject-library-card\b/.test(node.className)).length, 36);
   assert.doesNotMatch(rendered, /PRIVATE_TEACH_LABEL|PRIVATE_CLASS_TITLE/);
   assert.equal(findAll(root, (node) => node.tagName === "a" && /classroom-legacy\.html/.test(node.getAttribute("href") ?? "")).length, 0);
+});
+
+test("year lesson opens matching teacher content and child-readable student steps without habitat content", async () => {
+  const state = stateWithActiveEvent("teach");
+  state.experienceRunners = {
+    "teacher:teacher-alpha": createExperienceRunner(EXPERIENCE_TIMING_PLANS[1], {
+      teacherKey: "teacher:teacher-alpha", nowIso: "2026-08-20T13:00:00.000Z", modeId: "circ-neuro"
+    })
+  };
+  const teacherText = textOf(await renderRoute(state, "experience-runner"));
+  assert.match(teacherText, /Neuro art and book checkout/);
+  assert.match(teacherText, /Grade 5 CIRC Tank Jr/);
+  assert.match(teacherText, /Watercolor paper/);
+  assert.doesNotMatch(teacherText, /Tech Terrarium|Inspect and map the system/);
+  const studentText = textOf(await renderRoute(state, "project-student"));
+  assert.match(studentText, /Neuro art and book checkout/);
+  assert.match(studentText, /Read today's goal/);
+  assert.doesNotMatch(studentText, /PRIVATE_TEACH_LABEL|Teacher context|Grade 5 CIRC Tank Jr/);
 });
 
 test("Playbooks features the Grade 6 announcements studio without adding a sixth primary route", async () => {
@@ -2425,7 +2449,7 @@ test("teacher runner shows every timed step and every student direction for the 
 test("every current lesson path resolves to a reviewed meaning-based icon", () => {
   const paths = EXPERIENCE_TIMING_PLANS.flatMap((plan) => [
     plan.steps,
-    ...Object.values(plan.modeVariants ?? {}).map((variant) => variant.steps),
+    ...Object.entries(plan.modeVariants ?? {}).filter(([id]) => !id.startsWith("circ-") && !id.startsWith("tank-")).map(([, variant]) => variant.steps),
     ...Object.values(plan.fallbacks ?? {}).map((fallback) => fallback.steps)
   ]);
   const steps = paths.flat();

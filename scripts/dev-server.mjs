@@ -9,6 +9,7 @@ export const DEFAULT_PORT = 4273;
 
 const CONTENT_TYPES = new Map([
   [".css", "text/css; charset=utf-8"],
+  [".pdf", "application/pdf"],
   [".html", "text/html; charset=utf-8"],
   [".js", "text/javascript; charset=utf-8"],
   [".svg", "image/svg+xml; charset=utf-8"],
@@ -30,6 +31,8 @@ const PUBLIC_STATIC_FILES = new Set([
   "assets/ectv/roles/role-camera.svg",
   "assets/ectv/roles/role-computer.svg",
   "assets/ectv/roles/role-weather.svg",
+  "assets/guides/CIRC-Classroom-Cards.pdf",
+  "assets/guides/CIRC-Teacher-Guide.pdf",
   "assets/icons/arrow-right.svg",
   "assets/icons/books.svg",
   "assets/icons/calendar-dots.svg",
@@ -65,6 +68,7 @@ const PUBLIC_STATIC_FILES = new Set([
   "src/model/admin-plan.js",
   "src/model/announcements.js",
   "src/model/crew-signup.js",
+  "src/model/circ-year-route.js",
   "src/model/experience-runner.js",
   "src/model/experience-timing-plans.js",
   "src/model/lesson-guide.js",

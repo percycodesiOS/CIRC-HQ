@@ -20,6 +20,8 @@ const ALLOWED_UNTRACKED = new Set([
   "assets/circ-hq-maker.webp",
   "assets/designers-challenge-sketch.webp",
   "assets/icons/LICENSE-phosphor.txt",
+  "assets/guides/CIRC-Classroom-Cards.pdf",
+  "assets/guides/CIRC-Teacher-Guide.pdf",
   "assets/icons/arrow-right.svg",
   "assets/icons/books.svg",
   "assets/icons/calendar-dots.svg",
@@ -45,6 +47,7 @@ const ALLOWED_UNTRACKED = new Set([
   "firebase-config.js",
   "src/model/admin-plan.js",
   "src/model/announcements.js",
+  "src/model/circ-year-route.js",
   "src/model/crew-signup.js",
   "src/model/experience-runner.js",
   "src/model/experience-timing-plans.js",
@@ -61,6 +64,7 @@ const ALLOWED_UNTRACKED = new Set([
   "src/ui/student-studio.js",
   "scripts/verify-public.mjs",
   "tests/admin-plan.test.mjs",
+  "tests/circ-year-route.test.mjs",
   "tests/announcements-ui.test.mjs",
   "tests/announcements.test.mjs",
   "tests/experience-runner.test.mjs",
@@ -114,6 +118,8 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "assets/ectv/roles/role-camera.svg",
   "assets/ectv/roles/role-computer.svg",
   "assets/ectv/roles/role-weather.svg",
+  "assets/guides/CIRC-Classroom-Cards.pdf",
+  "assets/guides/CIRC-Teacher-Guide.pdf",
   "assets/icons/arrow-right.svg",
   "assets/icons/books.svg",
   "assets/icons/calendar-dots.svg",
@@ -148,6 +154,7 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "src/model/access.js",
   "src/model/admin-plan.js",
   "src/model/announcements.js",
+  "src/model/circ-year-route.js",
   "src/model/crew-signup.js",
   "src/model/experience-runner.js",
   "src/model/experience-timing-plans.js",
@@ -219,6 +226,7 @@ const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "src/ui/curriculum.js",
   "tests/access.test.mjs",
   "tests/admin-plan.test.mjs",
+  "tests/circ-year-route.test.mjs",
   "tests/announcements-ui.test.mjs",
   "tests/announcements.test.mjs",
   "tests/app-render.test.mjs",
@@ -301,6 +309,8 @@ const TEXT_EXTENSIONS = new Set([
   ".txt"
 ]);
 const REVIEWED_BINARY_ASSETS = new Map([
+  ["assets/guides/CIRC-Teacher-Guide.pdf","3E627E5F8B2F1D0214E81E6457F89FB99948423BBBF7AF3EE2E9EF7920FC004B"],
+  ["assets/guides/CIRC-Classroom-Cards.pdf","E81CC184C663D1EE7AE86D7B8CFC066BD1A95077AD22F1838DFE0350A05D8C23"],
   [
     "assets/circ-hq-maker.webp",
     "5F725CE9D91E94BD753435F493892CAC0B3FB63C73E48F5A45608348118204A3"

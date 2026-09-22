@@ -5248,3 +5248,18 @@ button:disabled {
 }
 
 .advanced-settings-body p { margin: 0; }
+.classroom-year-guide {
+  margin: 1rem 0 2rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 2px solid #537c47;
+  border-radius: 1.25rem;
+  background: #f4f8ee;
+  color: #18332a;
+}
+.classroom-year-guide h2 { margin: .4rem 0; font-size: clamp(1.6rem, 3vw, 2.2rem); }
+.classroom-year-guide label { display: block; margin: 1rem 0 .4rem; font-weight: 700; }
+.classroom-year-guide select { width: 100%; max-width: 50rem; min-height: 3rem; padding: .6rem; font: inherit; background: white; color: #18332a; border: 1px solid #537c47; border-radius: .5rem; }
+.classroom-year-guide details { margin-top: 1rem; }
+.classroom-year-downloads { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
+.classroom-year-guide summary { cursor: pointer; font-weight: 700; }
+.classroom-year-guide li { margin: .4rem 0; }

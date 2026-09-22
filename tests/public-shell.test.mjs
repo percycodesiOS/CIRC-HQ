@@ -79,7 +79,8 @@ test("release documentation names the CIRC HQ repository URL and current content
   assert.match(readme, /^# CIRC HQ \| The Playbook$/m);
   assert.match(readme, /Repository: `percycodesiOS\/CIRC-HQ`/);
   assert.match(readme, /Intended release URL: `https:\/\/percycodesios\.github\.io\/CIRC-HQ\/`/);
-  assert.match(readme, /one shared 36-experience Grades 5-6 yearly path/i);
+  assert.match(readme, /ordered 31-meeting route/i);
+  assert.match(readme, /original 36-experience Grades 5-6 library/i);
   assert.match(readme, /does not publish those raw documents/i);
   assert.doesNotMatch(readme, /https:\/\/percycodesios\.github\.io\/5_MissionControl_6\//);
   assert.doesNotMatch(readme, /127\.0\.0\.1:4173/);

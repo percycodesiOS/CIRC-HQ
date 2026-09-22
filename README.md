@@ -5,13 +5,17 @@ CIRC HQ is a calm, teacher-first workspace for running a CIRC day. It keeps the 
 - Product: CIRC HQ | The Playbook
 - Repository: `percycodesiOS/CIRC-HQ`
 - Intended release URL: `https://percycodesios.github.io/CIRC-HQ/`
-- Current content: one shared 36-experience Grades 5-6 yearly path
+- Current content: an ordered 31-meeting route for the remaining CIRC year, plus the original 36-experience Grades 5-6 library
 
 The separate Playbook A and Playbook B source documents remain source material. This release does not publish those raw documents or claim that any unreviewed chemical, heat, wiring, or restricted-tool activity is classroom-ready. It also makes no claim that kindergarten through fourth-grade content is complete.
 
 The intended release URL is not called live until an authorized push, matching GitHub Pages deploy verification, an HTTP 200 response, and clean-browser acceptance all succeed for the same approved commit.
 
 ## First use
+
+For the classroom year, choose **Open our CIRC year guide** on Today, or **Playbooks**. Choose your class's next meeting and **Open this lesson**. Check materials under **More context**, then use **Student directions** for the projected goal, steps and timer. Return to the teacher controls to advance each step. Use **Start this lesson for a new class** when repeating a selected CIRC or Tank lesson with another group. Meetings are not dates; the teacher chooses each class's place in the route. No calendar, class completion or student record is inferred by this selector.
+
+The same section links the full-year teacher PDF and classroom screen-card PDF. The teacher guide has a run page and supports page per meeting; print only the meeting you need. The landscape cards are a projection deck, one step at a time. The live runner separates the opening three-minute block into two minutes of readiness and one minute of partner talk; the lesson content and 35-minute total stay the same.
 
 The normal first action is **Set up my schedule**. The ordinary schedule editor is the primary setup surface and does not require a plan file.
 

@@ -1,5 +1,14 @@
 # CIRC HQ - BUILDLOG
 
+## 2026-09-21 classroom year sequence
+
+- Connected the 21 prepared CIRC and Tank lessons to the existing teacher-controlled runner. Added one ordered route covering 31 remaining class meetings, including ten existing catalog experiences. The original 36-experience library remains available.
+- Added an Open our CIRC year guide button on Today and a single lesson selector in Playbooks. Every route entry opens a validated 35-minute lesson with materials, teacher directions, student steps, cleanup and an exit check. The first three-minute opening is split into two minutes of readiness and one minute of partner talk to fit the existing runner.
+- Kept grade 5 Tank Jr and grade 6 Tank supports in teacher context; the student display contains the goal, current directions and timers. The route is selected manually for each class and does not infer completion or dates from the school calendar.
+- Added coverage for all 31 runner paths, grade supports, data reload validation, and teacher/student rendering. The release verifier passed all 16 gates before publication preparation. Verified the actual neuro-art teacher and student views in the local browser.
+- No school calendar, class assignment, private schedule, roster or authentication setting was changed.
+- Added the final 69-page teacher guide and 255-page classroom screen deck beside the year selector. All 31 meetings are printed in both; slides use large text and vector icons. Checked coverage, sample renders and matching copies in the existing master folder. PDF files are explicitly allowed and hash-locked in the release verifier.
+
 ## 2026-09-11 flexible instruction day activities prepared locally
 
 - Added a separate student-facing FID page with four complete grades 5-6 challenges: redesign an everyday thing, debug a doodle bot, explore patterns, and tell a three-part story. Every challenge includes three steps, a finish check, an optional extension, and an equal think-or-say route without required supplies.

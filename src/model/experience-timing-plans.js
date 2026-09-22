@@ -1,3 +1,4 @@
+import { CIRC_YEAR_LESSONS, getCircYearLesson } from "./circ-year-route.js";
 import { PROJECTS } from "./project-catalog.js";
 
 const FIRST_PROJECT_NUMBER = 1;
@@ -260,7 +261,7 @@ export const REPLICA_LESSON_CHOICES = deepFreeze([
 ]);
 
 export function getReplicaLessonChoice(modeId) {
-  return REPLICA_LESSON_CHOICES.find((choice) => choice.id === modeId) ?? null;
+  return REPLICA_LESSON_CHOICES.find((choice) => choice.id === modeId) ?? getCircYearLesson(modeId);
 }
 
 function replicaParallelJobs() {
@@ -2956,6 +2957,20 @@ export function assertValidExperienceTimingPlans(plans) {
     throw new TypeError(`Invalid experience timing plans: ${codes.join(", ")}`);
   }
   return plans;
+}
+
+// Reuse the existing timed runner and storage model for the year sequence.
+for (const lesson of CIRC_YEAR_LESSONS) {
+  PLAN_DEFINITIONS[1].modeVariants[lesson.id] = {
+    title: lesson.title,
+    safetyTags: lesson.id === "circ-cardboard" ? ["tool", "cutting"] : [],
+    steps: lesson.steps.map((step) => ({ ...step, label: step.label.toUpperCase() })),
+    parallelJobs: Array.from({ length: 6 }, (_, index) => ({
+      id: "table-" + (index + 1), label: "Table " + (index + 1), maxStudents: 6,
+      directions: ["Follow the current step together.", "Share materials and explain your choices."]
+    })),
+    preservation: { preserveExisting: true, requiresExistingArtifact: false, requiresTeacherPlan: false, dismantleGluedStructure: false }
+  };
 }
 
 assertValidExperienceTimingPlans(PLAN_DEFINITIONS);

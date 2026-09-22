@@ -371,7 +371,9 @@ test("public server manifest is an exact reviewed allowlist", () => {
     "assets/ectv/roles/role-camera.svg",
     "assets/ectv/roles/role-computer.svg",
     "assets/ectv/roles/role-weather.svg",
-    "assets/icons/arrow-right.svg",
+    "assets/guides/CIRC-Classroom-Cards.pdf",
+  "assets/guides/CIRC-Teacher-Guide.pdf",
+  "assets/icons/arrow-right.svg",
     "assets/icons/books.svg",
     "assets/icons/calendar-dots.svg",
     "assets/icons/chalkboard-teacher.svg",
@@ -405,6 +407,7 @@ test("public server manifest is an exact reviewed allowlist", () => {
     "src/model/access.js",
     "src/model/admin-plan.js",
     "src/model/announcements.js",
+  "src/model/circ-year-route.js",
   "src/model/crew-signup.js",
     "src/model/experience-runner.js",
     "src/model/experience-timing-plans.js",
@@ -523,13 +526,13 @@ test("public verifier has a recursive-safe sanitized gate contract", () => {
 
 test("reviewed visual assets are exact and opaque files fail closed", async (context) => {
   assert.equal(typeof verifier.inspectAssetLocks, "function");
-  assert.deepEqual(await verifier.inspectAssetLocks(ROOT), { ok: true, count: 9 });
+  assert.deepEqual(await verifier.inspectAssetLocks(ROOT), { ok: true, count: 11 });
 
   const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-asset-lock-"));
   context.after(() => rm(repository, { recursive: true, force: true }));
   await mkdir(path.join(repository, "assets"), { recursive: true });
   await writeFile(path.join(repository, "assets", "circ-hq-maker.webp"), "TAMPERED");
-  assert.deepEqual(await verifier.inspectAssetLocks(repository), { ok: false, count: 9 });
+  assert.deepEqual(await verifier.inspectAssetLocks(repository), { ok: false, count: 11 });
 
   const counts = verifier.classifyCandidatePaths([
     "assets/circ-hq-maker.webp",
