@@ -215,7 +215,7 @@ export const REPLICA_LESSON_CHOICES = deepFreeze([
     "title": "Design and Measure a Resin Feature",
     "label": "Resin unit: Design and Measure a Feature",
     "objective": "I can design a small game or art piece, estimate its mold volume, calculate a labeled mixing ratio, and explain my material choice.",
-    "summary": "A separate unit for all 670 students: design a small game or art piece and measure its mold. Students plan with dry materials; the teacher manages later resin work.",
+    "summary": "Design a small game or art piece using paper and cardboard, then measure a drawn mold. This lesson stays dry while resin supplies are on hold; no purchase is needed.",
     "materials": [
       "Paper, pencils, rulers and calculators",
       "An empty silicone mold or its dimensioned drawing",
@@ -225,8 +225,8 @@ export const REPLICA_LESSON_CHOICES = deepFreeze([
     ],
     "safety": "This 35-minute student lesson stays dry. Students do not mix, pour, heat, demold or handle uncured epoxy. The teacher prepares a separate approved resin station and follows the exact product instructions for any later demonstration, application and cure.",
     "teacherContext": [
-      "Plan for approximately 670 students rotating through five cycle days, about 134 per day on average. The six groups of up to five are one class setup, not a limit of 30 participants. Use the actual roster size and schedule for each class.",
-      "Every student completes a dry design, volume calculation and material explanation. Reuse the same empty molds, rulers and station trays across classes. The purchasing plan allows one small individual piece per student, with final mold capacity and actual class counts checked before ordering. This is separate from the Tech Terrarium school model. A design class and the later casting/cure schedule are different stages; one gallon is not the whole-cohort supply plan.",
+      "Use the actual roster size and schedule for each class. Six groups of up to five are one possible classroom arrangement. This dry lesson does not commit the school to a casting project for every student.",
+      "Every student completes a dry design, volume calculation and material explanation. Use paper, cardboard, rulers and drawings already available in the room. Resin purchasing and any later teacher trial remain separate decisions while supplies are on hold. This is separate from the Tech Terrarium school model.",
       "Use a teacher handoff sheet with cycle day, class code, group code, piece ID, design decision, estimated volume, current stage, storage tray and next action. Student names stay off public screens. At each class change, check the previous row and reset dry supplies before the next crew starts.",
       "Run the design, volume and ratio work before resin arrives. Use a drawing if molds or cured examples are unavailable. Resin is a planned material, not a prerequisite for today's learning.",
       "For later teacher-managed use: confirm the exact product, both safety data sheets, compatible gloves and eye protection, room ventilation, batch and pour limits, protected curing location and disposal procedure. A low-odor or low-VOC claim does not replace those checks.",
