@@ -1008,8 +1008,8 @@ function replicaLessonChooser(actions) {
       attributes: { "aria-labelledby": "standalone-resin-heading" }
     }, [
       element("p", { className: "section-kicker", text: "Separate CIRC unit" }),
-      element("h2", { text: "Standalone resin unit", attributes: { id: "standalone-resin-heading" } }),
-      element("p", { text: "All 670 students across five cycle days. Design a small individual game or art piece. Reuse dry stations between classes; keep the adult casting and full-cure schedule separate from the class clock and the Tech Terrarium." }),
+      element("h2", { text: "Resin on hold: design without pouring", attributes: { id: "standalone-resin-heading" } }),
+      element("p", { text: "Use paper, cardboard and classroom materials for the dry design lesson while supplies are unresolved. No resin purchase or whole-school casting project is required. Any later teacher trial needs a separate materials and school-procedure check." }),
       element("div", { className: "replica-lesson-choices" }, REPLICA_LESSON_CHOICES.filter((choice) => choice.id === "replica-resin").map(choiceCard)),
       currentLesson(true)
     ])

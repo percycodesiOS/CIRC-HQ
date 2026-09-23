@@ -699,7 +699,7 @@ function replicaModeVariants() {
         ], [
           "Say: We will decide where resin earns its place, then measure and plan it before any pouring.",
           "This is a separate unit from the school model and lizard habitat. It can run without purchased resin or molds.",
-          "Set up for this class within the 670-student, five-cycle-day rotation. Every student does the dry work; reuse station equipment. Check the previous class's sheet and assign class/group/piece codes without public names."
+          "Resin supplies are on hold. Run the dry design with available paper and cardboard; no purchase or whole-school casting commitment is needed. Check the previous class's sheet and assign class/group/piece codes without public names."
         ]],
         ["resin-boundary", "READ THE MATERIAL RULES", "safety", 4, [
           "Stay with paper, empty molds and teacher-cleared cured examples.",
