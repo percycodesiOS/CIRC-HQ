@@ -22,6 +22,7 @@ const ALLOWED_UNTRACKED = new Set([
   "assets/icons/LICENSE-phosphor.txt",
   "assets/guides/CIRC-Classroom-Cards.pdf",
   "assets/guides/CIRC-Teacher-Guide.pdf",
+  "assets/guides/ECTV-Interview-Edit-Handout.pdf",
   "assets/icons/arrow-right.svg",
   "assets/icons/books.svg",
   "assets/icons/calendar-dots.svg",
@@ -120,6 +121,7 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "assets/ectv/roles/role-weather.svg",
   "assets/guides/CIRC-Classroom-Cards.pdf",
   "assets/guides/CIRC-Teacher-Guide.pdf",
+  "assets/guides/ECTV-Interview-Edit-Handout.pdf",
   "assets/icons/arrow-right.svg",
   "assets/icons/books.svg",
   "assets/icons/calendar-dots.svg",
@@ -309,6 +311,7 @@ const TEXT_EXTENSIONS = new Set([
   ".txt"
 ]);
 const REVIEWED_BINARY_ASSETS = new Map([
+  ["assets/guides/ECTV-Interview-Edit-Handout.pdf","0CB2ADA32F19153C2F31FFF132144B6D585E4B60C9ABE48F7D2D4132B769D198"],
   ["assets/guides/CIRC-Teacher-Guide.pdf","3E627E5F8B2F1D0214E81E6457F89FB99948423BBBF7AF3EE2E9EF7920FC004B"],
   ["assets/guides/CIRC-Classroom-Cards.pdf","E81CC184C663D1EE7AE86D7B8CFC066BD1A95077AD22F1838DFE0350A05D8C23"],
   [
