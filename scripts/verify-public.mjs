@@ -11,6 +11,7 @@ const LEGACY_NORMALIZED_SHA256 =
   "6E7FF5AA3B15A57A44F0D3351C6C6A5A3B3D14813E9B5616AF3D138C5E41B69F";
 const EXPECTED_ROOT_GITIGNORE = "/.superpowers/\n/.worktrees/\n/.firebase/\n/.firebaserc\n/firebase-debug.log\n/firestore-debug.log\n/ui-debug.log\n/node_modules/\n";
 const ALLOWED_UNTRACKED = new Set([
+  ".gitattributes",
   "walkthrough.html",
   "fid.css",
   "fid.html",
@@ -193,6 +194,7 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "walkthrough.html"
 ]);
 const REVIEWED_CANDIDATE_MANIFEST = new Set([
+  ".gitattributes",
   "_config.yml",
   ".gitignore",
   "BUILDLOG.md",
@@ -444,7 +446,7 @@ function isForbiddenCandidatePath(value) {
     /^[a-z]:/i.test(candidate) ||
     segments.some((segment) => segment === "" || segment === "." || segment === "..")
   ) return true;
-  if (!new Set([".gitignore", ".firebaserc.example"]).has(candidate) && segments.some((segment) => segment.startsWith("."))) {
+  if (!new Set([".gitignore", ".gitattributes", ".firebaserc.example"]).has(candidate) && segments.some((segment) => segment.startsWith("."))) {
     return true;
   }
   const root = segments[0].toLowerCase();
@@ -684,7 +686,7 @@ export async function inspectRuntimeImportBoundary(root = ROOT) {
 
 function isTextCandidate(relativePath) {
   const basename = path.posix.basename(relativePath);
-  return basename === ".gitignore" || basename === ".firebaserc.example" ||
+  return basename === ".gitignore" || basename === ".gitattributes" || basename === ".firebaserc.example" ||
     basename === "README" ||
     TEXT_EXTENSIONS.has(path.posix.extname(relativePath));
 }
@@ -805,6 +807,7 @@ export async function inspectLocalPaths(root = ROOT) {
 export function countUnsafeRuntimeLinks(text) {
   const links = text.match(/https?:\/\/[^\s"'`<>)]+/gi) ?? [];
   const reviewedStudentLinks = new Set([
+    "https://moodle.svsd.net/course/view.php?id=13811",
     "https://forecast.weather.gov/MapClick.php?FcstType=text&lat=40.7112&lg=english&lon=-80.1072",
     "https://forecast.weather.gov/MapClick.php?FcstType=graphical&lat=40.7112&lg=english&lon=-80.1072&unit=0",
     "https://radar.weather.gov/station/KPBZ/standard",

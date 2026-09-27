@@ -1392,15 +1392,34 @@ function projectsRoute(actions) {
           text: "A clear rite of passage workflow for preparing, rehearsing, reviewing, and delivering the school broadcast."
         }),
         element("p", {
+          text: "Live scripts are on Moodle. Sign in with your school account, open ECTV, then Today's Script. The ECTV home page has crew jobs and the illustrated iMovie guide."
+        }),
+        element("p", {
           className: "announcements-feature-note",
-          text: "The draft stays on this device. Add approved broadcast wording only, and keep student rosters somewhere private."
+          text: "Optional studio drafts stay on this device. Add approved broadcast wording only, and keep student rosters somewhere private."
         })
       ]),
-      actionButton(
-        "Open announcement studio",
-        "primary-action announcements-feature-action",
-        actions.openAnnouncements
-      )
+      element("div", { className: "announcements-feature-actions" }, [
+        element("a", {
+          className: "primary-action announcements-feature-action",
+          text: "Open scripts in Moodle",
+          attributes: {
+            href: "https://moodle.svsd.net/course/view.php?id=13811",
+            target: "_blank",
+            rel: "noopener noreferrer"
+          }
+        }),
+        element("a", {
+          className: "secondary-action",
+          text: "Open ECTV home and guides",
+          attributes: { href: "ectv.html" }
+        }),
+        actionButton(
+          "Open announcement studio",
+          "secondary-action",
+          actions.openAnnouncements
+        )
+      ])
     ]),
     fidEntry(),
     replicaLessonChooser(actions),

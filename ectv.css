@@ -68,8 +68,18 @@ img { max-width: 100%; height: auto; }
 .skip-link:focus { top: 16px; }
 
 a:focus-visible, button:focus-visible {
-  outline: 3px solid var(--yellow);
+  outline: 3px solid var(--panel-deep);
   outline-offset: 3px;
+}
+
+.site-header a:focus-visible, .hero a:focus-visible,
+.page-hero a:focus-visible, .dark a:focus-visible,
+.site-footer a:focus-visible {
+  outline-color: var(--yellow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
 }
 
 /* Header and navigation */
@@ -266,6 +276,21 @@ main { display: block; }
 }
 .role-card h3 { margin: 0 0 8px; color: var(--control); font-size: 1.14rem; }
 .role-card p { margin: 0; color: rgba(245, 241, 232, .88); font-size: .97rem; }
+.question-reader {
+  grid-column: 1 / -1;
+  background: #42235e;
+  border-color: #dec5ff;
+}
+.question-reader h3 { color: #dec5ff; }
+.question-reader p + p { margin-top: 8px; }
+.question-reader .role-cue {
+  margin-bottom: 8px;
+  color: #dec5ff;
+  font-size: .8rem;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
 .jobs-note { margin: 24px 0; color: rgba(245, 241, 232, .85); }
 
 /* Resources */

@@ -25,7 +25,9 @@ const LEGACY_SHA256 =
 const ROOT_GITIGNORE = "/.superpowers/\n/.worktrees/\n/.firebase/\n/.firebaserc\n/firebase-debug.log\n/firestore-debug.log\n/ui-debug.log\n/node_modules/\n";
 const verifier = await import("../scripts/verify-public.mjs").catch(() => null);
 
-test("student help admits only the six reviewed official destinations", () => {
+test("student help admits reviewed official destinations and the exact school course", () => {
+  assert.equal(verifier.countUnsafeRuntimeLinks("https://moodle.svsd.net/course/view.php?id=13811"), 0);
+  assert.equal(verifier.countUnsafeRuntimeLinks("https://moodle.svsd.net/course/view.php?id=99999"), 1);
   assert.equal(verifier.countUnsafeRuntimeLinks(Object.values(STUDENT_STUDIO_LINKS).join("\n")), 0);
   assert.equal(verifier.countUnsafeRuntimeLinks([
     `${STUDENT_STUDIO_LINKS.create}?redirect=elsewhere`,

@@ -3119,6 +3119,28 @@ button:disabled {
   font-size: 0.9rem;
 }
 
+.announcements-feature-actions {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.announcements-feature-actions a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.announcements-feature-actions a.secondary-action {
+  border: 1px solid var(--border);
+  background: #ffffff;
+}
+
 .announcements-feature-action {
   min-width: 210px;
   border-color: var(--circ-command-blue-dark);

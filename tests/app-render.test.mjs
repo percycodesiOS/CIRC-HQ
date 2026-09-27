@@ -1765,6 +1765,11 @@ test("Playbooks features the Grade 6 announcements studio without adding a sixth
 
     assert.match(textOf(root), /Grade 6 Morning Announcements/);
     assert.match(textOf(root), /rite of passage/i);
+    assert.match(textOf(root), /Live scripts are on Moodle/);
+    const moodleLink = findAll(root, node => node.tagName === "a" && textOf(node) === "Open scripts in Moodle")[0];
+    assert.equal(moodleLink.attributes.get("href"), "https://moodle.svsd.net/course/view.php?id=13811");
+    assert.equal(moodleLink.attributes.get("rel"), "noopener noreferrer");
+    assert.equal(findAll(root, node => node.tagName === "a" && textOf(node) === "Open ECTV home and guides")[0].attributes.get("href"), "ectv.html");
     assert.equal(findAll(root, (node) => /\bproject-library-card\b/.test(node.className)).length, 36);
     assert.equal(navButtons.length, 5);
     assert.equal(navButtons.some((button) => button.dataset.route === "announcements"), false);

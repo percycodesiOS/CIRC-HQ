@@ -1,0 +1,2 @@
+# PDF byte offsets must survive Windows checkout and archive exports unchanged.
+*.pdf binary
