@@ -1703,7 +1703,9 @@ test("Year Map route exposes all 36 choices without private schedule content", a
   assert.match(rendered, /Tank 15: Share and reflect/);
   const yearSelect = findAll(root, (node) => node.getAttribute("id") === "circ-year-meeting")[0];
   assert.equal(yearSelect.children.length, 31);
-  assert.equal(yearSelect.value, "1", "start with neuro art when no year lesson is active");
+  assert.equal(yearSelect.value, "2", "NeuroArt is finished, so start with the first Canva logo visit");
+  assert.match(rendered, /Canva logo 1: Start from a template/);
+  assert.match(rendered, /Canva logo 2: Original from a blank design/);
   assert.match(rendered, /Meet the CIRC Teacher and the Outdoor Classroom/);
   assert.match(rendered, /Demo Day/);
   assert.equal(findAll(root, (node) => /\bproject-library-card\b/.test(node.className)).length, 36);

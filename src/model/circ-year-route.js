@@ -254,6 +254,273 @@ export const CIRC_YEAR_LESSONS = freeze([
     ]
   },
   {
+    "id": "circ-canva-template",
+    "title": "Canva logo 1: Start from a template",
+    "label": "Canva logo 1: Start from a template",
+    "objective": "I can use a Canva logo template to make a logo and short slogan about something I am into.",
+    "summary": "I can use a Canva logo template to make a logo and short slogan about something I am into.",
+    "materials": [
+      "Existing school devices on the cart",
+      "School Canva through resources.svsd.net",
+      "Two or three real logos to show small",
+      "Board checklist",
+      "Paper and pencils for the fallback"
+    ],
+    "safety": "Use school Canva only. No new accounts, purchases or downloads. Share only with the teacher. Keep personal details private.",
+    "teacherContext": [
+      "Graphics visit 1 of 2. NeuroArt is finished. This visit and the next replace the older Paint and digitize plan.",
+      "Grade 5 CIRC Tank Jr: Pick one interest and change three things: colors, icon and font.",
+      "Grade 6 CIRC Tank: Explain why the slogan and icon match, and fix the weakest part at stamp size.",
+      "Turn in: Share, then add the teacher's school account. Do not change public or link sharing. It counts only when the teacher account shows in Share and the teacher can open it.",
+      "If Canva or sign-in fails: paper and pencil sketch, same steps. Move it to Canva next visit.",
+      "Interests only. Nobody has to share anything personal. No names of classmates."
+    ],
+    "fastFinish": "Make a second color version or test your logo at an even smaller size.",
+    "gradeBand": "5-6",
+    "supplies": [
+      "Existing school devices on the cart",
+      "School Canva through resources.svsd.net",
+      "Two or three real logos to show small",
+      "Board checklist",
+      "Paper and pencils for the fallback"
+    ],
+    "steps": [
+      {
+        "id": "p02-canva-template-signin",
+        "label": "Sign in",
+        "kind": "ready",
+        "minutes": 4,
+        "directions": [
+          "Get your device.",
+          "Open resources.svsd.net, then Canva.",
+          "Sign in with your school account."
+        ],
+        "teacherDirections": [
+          "Devices out. Help one table at a time with sign-in.",
+          "If sign-in fails, switch that student to paper and pencil. Same steps."
+        ]
+      },
+      {
+        "id": "p02-canva-template-look",
+        "label": "Read tiny logos",
+        "kind": "work",
+        "minutes": 4,
+        "directions": [
+          "Look at the real logos, shown very small.",
+          "Why can you still read them?",
+          "Tell a partner one reason."
+        ],
+        "teacherDirections": [
+          "Show two or three real logos very small.",
+          "Listen for simple shapes, few colors and bold letters."
+        ]
+      },
+      {
+        "id": "p02-canva-template-make",
+        "label": "Make your logo",
+        "kind": "work",
+        "minutes": 14,
+        "directions": [
+          "Pick a logo template that fits one thing you are into.",
+          "Change the colors, the icon and the font.",
+          "Add a slogan of six words or fewer."
+        ],
+        "teacherDirections": [
+          "Circulate. Ask which interest the logo shows and what they changed.",
+          "No purchases. Skip paid elements and anything marked with a crown."
+        ]
+      },
+      {
+        "id": "p02-canva-template-small",
+        "label": "Small size check",
+        "kind": "work",
+        "minutes": 3,
+        "directions": [
+          "Zoom out until your logo is stamp size.",
+          "Can you still read it?",
+          "Fix one thing."
+        ],
+        "teacherDirections": [
+          "Have students name the one thing they fixed."
+        ]
+      },
+      {
+        "id": "p02-canva-template-share",
+        "label": "Share with teacher",
+        "kind": "cleanup",
+        "minutes": 4,
+        "directions": [
+          "Choose Share.",
+          "Add Mr. Macek's school account.",
+          "Check that his name shows in Share."
+        ],
+        "teacherDirections": [
+          "Sharing counts only after the teacher account shows in Share and you can open it.",
+          "Do not change public or link sharing. No downloads to the desktop."
+        ]
+      },
+      {
+        "id": "p02-canva-template-devices",
+        "label": "Devices back",
+        "kind": "cleanup",
+        "minutes": 3,
+        "directions": [
+          "Close Canva.",
+          "Put your device back on the cart and plug it in.",
+          "Line up at the door."
+        ],
+        "teacherDirections": [
+          "Count the cart before the class leaves."
+        ]
+      },
+      {
+        "id": "p02-canva-template-exit",
+        "label": "Exit question",
+        "kind": "exit",
+        "minutes": 3,
+        "directions": [
+          "Answer at the line: what did the template do for you?",
+          "Could you do that yourself next time?"
+        ],
+        "teacherDirections": [
+          "Accept a short spoken answer. Paper sketches go in the class tray for next visit."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "circ-canva-original",
+    "title": "Canva logo 2: Original from a blank design",
+    "label": "Canva logo 2: Original from a blank design",
+    "objective": "I can make an original logo from a blank design that shows my interests, values or strengths.",
+    "summary": "I can make an original logo from a blank design that shows my interests, values or strengths.",
+    "materials": [
+      "Existing school devices on the cart",
+      "School Canva through resources.svsd.net",
+      "Board checklist",
+      "Paper and pencils for the fallback"
+    ],
+    "safety": "Use school Canva only. No new accounts, purchases or downloads. Share only with the teacher. Keep personal details private.",
+    "teacherContext": [
+      "Graphics visit 2 of 2. Run it after Canva logo 1. Students start from a blank design, not a template.",
+      "Grade 5 CIRC Tank Jr: Use two or three simple shapes, two or three colors and one font.",
+      "Grade 6 CIRC Tank: Make each choice on purpose and explain how it connects to a strength or value.",
+      "Turn in: Share, then add the teacher's school account. Do not change public or link sharing. It counts only when the teacher account shows in Share and the teacher can open it.",
+      "If Canva or sign-in fails: paper and pencil sketch, same steps. Move it to Canva next visit.",
+      "Who you are means interests, values or strengths. Nobody has to share anything personal. No names of classmates."
+    ],
+    "fastFinish": "Make a second color version or test your logo at an even smaller size.",
+    "gradeBand": "5-6",
+    "supplies": [
+      "Existing school devices on the cart",
+      "School Canva through resources.svsd.net",
+      "Board checklist",
+      "Paper and pencils for the fallback"
+    ],
+    "steps": [
+      {
+        "id": "p02-canva-original-signin",
+        "label": "Sign in and recap",
+        "kind": "ready",
+        "minutes": 4,
+        "directions": [
+          "Get your device and sign in to school Canva.",
+          "Recap: simple shapes, 2 or 3 colors, 1 or 2 fonts.",
+          "A good logo is readable when small."
+        ],
+        "teacherDirections": [
+          "Devices out. Say the recap out loud while students sign in.",
+          "If sign-in fails, switch that student to paper and pencil. Same steps."
+        ]
+      },
+      {
+        "id": "p02-canva-original-make",
+        "label": "Make it from blank",
+        "kind": "work",
+        "minutes": 14,
+        "directions": [
+          "Start a blank design. No template this time.",
+          "Make a logo that shows your interests, values or strengths.",
+          "Add a slogan of six words or fewer."
+        ],
+        "teacherDirections": [
+          "Circulate. Ask what the logo says about them without asking for anything personal.",
+          "No purchases. Skip paid elements and anything marked with a crown."
+        ]
+      },
+      {
+        "id": "p02-canva-original-small",
+        "label": "Small size check",
+        "kind": "work",
+        "minutes": 2,
+        "directions": [
+          "Zoom out until your logo is stamp size.",
+          "Fix one thing so it reads small."
+        ],
+        "teacherDirections": [
+          "Have students name the one thing they fixed."
+        ]
+      },
+      {
+        "id": "p02-canva-original-feedback",
+        "label": "Partner feedback",
+        "kind": "work",
+        "minutes": 4,
+        "directions": [
+          "Show your logo to a partner.",
+          "Say: I notice...",
+          "Then say: One thing to try..."
+        ],
+        "teacherDirections": [
+          "Keep feedback kind and specific. Model one example first."
+        ]
+      },
+      {
+        "id": "p02-canva-original-explain",
+        "label": "Two sentences",
+        "kind": "exit",
+        "minutes": 3,
+        "directions": [
+          "Write or say two sentences.",
+          "1. Why I chose these colors, shapes or fonts.",
+          "2. How my slogan shows who I am."
+        ],
+        "teacherDirections": [
+          "Accept a text box in the design, paper, or saying them to you."
+        ]
+      },
+      {
+        "id": "p02-canva-original-share",
+        "label": "Share with teacher",
+        "kind": "cleanup",
+        "minutes": 3,
+        "directions": [
+          "Choose Share.",
+          "Add Mr. Macek's school account.",
+          "Check that his name shows in Share."
+        ],
+        "teacherDirections": [
+          "Sharing counts only after the teacher account shows in Share and you can open it.",
+          "Do not change public or link sharing. No downloads to the desktop."
+        ]
+      },
+      {
+        "id": "p02-canva-original-devices",
+        "label": "Devices back",
+        "kind": "cleanup",
+        "minutes": 5,
+        "directions": [
+          "Close Canva.",
+          "Put your device back on the cart and plug it in.",
+          "Clear your table."
+        ],
+        "teacherDirections": [
+          "Count the cart before the class leaves. Paper sketches go in the class tray."
+        ]
+      }
+    ]
+  },
+  {
     "id": "circ-logo",
     "title": "Design a logo people can read",
     "label": "Design a logo people can read",
@@ -2703,19 +2970,19 @@ export const CIRC_YEAR_ROUTE = freeze([
   },
   {
     "contact": 2,
-    "title": "Turn artwork into a digital image",
-    "lessonId": "circ-digitize",
-    "purpose": "I can capture a clear image, name it clearly, and check that another person can find it.",
+    "title": "Canva logo 1: Start from a template",
+    "lessonId": "circ-canva-template",
+    "purpose": "I can use a Canva logo template to make a logo and short slogan about something I am into.",
     "projectNumber": 2,
-    "modeId": "circ-digitize"
+    "modeId": "circ-canva-template"
   },
   {
     "contact": 3,
-    "title": "Design a logo people can read",
-    "lessonId": "circ-logo",
-    "purpose": "I can combine a simple symbol and readable lettering, then improve them after a quick test.",
+    "title": "Canva logo 2: Original from a blank design",
+    "lessonId": "circ-canva-original",
+    "purpose": "I can make an original logo from a blank design that shows my interests, values or strengths.",
     "projectNumber": 2,
-    "modeId": "circ-logo"
+    "modeId": "circ-canva-original"
   },
   {
     "contact": 4,
@@ -2923,4 +3190,6 @@ export const CIRC_YEAR_ROUTE = freeze([
     "purpose": "Use Demo Day reflection and reset, or complete a missed core contact."
   }
 ]);
+// NeuroArt (meeting 1) is finished, so the year guide opens on the first Canva logo visit.
+export const CIRC_YEAR_NEXT_CONTACT = 2;
 export function getCircYearLesson(id) { return CIRC_YEAR_LESSONS.find(lesson => lesson.id === id) ?? null; }

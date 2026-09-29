@@ -35,7 +35,7 @@ import {
   validateExperienceRunner
 } from "./model/experience-runner.js";
 import { PROJECTS, getProjectByNumber } from "./model/project-catalog.js";
-import { CIRC_YEAR_ROUTE } from "./model/circ-year-route.js";
+import { CIRC_YEAR_NEXT_CONTACT, CIRC_YEAR_ROUTE } from "./model/circ-year-route.js";
 import {
   addScheduleEvent,
   compileScheduleDraft,
@@ -1314,7 +1314,8 @@ function classroomYearGuide(actions) {
     text: `${meeting.contact}. ${meeting.title}`,
     attributes: { value: meeting.contact }
   })));
-  const currentMeeting = CIRC_YEAR_ROUTE.find((meeting) => meeting.lessonId && meeting.lessonId === actions.currentReplicaLesson?.id) ?? CIRC_YEAR_ROUTE[0];
+  const currentMeeting = CIRC_YEAR_ROUTE.find((meeting) => meeting.lessonId && meeting.lessonId === actions.currentReplicaLesson?.id)
+    ?? CIRC_YEAR_ROUTE.find((meeting) => meeting.contact === CIRC_YEAR_NEXT_CONTACT) ?? CIRC_YEAR_ROUTE[0];
   selected.value = String(currentMeeting.contact);
   const purpose = element("p", { text: currentMeeting.purpose });
   selected.addEventListener("change", () => {
