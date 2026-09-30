@@ -33,7 +33,7 @@ Capacity comes from the 2026-27 calendar: 35 or 36 visits per class in a full ye
 
 The September 30 teacher guide and classroom screen cards now come from the same lesson data as both on-screen playbooks. They include all 74 unique lessons, each once, with a route table identifying every shared or grade-specific visit. The teacher guide includes teacher prompts, materials, safety, evidence, cleanup, adaptations and the complete paper-path data. Print only the current lesson. The screen deck has PDF bookmarks and one large step per page for projection; it is not an instruction to print the whole deck.
 
-The eight-page Classroom Toolkit adds a ready-to-use WIN Passion project page, an every-period evidence record, a teacher conference and progress routine, a two-visit Operation-style battery buzzer game, the next Canva lesson and a NeuroArt finish/preview check. WIN is self-paced: the same evidence routine works for a project lasting two weeks or half a year. The game signals a touch with a buzzer and never shocks a student. Its physical components must be matched and piloted by the teacher. Blank school record fields contain no student data and introduce no new accounts or public submissions.
+The four-page Classroom Toolkit contains a two-visit Operation-style battery buzzer game for regular CIRC class, the next Canva lesson and a NeuroArt finish/preview check. The game signals a touch with a buzzer and never shocks a student. Its physical components must be matched and piloted by the teacher. The earlier WIN pages were withdrawn because they introduced unconfirmed stages, marking rules and project choices. The toolkit is not the school WIN packet.
 
 ## Dated updates
 

@@ -1295,7 +1295,7 @@ function playbookGuides() {
       }),
       element("a", {
         className: "secondary-action",
-        text: "WIN period record, circuit game and Canva quick start",
+        text: "CIRC circuit game, Canva quick start and NeuroArt check",
         attributes: { href: "assets/guides/CIRC-Classroom-Toolkit.pdf", target: "_blank", rel: "noopener" }
       })
     ])

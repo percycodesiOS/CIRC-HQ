@@ -1710,7 +1710,7 @@ test("Year Map route exposes all 36 choices without private schedule content", a
   const lessonTitle = findAll(root, (node) => node.getAttribute("id") === "pb-lesson-title")[0];
   assert.equal(textOf(lessonTitle), "Canva logo 1: Start from a template", "NeuroArt is finished, so start with the first Canva logo visit");
   assert.match(rendered, /Current Playbooks A and B, including both grade paths/);
-  assert.match(rendered, /WIN period record, circuit game and Canva quick start/);
+  assert.match(rendered, /CIRC circuit game, Canva quick start and NeuroArt check/);
   assert.equal(findAll(root, (node) => node.tagName === "a" && node.getAttribute("href") === "assets/guides/CIRC-Classroom-Toolkit.pdf").length, 1);
   assert.match(rendered, /Canva logo 1: Start from a template/);
   assert.match(rendered, /Canva logo 2: Original from a blank design/);

@@ -1,3 +1,8 @@
+# September 30, 2026 - WIN source correction
+
+- Withdrew the four unsupported WIN pages from the public Classroom Toolkit. The same download now contains four regular CIRC pages: the two-visit circuit game, Canva quick start and NeuroArt check. The circuit game is regular CIRC, not WIN.
+- Corrected the download label and README. Original school WIN documents and the private teacher discussion draft are not published. Earlier publication claims below describe history and do not establish an approved WIN rollout.
+
 # CIRC HQ - BUILDLOG
 
 ## 2026-09-30 Visual theme layer, Grades 5-6 splash, Arcade, ECTV live page
