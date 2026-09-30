@@ -22,6 +22,7 @@ const ALLOWED_UNTRACKED = new Set([
   "assets/designers-challenge-sketch.webp",
   "assets/icons/LICENSE-phosphor.txt",
   "assets/guides/CIRC-Classroom-Cards.pdf",
+  "assets/guides/CIRC-Classroom-Toolkit.pdf",
   "assets/guides/CIRC-Teacher-Guide.pdf",
   "assets/guides/ECTV-Interview-Edit-Handout.pdf",
   "assets/icons/arrow-right.svg",
@@ -141,6 +142,7 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "assets/ectv/roles/role-computer.svg",
   "assets/ectv/roles/role-weather.svg",
   "assets/guides/CIRC-Classroom-Cards.pdf",
+  "assets/guides/CIRC-Classroom-Toolkit.pdf",
   "assets/guides/CIRC-Teacher-Guide.pdf",
   "assets/guides/ECTV-Interview-Edit-Handout.pdf",
   "assets/icons/arrow-right.svg",
@@ -353,9 +355,10 @@ const TEXT_EXTENSIONS = new Set([
   ".txt"
 ]);
 const REVIEWED_BINARY_ASSETS = new Map([
+  ["assets/guides/CIRC-Classroom-Toolkit.pdf","44958787CAEAE44AD05DC9B0F393C145D136983CE56F8776D32D2CEFED4F3A9E"],
   ["assets/guides/ECTV-Interview-Edit-Handout.pdf","0CB2ADA32F19153C2F31FFF132144B6D585E4B60C9ABE48F7D2D4132B769D198"],
-  ["assets/guides/CIRC-Teacher-Guide.pdf","5AEE722C56E4FDFA7560A7CE82644B749C0C206DF77D489640BCDF6D5880B75A"],
-  ["assets/guides/CIRC-Classroom-Cards.pdf","969B9965E7131EEE4C8EA33620B98D61BCCE2D5F2783C726FFB897F668D9DBAF"],
+  ["assets/guides/CIRC-Teacher-Guide.pdf","8EC0260A61E85E26F8534C94A740786D6F276EF8DAFA54B7A456D7A33E30E251"],
+  ["assets/guides/CIRC-Classroom-Cards.pdf","5D4CCA2796311C0A2608673C2A72FEAC1B6309EA8CE706412F7A5093B393FB6F"],
   [
     "assets/circ-hq-maker.webp",
     "5F725CE9D91E94BD753435F493892CAC0B3FB63C73E48F5A45608348118204A3"

@@ -1,5 +1,12 @@
 # CIRC HQ - BUILDLOG
 
+## 2026-09-30 current teaching guides and WIN materials
+
+- Replaced the earlier single-route PDFs with current Playbook A and B material generated from the same source data as the live lesson views. The teacher guide has the route tables and all 74 unique 35-minute lessons, including both grade paths, KidWind, Tinkercad and the complete practice-data fallbacks. Shared lessons appear once. The projector deck preserves every student direction and has lesson bookmarks.
+- Added an eight-page Classroom Toolkit with a self-paced WIN project launch, a record for every period, teacher conference and evidence routines, a two-visit battery buzzer game, the next Canva lesson and a NeuroArt finish/preview check. The circuit game has no shock function. Blank record fields contain no student data.
+- Updated the existing Playbooks download area, binary locks and public allowlist. There is no new navigation system, account, student-data collection or schedule mutation.
+- PDF checks found no text outside page margins and no omitted student direction in either guide. Crew and office worksheets stay in the private master, outside this public repository. Physical equipment, school accounts and classroom microphone checks are separate from this web release.
+
 ## 2026-09-21 classroom year sequence
 
 - Connected the 21 prepared CIRC and Tank lessons to the existing teacher-controlled runner. Added one ordered route covering 31 remaining class meetings, including ten existing catalog experiences. The original 36-experience library remains available.

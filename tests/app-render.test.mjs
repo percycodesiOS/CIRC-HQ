@@ -1709,9 +1709,9 @@ test("Year Map route exposes all 36 choices without private schedule content", a
   assert.equal(meetingButtons.length, 32, "Playbook A: 31 meetings plus one buffer");
   const lessonTitle = findAll(root, (node) => node.getAttribute("id") === "pb-lesson-title")[0];
   assert.equal(textOf(lessonTitle), "Canva logo 1: Start from a template", "NeuroArt is finished, so start with the first Canva logo visit");
-  assert.match(rendered, /earlier single 31-meeting order/);
-  assert.match(rendered, /there is no Playbook B PDF yet/);
-  assert.equal(findAll(root, (node) => node.tagName === "a" && /Playbook-B|playbook-b/i.test(node.getAttribute("href") ?? "")).length, 0);
+  assert.match(rendered, /Current Playbooks A and B, including both grade paths/);
+  assert.match(rendered, /WIN period record, circuit game and Canva quick start/);
+  assert.equal(findAll(root, (node) => node.tagName === "a" && node.getAttribute("href") === "assets/guides/CIRC-Classroom-Toolkit.pdf").length, 1);
   assert.match(rendered, /Canva logo 1: Start from a template/);
   assert.match(rendered, /Canva logo 2: Original from a blank design/);
   assert.match(rendered, /Meet the CIRC Teacher and the Outdoor Classroom/);

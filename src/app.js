@@ -1281,17 +1281,22 @@ function boardRoute(board, navigate) {
 function playbookGuides() {
   return element("section", { className: "pb-guides", attributes: { "aria-labelledby": "pb-guides-title" } }, [
     element("h2", { text: "Printable guides", attributes: { id: "pb-guides-title" } }),
-    element("p", { text: "These September 2026 PDFs follow the earlier single 31-meeting order. Meetings 1 to 5 match Playbook A. After that, use the order on this screen. The PDFs do not include KidWind, Tinkercad or the grade 5 path, and there is no Playbook B PDF yet." }),
+    element("p", { text: "Current Playbooks A and B, including both grade paths, KidWind and Tinkercad. The teacher guide starts with the route and contains each shared lesson once. Print only the lesson you need. The screen-card deck uses PDF bookmarks and one step per page for projection." }),
     element("div", { className: "classroom-year-downloads" }, [
       element("a", {
         className: "secondary-action",
-        text: "Teacher guide PDF (earlier order)",
+        text: "Current teacher guide: Playbooks A and B",
         attributes: { href: "assets/guides/CIRC-Teacher-Guide.pdf", target: "_blank", rel: "noopener" }
       }),
       element("a", {
         className: "secondary-action",
-        text: "Classroom screen cards PDF (earlier order)",
+        text: "Current classroom screen cards",
         attributes: { href: "assets/guides/CIRC-Classroom-Cards.pdf", target: "_blank", rel: "noopener" }
+      }),
+      element("a", {
+        className: "secondary-action",
+        text: "WIN period record, circuit game and Canva quick start",
+        attributes: { href: "assets/guides/CIRC-Classroom-Toolkit.pdf", target: "_blank", rel: "noopener" }
       })
     ])
   ]);

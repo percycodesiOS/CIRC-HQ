@@ -31,7 +31,9 @@ Every lesson shows the goal, strands, Four Cs, design stage, materials and setup
 
 Capacity comes from the 2026-27 calendar: 35 or 36 visits per class in a full year, and from September 28, 2026, 31 visits on cycle days 1 to 3 and 30 on days 4 and 5. Seasons such as "About December" are guides, not dates. Mark a class by its record, never by the date. Playbook B should be checked against the 2027-28 calendar before relying on it.
 
-The September 2026 teacher guide and classroom card PDFs follow the earlier single 31-meeting order. Meetings 1 to 5 match Playbook A; after that, use the order on screen. They do not include KidWind, Tinkercad or the grade 5 path. There is no Playbook B PDF yet.
+The September 30 teacher guide and classroom screen cards now come from the same lesson data as both on-screen playbooks. They include all 74 unique lessons, each once, with a route table identifying every shared or grade-specific visit. The teacher guide includes teacher prompts, materials, safety, evidence, cleanup, adaptations and the complete paper-path data. Print only the current lesson. The screen deck has PDF bookmarks and one large step per page for projection; it is not an instruction to print the whole deck.
+
+The eight-page Classroom Toolkit adds a ready-to-use WIN Passion project page, an every-period evidence record, a teacher conference and progress routine, a two-visit Operation-style battery buzzer game, the next Canva lesson and a NeuroArt finish/preview check. WIN is self-paced: the same evidence routine works for a project lasting two weeks or half a year. The game signals a touch with a buzzer and never shocks a student. Its physical components must be matched and piloted by the teacher. Blank school record fields contain no student data and introduce no new accounts or public submissions.
 
 ## Dated updates
 
@@ -43,7 +45,7 @@ For the classroom year, open **Playbooks**, choose Playbook A or B and a meeting
 
 Meeting 1, neuro art, is finished, so Playbook A opens on meeting 2. Meetings 2 and 3 are the two Canva personal logo visits: first a logo from a template about something the student is into, then an original logo from a blank design with partner feedback and two sentences about the choices. Students use school Canva through resources.svsd.net and share the logo with the teacher's school account; it counts as turned in when the teacher can open it. A paper sketch is the fallback. These two visits replace the older digitize and Paint logo plan and add no meetings.
 
-The Playbooks page links the teacher PDF and classroom screen-card PDF, labeled with the earlier order they follow. The teacher guide has a run page and supports page per meeting; print only the meeting you need. The landscape cards are a projection deck, one step at a time. The live runner separates the opening three-minute block of the other lessons into two minutes of readiness and one minute of partner talk; the lesson content and 35-minute total stay the same.
+The Playbooks page links the current teacher guide, current classroom screen cards and Classroom Toolkit. Each guide lesson retains the same 35-minute plan as the live runner. The landscape cards are a projection deck, one step at a time. The live runner separates the opening three-minute block of the other lessons into two minutes of readiness and one minute of partner talk; the lesson content and 35-minute total stay the same.
 
 The normal first action is **Set up my schedule**. The ordinary schedule editor is the primary setup surface and does not require a plan file.
 

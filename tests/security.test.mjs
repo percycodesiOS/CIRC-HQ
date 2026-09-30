@@ -374,6 +374,7 @@ test("public server manifest is an exact reviewed allowlist", () => {
     "assets/ectv/roles/role-computer.svg",
     "assets/ectv/roles/role-weather.svg",
     "assets/guides/CIRC-Classroom-Cards.pdf",
+    "assets/guides/CIRC-Classroom-Toolkit.pdf",
   "assets/guides/CIRC-Teacher-Guide.pdf",
   "assets/guides/ECTV-Interview-Edit-Handout.pdf",
   "assets/icons/arrow-right.svg",
@@ -543,13 +544,13 @@ test("public verifier has a recursive-safe sanitized gate contract", () => {
 
 test("reviewed visual assets are exact and opaque files fail closed", async (context) => {
   assert.equal(typeof verifier.inspectAssetLocks, "function");
-  assert.deepEqual(await verifier.inspectAssetLocks(ROOT), { ok: true, count: 12 });
+  assert.deepEqual(await verifier.inspectAssetLocks(ROOT), { ok: true, count: 13 });
 
   const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-asset-lock-"));
   context.after(() => rm(repository, { recursive: true, force: true }));
   await mkdir(path.join(repository, "assets"), { recursive: true });
   await writeFile(path.join(repository, "assets", "circ-hq-maker.webp"), "TAMPERED");
-  assert.deepEqual(await verifier.inspectAssetLocks(repository), { ok: false, count: 12 });
+  assert.deepEqual(await verifier.inspectAssetLocks(repository), { ok: false, count: 13 });
 
   const counts = verifier.classifyCandidatePaths([
     "assets/circ-hq-maker.webp",
