@@ -29,7 +29,8 @@ test("every year meeting opens a complete valid 35-minute plan and survives runn
 test("new lessons retain materials, grade support, cleanup and usable teacher directions", () => {
   for (const lesson of CIRC_YEAR_LESSONS) {
     assert.ok(lesson.materials.length, lesson.title);
-    assert.ok(lesson.teacherContext.some(text => text.includes("Grade 5")), lesson.title);
+    assert.ok(lesson.teacherContext.some(text => /^(Grade 5|More support): /.test(text)), lesson.title);
+    assert.ok(!lesson.teacherContext.some(text => text.includes("Tank Jr")), "grade 5 no longer runs a Tank Jr: " + lesson.title);
     assert.ok(lesson.teacherContext.some(text => text.includes("Grade 6")), lesson.title);
     assert.ok(lesson.steps.some(step => step.kind === "cleanup"));
     assert.ok(lesson.steps.some(step => step.kind === "exit"));

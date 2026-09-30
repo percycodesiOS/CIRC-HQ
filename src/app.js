@@ -35,7 +35,6 @@ import {
   validateExperienceRunner
 } from "./model/experience-runner.js";
 import { PROJECTS, getProjectByNumber } from "./model/project-catalog.js";
-import { CIRC_YEAR_NEXT_CONTACT, CIRC_YEAR_ROUTE } from "./model/circ-year-route.js";
 import {
   addScheduleEvent,
   compileScheduleDraft,
@@ -84,6 +83,33 @@ import { buildSetupHelpView, buildSetupView } from "./ui/setup.js";
 import { buildTodayPresentation, buildWelcomePresentation } from "./ui/today-ui.js";
 import { buildTodayViewModel } from "./ui/view-model.js";
 import { buildWeekModel } from "./model/week.js";
+import { runnerStepIconFile } from "./ui/step-icons.js";
+import { buildStudentLink, getPlaybook, parseStudentLink, playbookPlaceLabel, resolveMeeting } from "./model/playbooks.js";
+import { classPlace, loadClassProgress, saveClassPlace } from "./model/class-progress.js";
+import {
+  clearDatedUpdates,
+  datedUpdatesForDate,
+  loadDatedUpdates,
+  previewDatedUpdatesText,
+  saveDatedUpdates
+} from "./model/dated-updates.js";
+import { buildLessonCard, buildPlaybookBrowser } from "./ui/playbook-view.js";
+import { buildTeacherAgenda, buildTeacherHome, formatSeconds } from "./ui/teacher-home.js";
+import { buildDatedUpdatesPanel } from "./ui/dated-updates-panel.js";
+
+export { runnerStepIconFile };
+
+// index.html#student or index.html?view=student opens the student page before
+// any saved teacher information is read. Only curriculum identifiers pass through.
+export function studentRedirectTarget(location) {
+  const hash = String(location?.hash ?? "");
+  const search = String(location?.search ?? "");
+  const hashWantsStudent = /^#student(?:$|[?&])/.test(hash);
+  const searchParams = new URLSearchParams(search.replace(/^\?/, ""));
+  if (!hashWantsStudent && searchParams.get("view") !== "student") return null;
+  const source = hashWantsStudent ? hash.replace(/^#student[?&]?/, "") : search;
+  return buildStudentLink(parseStudentLink(source));
+}
 
 function localhostName(hostname) {
   return ["127.0.0.1", "localhost", "::1", "[::1]"].includes(hostname);
@@ -248,68 +274,35 @@ function fidEntry() {
 }
 
 function welcomeEntranceCards(actions) {
-  const card = (kind, title, blurb, cta, onClick) => {
-    const button = element("button", {
-      className: `entrance-cta ${kind === "student" ? "primary-action" : "secondary-action"}`,
-      text: cta,
-      attributes: { type: "button" }
-    });
-    button.addEventListener("click", onClick);
-    return element("article", { className: `entrance-card entrance-${kind}` }, [
-      element("h2", { text: title }),
-      element("p", { text: blurb }),
-      button
-    ]);
-  };
-  return element("div", { className: "welcome-entrances", attributes: { "aria-label": "Choose your entrance" } }, [
-    card(
-      "student",
-      "I am a student",
-      "See what your class is doing right now. Your teacher runs the clock and the steps.",
-      "Open student view",
-      () => actions.setWelcomeEntrance("student")
-    ),
-    card(
-      "teacher",
-      "I am a teacher",
-      "Set up your schedule, open a lesson, and run the class from this device.",
-      "Open teacher setup",
-      () => actions.setWelcomeEntrance("teacher")
-    )
-  ]);
-}
-
-function studentEntranceRoute(actions) {
-  const back = element("button", {
-    className: "secondary-action",
-    text: "Back",
+  const teacherButton = element("button", {
+    className: "entrance-cta secondary-action",
+    text: "Open teacher side",
     attributes: { type: "button" }
   });
-  back.addEventListener("click", () => actions.setWelcomeEntrance(null));
-  return element("section", {
-    className: "welcome-view welcome-student-entrance",
-    attributes: { "data-view": "welcome-student" }
-  }, [
-    element("div", { className: "welcome-copy" }, [
-      element("p", { className: "eyebrow", text: "Student view" }),
-      element("h1", { text: "Wait for your teacher to start" }),
-      element("p", { className: "welcome-description", text: "There is no class running on this device yet. When your teacher starts the lesson, the step and the directions show up here." }),
-      element("section", { className: "student-waiting-card" }, [
-        element("h2", { text: "While you wait" }),
-        element("ol", {}, [
-          element("li", { text: "Check in with your homeroom teacher first, always." }),
-          element("li", { text: "Get your materials out and clear your table space." }),
-          element("li", { text: "Look at the board for today's lesson name." })
-        ])
-      ]),
-      element("p", { className: "welcome-privacy", text: "You cannot start, skip or finish the lesson from here. Your teacher runs the class." }),
-      element("div", { className: "welcome-actions" }, [back])
-    ])
+  teacherButton.addEventListener("click", () => actions.setWelcomeEntrance("teacher"));
+  return element("div", { className: "welcome-entrances", attributes: { "aria-label": "Choose your side" } }, [
+    element("article", { className: "entrance-card entrance-student" }, [
+      element("h2", { text: "Student side" }),
+      element("p", { text: "Today's activity, simple steps, what to turn in, and both playbooks. No sign-in." }),
+      element("a", {
+        className: "entrance-cta primary-action",
+        text: "Open student side",
+        attributes: { href: "student.html" }
+      })
+    ]),
+    element("article", { className: "entrance-card entrance-teacher" }, [
+      element("h2", { text: "Teacher side" }),
+      element("p", { text: "Your next obligation, this class's lesson, the timer and your schedule on this device." }),
+      teacherButton
+    ]),
+    element("p", {
+      className: "welcome-privacy entrance-note",
+      text: "These doors change the screen, not who can see what. The student side never loads a schedule. Your schedule stays on this device unless you choose private sync."
+    })
   ]);
 }
 
 function welcomeRoute(actions) {
-  if (actions.welcomeEntrance === "student") return studentEntranceRoute(actions);
   const presentation = buildWelcomePresentation();
   const setup = element("button", {
     className: "primary-action welcome-primary",
@@ -354,6 +347,7 @@ function welcomeRoute(actions) {
       actions.welcomeEntrance === "teacher"
         ? element("div", { className: "welcome-teacher-actions" }, [
             element("div", { className: "welcome-actions" }, [setup, sync, preview]),
+            element("p", {}, [actionButton("Browse Playbooks A and B", "button-link", () => actions.navigate("projects"))]),
             element("p", {}, [element("a", { className: "button-link", text: "Complete first-use walkthrough", attributes: { href: "walkthrough.html", target: "_blank", rel: "noopener" } })]),
             element("p", { className: "welcome-privacy", text: "Schedules stay private to the signed-in teacher." }),
             backToEntrances(actions)
@@ -433,42 +427,6 @@ const WEATHER_ICON_FILES = Object.freeze({
   unavailable: "warning-circle"
 });
 
-const RUNNER_WORK_ICON_RULES = Object.freeze([
-  Object.freeze({ pattern: /\b(?:STORY|TOUR)\b|\bHOST THE DEMO\b/, icon: "chalkboard-teacher" }),
-  Object.freeze({ pattern: /\b(?:JOBS|PARTNER|ROLES)\b|\bJOIN AND TEST\b/, icon: "student" }),
-  Object.freeze({
-    pattern: /\b(?:PLAN|CHOOSE|PREDICT)\b|\b(?:SET THE TEST|READ THE MODE|NAME THE PROBLEM|NAME ONE NEED)\b/,
-    icon: "calendar-dots"
-  }),
-  Object.freeze({ pattern: /\b(?:READ|LEARN|WRITE|DRAW|SKETCH|ENCODE|RECORD|MAP|KEY|MESSAGE|COPY)\b/, icon: "books" }),
-  Object.freeze({
-    pattern: /\b(?:TEST|CHECK|OBSERVE|MEASURE|COMPARE|SURVEY|TRACE|DETECT|CHALLENGE|READINGS|DISPLAY|CLARIFY|LOOK|FIND|SAMPLE)\b/,
-    icon: "presentation-chart"
-  }),
-  Object.freeze({ pattern: /\b(?:RUN|PLAY|REPEAT)\b|\bPOWER THE SIGNAL\b/, icon: "play-circle" }),
-  Object.freeze({ pattern: /\b(?:FLOW|ROUTE|PATH|SEND|LOAD|FLOAT|DROP|CONNECT|JOIN)\b/, icon: "arrow-right" }),
-  Object.freeze({
-    pattern: /\b(?:BUILD|ASSEMBLE|MAKE|FIX|IMPROVE|ADJUST|CHANGE|REMOVE|REPAIR|RESHAPE|STRENGTHEN|SHAPE|TUNE|ADD|PLACE|SORT|MODEL|REDUCE|FINISH|DEBUG|SMOOTH|CLOSE)\b/,
-    icon: "gear-six"
-  })
-]);
-
-export function runnerStepIconFile(step) {
-  const label = step.label.toUpperCase();
-  if (step.kind === "safety" || /\bSAFE(?:TY|LY)?\b/.test(label)) return "warning-circle";
-  if (step.kind === "ready") return "play-circle";
-  if (step.kind === "exit") return "presentation-chart";
-  if (step.kind === "transition") return /\b(?:RETURN|INSIDE)\b/.test(label) ? "house" : "arrow-right";
-  if (step.kind === "cleanup") return "gear-six";
-  const replicaIcons = {
-    "REMEMBER SEPTEMBER 11": "chalkboard-teacher",
-    "NOTICE CARE AND RECOVERY": "books",
-    "DESIGN FOR SOMEONE": "calendar-dots",
-    "MATCH MATERIALS": "calendar-dots",
-    "TRY A LOOSE LAYOUT": "gear-six"
-  };
-  return replicaIcons[label] ?? RUNNER_WORK_ICON_RULES.find((rule) => rule.pattern.test(label))?.icon ?? "student";
-}
 
 function imageIcon(name, label, className = "action-icon") {
   return element("img", {
@@ -836,7 +794,7 @@ function runnerMoreContext(project) {
 function runnerDetour(detour) {
   return element("section", { className: "runner-detour", attributes: { role: "status" } }, [
     element("div", {}, [
-      element("p", { className: "section-kicker", text: "Question Detour" }),
+      element("p", { className: "section-kicker", text: "Pause for a question" }),
       element("h2", { text: "Discuss the question" }),
       element("p", { text: "Class clock keeps running. Step time is held." })
     ]),
@@ -917,7 +875,7 @@ function replicaProjectContext(project, runner) {
   return {
     ...project,
     replicaLesson: true,
-    yearMeeting: CIRC_YEAR_ROUTE.find((meeting) => meeting.lessonId === choice.id)?.contact,
+    yearMeeting: playbookPlaceLabel(`year:${choice.id}`),
     lessonSteps,
     title: choice.title,
     objective: choice.objective,
@@ -1053,7 +1011,7 @@ function experienceRunnerRoute(project, runner, actions, artifactContext = null)
       ? [
           actionButton("Add 2 minutes", "runner-control", () => actions.applyRunnerAction("add-detour-time")),
           actionButton("Return to build", "runner-control runner-primary-control", () => actions.applyRunnerAction("return-to-build")),
-          actionButton("Safe Landing", "runner-control runner-safe-landing", () => actions.applyRunnerAction("safe-landing"))
+          actionButton("Go to cleanup", "runner-control runner-safe-landing", () => actions.applyRunnerAction("safe-landing"))
         ]
       : ready
         ? [primaryControl]
@@ -1065,7 +1023,7 @@ function experienceRunnerRoute(project, runner, actions, artifactContext = null)
           ];
   const supportControls = paused || ready || detourActive
     ? []
-    : [actionButton("Question Detour", "runner-control runner-detour-control", () => actions.applyRunnerAction("start-detour"))];
+    : [actionButton("Pause for a question", "runner-control runner-detour-control", () => actions.applyRunnerAction("start-detour"))];
   const teacherDirections = runnerTeacherDirections(step);
   const teacherAction = teacherDirections.length > 0
     ? runnerCue("Teacher action", teacherDirections)
@@ -1079,7 +1037,7 @@ function experienceRunnerRoute(project, runner, actions, artifactContext = null)
     runnerCommandBar(step, runner, controls),
     element("div", { className: "runner-heading" }, [
       actionButton("Back to Today", "detail-back", () => actions.navigate("today")),
-      element("p", { className: "project-kicker", text: project.yearMeeting ? `Class meeting ${project.yearMeeting} of ${CIRC_YEAR_ROUTE.length}` : `Experience ${project.number} of ${PROJECTS.length}` }),
+      element("p", { className: "project-kicker", text: project.yearMeeting || `Experience ${project.number} of ${PROJECTS.length}` }),
       element("h1", { text: project.title }),
       actions.previewOnly
         ? element("p", { className: "runner-preview-label", text: "Preview only" })
@@ -1095,7 +1053,7 @@ function experienceRunnerRoute(project, runner, actions, artifactContext = null)
     expired ? element("p", {
       className: "runner-expired",
       text: detourActive
-        ? "Step time is up. Return to build or choose Safe Landing."
+        ? "Step time is up. Return to build or choose Go to cleanup."
         : "Step time is up. Choose Next Step when the class is ready.",
       attributes: { role: "alert" }
     }) : null,
@@ -1169,21 +1127,7 @@ function buildToday(model, actions, options) {
     model,
     () => actions.navigate("board"),
     () => actions.navigate("week")
-  ), actionButton("Open our CIRC year guide", "primary-action", () => actions.navigate("projects"))];
-  if (["2026-09-09", "2026-09-10"].includes(actions.localDate)) {
-    children.push(element("section", { className: "day-five-start", attributes: { "aria-labelledby": "day-five-heading" } }, [
-      element("p", { className: "eyebrow", text: "Thursday, September 10, 2026 | Day 5" }),
-      element("h2", { text: "Today they build", attributes: { id: "day-five-heading" } }),
-      element("p", { text: "One stable cardboard school module, a fit check and a clear next-crew label. The full 35-minute lesson is ready." }),
-      element("ol", {}, [
-        element("li", { text: "Set out cardboard, rulers, pencils, tape and labeled trays. Tape and tabs are enough to run the lesson." }),
-        element("li", { text: "Open the build, check the current class, then choose Start class. For each later class, choose Start this lesson for a new class." }),
-        element("li", { text: "Project only Student directions. Both timers stay visible; you choose Next Step. Use freestanding modules if the aerial reference is not ready." })
-      ]),
-      actionButton("Open Day 5 build", "primary-action", () => actions.openRunner(2, { modeId: "replica-cardboard" })),
-      actionButton("Open morning announcements", "secondary-action", actions.openAnnouncements)
-    ]));
-  }
+  )];
   if (actions.lastCompletion) {
     children.push(element("div", {
       className: "completion-undo",
@@ -1196,8 +1140,26 @@ function buildToday(model, actions, options) {
   if (presentation.showTeacherSelector) {
     children.push(buildTeacherPicker(model, actions.selectTeacher));
   }
+  children.push(buildTeacherHome(options.teacherHome, options.teacherHomeActions, { documentRef: document }));
+
+  // Everything below is optional and starts collapsed.
+  const more = [];
+  if (["2026-09-09", "2026-09-10"].includes(actions.localDate)) {
+    more.push(element("section", { className: "day-five-start", attributes: { "aria-labelledby": "day-five-heading" } }, [
+      element("p", { className: "eyebrow", text: "Thursday, September 10, 2026 | Day 5" }),
+      element("h2", { text: "Today they build", attributes: { id: "day-five-heading" } }),
+      element("p", { text: "One stable cardboard school module, a fit check and a clear next-crew label. The full 35-minute lesson is ready." }),
+      element("ol", {}, [
+        element("li", { text: "Set out cardboard, rulers, pencils, tape and labeled trays. Tape and tabs are enough to run the lesson." }),
+        element("li", { text: "Open the build, check the current class, then choose Start class. For each later class, choose Start this lesson for a new class." }),
+        element("li", { text: "Project only Student directions. Both timers stay visible; you choose Next Step. Use freestanding modules if the aerial reference is not ready." })
+      ]),
+      actionButton("Open Day 5 build", "primary-action", () => actions.openRunner(2, { modeId: "replica-cardboard" })),
+      actionButton("Open morning announcements", "secondary-action", actions.openAnnouncements)
+    ]));
+  }
   if (presentation.setup) {
-    children.push(buildPlanNotice(
+    more.push(buildPlanNotice(
       presentation.setup,
       actions.navigate,
       actions.privateSeedMessage
@@ -1209,24 +1171,24 @@ function buildToday(model, actions, options) {
       buildWeatherCard(dashboard.weather, actions.refreshWeather, options.weatherRefreshing),
       buildDutyCard(dashboard.duty)
     ].filter(Boolean);
-    children.push(element("div", { className: "today-overview" }, [
+    more.push(element("div", { className: "today-overview" }, [
       buildNowCard(dashboard.now),
       element("div", { className: "today-companions" }, companionCards)
     ]));
     if (dashboard.special) {
-      children.push(element("div", {
+      more.push(element("div", {
         className: "special-banner",
         text: `${dashboard.special.title}: ${dashboard.special.timeLabel}`
       }));
     }
   }
 
-  children.push(buildProjectHero(projectView, actions));
-  if (projectView.currentProject.number === 2) children.push(replicaLessonChooser(actions));
+  more.push(buildProjectHero(projectView, actions));
+  if (projectView.currentProject.number === 2) more.push(replicaLessonChooser(actions));
   if (options.artifactContext) {
-    children.push(sharedArtifactCard(options.artifactContext, actions));
+    more.push(sharedArtifactCard(options.artifactContext, actions));
   }
-  children.push(element("details", { className: "today-plan-ahead" }, [
+  more.push(element("details", { className: "today-plan-ahead" }, [
     element("summary", { text: "Plan ahead" }),
     buildIndependencePath(projectView),
     buildProjectTrail(projectView, actions),
@@ -1234,13 +1196,10 @@ function buildToday(model, actions, options) {
   ]));
 
   if (presentation.dashboard) {
-    children.push(buildTimeline(presentation.dashboard.timeline, actions.toggleTimeline));
-  }
-  if (actions.privateSeedMessage) {
-    children.push(buildPrivateSeedRecovery(actions.privateSeedMessage, actions.navigate));
+    more.push(buildTimeline(presentation.dashboard.timeline, actions.toggleTimeline));
   }
   if (presentation.dashboard) {
-    children.push(element("details", { className: "today-details" }, [
+    more.push(element("details", { className: "today-details" }, [
       element("summary", { text: "Details" }),
       element("p", { text: presentation.dashboard.quietStatus }),
       element("a", {
@@ -1250,6 +1209,18 @@ function buildToday(model, actions, options) {
       })
     ]));
   }
+  if (actions.privateSeedMessage) {
+    children.push(buildPrivateSeedRecovery(actions.privateSeedMessage, actions.navigate));
+  }
+  const moreTools = element("details", {
+    className: "today-more-tools",
+    attributes: options.moreToolsOpen ? { open: "" } : {}
+  }, [
+    element("summary", { text: "More tools: weather, board, week, Tech Terrarium and the full timeline" }),
+    ...more
+  ]);
+  moreTools.addEventListener("toggle", () => options.onMoreToolsToggle?.(moreTools.getAttribute("open") !== null));
+  children.push(moreTools);
   return element("section", { attributes: { "data-view": "today" } }, children);
 }
 
@@ -1307,54 +1278,49 @@ function boardRoute(board, navigate) {
   ]);
 }
 
-function classroomYearGuide(actions) {
-  const selected = element("select", {
-    attributes: { id: "circ-year-meeting", "aria-label": "Choose our class meeting" }
-  }, CIRC_YEAR_ROUTE.map((meeting) => element("option", {
-    text: `${meeting.contact}. ${meeting.title}`,
-    attributes: { value: meeting.contact }
-  })));
-  const currentMeeting = CIRC_YEAR_ROUTE.find((meeting) => meeting.lessonId && meeting.lessonId === actions.currentReplicaLesson?.id)
-    ?? CIRC_YEAR_ROUTE.find((meeting) => meeting.contact === CIRC_YEAR_NEXT_CONTACT) ?? CIRC_YEAR_ROUTE[0];
-  selected.value = String(currentMeeting.contact);
-  const purpose = element("p", { text: currentMeeting.purpose });
-  selected.addEventListener("change", () => {
-    purpose.textContent = CIRC_YEAR_ROUTE.find((meeting) => String(meeting.contact) === selected.value)?.purpose ?? "";
-  });
-  const open = actionButton("Open this lesson", "primary-action", () => {
-    const meeting = CIRC_YEAR_ROUTE.find((item) => String(item.contact) === selected.value);
-    if (meeting) actions.openRunner(meeting.projectNumber, meeting.modeId ? { modeId: meeting.modeId } : {});
-  });
-  return element("section", {
-    className: "classroom-year-guide",
-    attributes: { "aria-labelledby": "circ-year-title" }
-  }, [
-    element("p", { className: "section-kicker", text: "Start here for class" }),
-    element("h2", { text: "Our CIRC year", attributes: { id: "circ-year-title" } }),
-    element("p", { text: "Choose your class's next meeting. Open the lesson, then choose Student directions for our big-screen steps and timer." }),
-    element("label", { text: "Today's lesson", attributes: { for: "circ-year-meeting" } }),
-    selected, purpose, open,
+function playbookGuides() {
+  return element("section", { className: "pb-guides", attributes: { "aria-labelledby": "pb-guides-title" } }, [
+    element("h2", { text: "Printable guides", attributes: { id: "pb-guides-title" } }),
+    element("p", { text: "These September 2026 PDFs follow the earlier single 31-meeting order. Meetings 1 to 5 match Playbook A. After that, use the order on this screen. The PDFs do not include KidWind, Tinkercad or the grade 5 path, and there is no Playbook B PDF yet." }),
     element("div", { className: "classroom-year-downloads" }, [
       element("a", {
         className: "secondary-action",
-        text: "Teacher guide PDF",
+        text: "Teacher guide PDF (earlier order)",
         attributes: { href: "assets/guides/CIRC-Teacher-Guide.pdf", target: "_blank", rel: "noopener" }
       }),
       element("a", {
         className: "secondary-action",
-        text: "Classroom screen cards PDF",
+        text: "Classroom screen cards PDF (earlier order)",
         attributes: { href: "assets/guides/CIRC-Classroom-Cards.pdf", target: "_blank", rel: "noopener" }
       })
-    ]),
-    element("p", { className: "date-line", text: "31 class meetings, each planned for 35 minutes. Repeat a meeting when your class needs more time. Grade 5 uses CIRC Tank Jr; grade 6 uses CIRC Tank. This sequence does not change your school calendar." }),
-    element("details", {}, [
-      element("summary", { text: "See the year at a glance" }),
-      element("ol", {}, CIRC_YEAR_ROUTE.map((meeting) => element("li", { text: meeting.title })))
     ])
   ]);
 }
 
 function projectsRoute(actions) {
+  const view = actions.playbookView;
+  const resolved = resolveMeeting(view.playbookId, view.meeting, { grade: view.grade, option: view.option });
+  const lessonCard = resolved ? buildLessonCard(resolved, {
+    audience: "teacher",
+    documentRef: document,
+    actions: {
+      onChoosePath: (pathId) => actions.setPlaybookView(pathId === "g5" || pathId === "g6"
+        ? { grade: pathId === "g5" ? 5 : 6 }
+        : { option: pathId === "on-track" ? "on-track" : null }),
+      onStart: resolved.lesson ? () => actions.openRunner(
+        resolved.lesson.runner.projectNumber,
+        resolved.lesson.runner.modeId ? { modeId: resolved.lesson.runner.modeId } : {}
+      ) : null,
+      studentHref: buildStudentLink({ playbook: view.playbookId, meeting: view.meeting, grade: view.grade, option: view.option })
+    }
+  }) : null;
+  const browser = buildPlaybookBrowser(view.playbookId, {
+    audience: "teacher",
+    selected: view.meeting,
+    documentRef: document,
+    onSwitchPlaybook: (id) => actions.setPlaybookView({ playbookId: id, meeting: getPlaybook(id).nextMeeting, option: null }),
+    onOpenMeeting: (id, number) => actions.setPlaybookView({ playbookId: id, meeting: number, option: null }, { focusLesson: true })
+  });
   const cards = PROJECTS.map((project) => {
     const button = element("button", {
       className: "project-library-card",
@@ -1374,59 +1340,66 @@ function projectsRoute(actions) {
     element("div", { className: "page-heading projects-heading" }, [
       element("div", {}, [
         element("p", { className: "eyebrow", text: "The Playbook" }),
-        element("h1", { text: "Our classroom guide" }),
-        element("p", { className: "date-line", text: "Choose the lesson. Make, test, and improve together." })
+        element("h1", { text: "Playbooks A and B" }),
+        element("p", { className: "date-line", text: "Two full-year routes that alternate by school year. Pick a meeting to see the whole lesson." })
       ])
     ]),
-    classroomYearGuide(actions),
-    element("section", {
-      className: "announcements-feature",
-      attributes: { "aria-labelledby": "announcements-feature-heading" }
-    }, [
-      element("div", { className: "announcements-feature-copy" }, [
-        element("p", { className: "section-kicker", text: "Featured Grade 6 tool" }),
-        element("h2", {
-          text: "Grade 6 Morning Announcements",
-          attributes: { id: "announcements-feature-heading" }
-        }),
-        element("p", {
-          text: "A clear rite of passage workflow for preparing, rehearsing, reviewing, and delivering the school broadcast."
-        }),
-        element("p", {
-          text: "Live scripts are on Moodle. Sign in with your school account, open ECTV, then Today's Script. The ECTV home page has crew jobs and the illustrated iMovie guide."
-        }),
-        element("p", {
-          className: "announcements-feature-note",
-          text: "Optional studio drafts stay on this device. Add approved broadcast wording only, and keep student rosters somewhere private."
-        })
+    element("div", { className: "pb-teacher-layout" }, [
+      element("div", { className: "pb-teacher-lesson" }, [lessonCard]),
+      element("div", { className: "pb-teacher-browser" }, [browser])
+    ]),
+    playbookGuides(),
+    element("details", { className: "pb-more" }, [
+      element("summary", { text: "More: all 36 experiences, morning announcements, FID and replica lessons" }),
+      element("section", {
+        className: "announcements-feature",
+        attributes: { "aria-labelledby": "announcements-feature-heading" }
+      }, [
+        element("div", { className: "announcements-feature-copy" }, [
+          element("p", { className: "section-kicker", text: "Featured Grade 6 tool" }),
+          element("h2", {
+            text: "Grade 6 Morning Announcements",
+            attributes: { id: "announcements-feature-heading" }
+          }),
+          element("p", {
+            text: "A clear rite of passage workflow for preparing, rehearsing, reviewing, and delivering the school broadcast."
+          }),
+          element("p", {
+            text: "Live scripts are on Moodle. Sign in with your school account, open ECTV, then Today's Script. The ECTV home page has crew jobs and the illustrated iMovie guide."
+          }),
+          element("p", {
+            className: "announcements-feature-note",
+            text: "Optional studio drafts stay on this device. Add approved broadcast wording only, and keep student rosters somewhere private."
+          })
+        ]),
+        element("div", { className: "announcements-feature-actions" }, [
+          element("a", {
+            className: "primary-action announcements-feature-action",
+            text: "Open scripts in Moodle",
+            attributes: {
+              href: "https://moodle.svsd.net/course/view.php?id=13811",
+              target: "_blank",
+              rel: "noopener noreferrer"
+            }
+          }),
+          element("a", {
+            className: "secondary-action",
+            text: "Open ECTV home and guides",
+            attributes: { href: "ectv.html" }
+          }),
+          actionButton(
+            "Open announcement studio",
+            "secondary-action",
+            actions.openAnnouncements
+          )
+        ])
       ]),
-      element("div", { className: "announcements-feature-actions" }, [
-        element("a", {
-          className: "primary-action announcements-feature-action",
-          text: "Open scripts in Moodle",
-          attributes: {
-            href: "https://moodle.svsd.net/course/view.php?id=13811",
-            target: "_blank",
-            rel: "noopener noreferrer"
-          }
-        }),
-        element("a", {
-          className: "secondary-action",
-          text: "Open ECTV home and guides",
-          attributes: { href: "ectv.html" }
-        }),
-        actionButton(
-          "Open announcement studio",
-          "secondary-action",
-          actions.openAnnouncements
-        )
-      ])
-    ]),
-    fidEntry(),
-    replicaLessonChooser(actions),
-    element("h2", { text: "All 36 Experiences" }),
-    element("p", { text: "Extra choices and original guides stay here when you need them." }),
-    element("div", { className: "project-library" }, cards)
+      fidEntry(),
+      replicaLessonChooser(actions),
+      element("h2", { text: "All 36 Experiences" }),
+      element("p", { text: "Extra choices and original guides stay here when you need them." }),
+      element("div", { className: "project-library" }, cards)
+    ])
   ]);
 }
 
@@ -1694,7 +1667,7 @@ function roomRoute(state, cloudPresentation = null) {
   ]);
 }
 
-function scheduleRoute(context) {
+function scheduleRoute(context, extra = null) {
   const teacherButtons = context.teachers.length > 1
     ? element("div", {
         className: "schedule-teacher-switcher",
@@ -1726,7 +1699,7 @@ function scheduleRoute(context) {
   return element("section", {
     className: "schedule-route",
     attributes: { "data-view": "schedule" }
-  }, [teacherButtons, status, editor].filter(Boolean));
+  }, [teacherButtons, status, editor, extra].filter(Boolean));
 }
 
 function recoveryRoute(context) {
@@ -2113,6 +2086,332 @@ export function renderApp(root, services = {}) {
   let crewSignupStatus = "";
   let studentStudioDesk = "video";
   let studentStudioStep = 0;
+  // Device-only teacher records for the simple teacher side. Never synced.
+  let privateStorage = services.privateStorage ?? null;
+  if (!privateStorage) {
+    try { privateStorage = globalThis.window?.localStorage ?? null; } catch { privateStorage = null; }
+  }
+  let playbookView = { playbookId: "a", meeting: getPlaybook("a").nextMeeting, grade: null, option: null };
+  let focusLessonAfterRender = false;
+  let focusDatedAfterRender = false;
+  let moreToolsOpen = false;
+  let datedPreview = null;
+  let datedStatus = "";
+  let classPlaceMessage = "";
+  const memoryClassPlaces = new Map();
+  // Which class visit started the current runner. Memory only: after a reload a
+  // class-card start asks before replacing an unfinished lesson.
+  let runnerVisitKey = null;
+
+  // Re-render helpers: keep keyboard focus and expanded sections in place.
+  function activeElementInsideRoot() {
+    const active = globalThis.document?.activeElement;
+    if (!active || active === globalThis.document?.body) return null;
+    if (typeof root.contains === "function" && !root.contains(active)) return null;
+    return active;
+  }
+
+  function editingInsideRoot() {
+    const active = activeElementInsideRoot();
+    return Boolean(active && /^(input|select|textarea)$/i.test(active.tagName ?? ""));
+  }
+
+  function focusedIdInsideRoot() {
+    const id = activeElementInsideRoot()?.getAttribute?.("id");
+    return id || null;
+  }
+
+  function walkNodes(node, visit) {
+    visit(node);
+    for (const child of Array.from(node?.children ?? [])) walkNodes(child, visit);
+  }
+
+  function findById(node, id) {
+    let found = null;
+    walkNodes(node, (candidate) => {
+      if (!found && candidate.getAttribute?.("id") === id) found = candidate;
+    });
+    return found;
+  }
+
+  function detailsKey(node) {
+    const summary = Array.from(node.children ?? []).find((child) => /^summary$/i.test(child.tagName ?? ""));
+    return `${node.className ?? ""}|${summary?.textContent ?? ""}`;
+  }
+
+  function openDetailsKeys(node) {
+    const keys = new Set();
+    walkNodes(node, (candidate) => {
+      if (/^details$/i.test(candidate.tagName ?? "") && candidate.getAttribute?.("open") !== null && candidate.getAttribute?.("open") !== undefined) {
+        keys.add(detailsKey(candidate));
+      }
+    });
+    return keys;
+  }
+
+  function restoreOpenDetails(node, keys) {
+    if (!keys.size) return;
+    walkNodes(node, (candidate) => {
+      if (/^details$/i.test(candidate.tagName ?? "") && keys.has(detailsKey(candidate))) candidate.setAttribute("open", "");
+    });
+  }
+
+  function confirmAction(message) {
+    if (typeof services.confirmAction === "function") return services.confirmAction(message) === true;
+    return typeof globalThis.window?.confirm === "function" && globalThis.window.confirm(message) === true;
+  }
+
+  function classVisitKey(event, currentTime) {
+    const classKey = String(event.classId || event.label || event.title || "").trim().slice(0, 80);
+    return `${runnerOwnerKey()}|${localDateKey(currentTime)}|${event.id}|${classKey}`;
+  }
+
+  function classDurationAt(currentTime, model) {
+    const event = currentTeachingEvent(model);
+    if (!event || !Number.isInteger(event.endMinutes)) return 35 * 60;
+    const scheduledEnd = new Date(currentTime);
+    scheduledEnd.setHours(Math.floor(event.endMinutes / 60), event.endMinutes % 60, 0, 0);
+    return Math.max(1, Math.min(35 * 60, Math.ceil((scheduledEnd.getTime() - currentTime.getTime()) / 1000)));
+  }
+
+  function reviewChangedClass() {
+    classPlaceMessage = "The scheduled class changed. Check this class's lesson before starting.";
+    navigate("today");
+  }
+
+  function teacherHomeContext(model, currentTime = now()) {
+    if (!state.plan) return { hasPlan: false };
+    const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+    const loaded = loadDatedUpdates(privateStorage, { now: currentTime });
+    const dated = datedUpdatesForDate(loaded.book, localDateKey(currentTime), {
+      now: currentTime,
+      scheduleEvents: model.timeline
+    });
+    if (loaded.status === "invalid") {
+      dated.freshness = "Saved dated updates could not be read. They were left untouched. Import a fresh file.";
+    }
+    const agenda = buildTeacherAgenda({ status: model.status, timeline: model.timeline, nowMinutes, dated });
+    // This class: the current class, else one that ended in the last 10 minutes
+    // (so it can be marked done), else the next class, else the day's last class.
+    const teachEvents = model.timeline.filter((event) => event.type === "teach" &&
+      Number.isInteger(event.startMinutes) && Number.isInteger(event.endMinutes));
+    const ended = teachEvents.filter((event) => event.endMinutes <= nowMinutes);
+    const recent = ended.filter((event) => nowMinutes - event.endMinutes <= 10).at(-1);
+    const currentTeach = teachEvents.find((event) => event.startMinutes <= nowMinutes && nowMinutes < event.endMinutes);
+    const nextTeach = teachEvents.find((event) => event.startMinutes > nowMinutes);
+    const teachEvent = currentTeach ?? recent ?? nextTeach ?? ended.at(-1) ?? null;
+    let classCard = null;
+    if (teachEvent) {
+      const event = teachEvent;
+      const classKey = String(event.classId || event.label || event.title || "").trim().slice(0, 80);
+      const progress = loadClassProgress(privateStorage, runnerOwnerKey());
+      const place = memoryClassPlaces.get(classKey) ?? classPlace(progress.book, classKey, event.label || event.title);
+      classCard = {
+        label: event.title,
+        when: event === currentTeach ? "Now" : event === recent ? "Just finished" : event === nextTeach ? "Next class" : "Earlier today",
+        classKey,
+        visitKey: classVisitKey(event, currentTime),
+        place,
+        resolved: resolveMeeting(place.playbook, place.meeting, { grade: place.grade, option: place.option }),
+        message: classPlaceMessage
+      };
+    }
+    const lookahead = agenda.next || agenda.current.length ? null : lookAheadObligation(loaded.book, currentTime);
+    const runner = selectedRunner();
+    const runnerStep = runner ? runner.steps?.[runner.timer.currentStepIndex] : null;
+    return {
+      hasPlan: true,
+      planProblem: ["plan-required", "plan-unsupported", "teacher-unavailable"].includes(model.status)
+        ? model.nextAction
+        : "",
+      agenda,
+      dated,
+      lookahead,
+      lookaheadChecked: !agenda.next && !agenda.current.length,
+      cycleDay: model.cycle?.day ?? null,
+      duty: model.alerts?.duty ?? null,
+      classCard,
+      runner: runner ? {
+        title: runner.title,
+        stepLabel: runnerStep?.label ?? "",
+        stepSeconds: runner.timer.currentStepRemainingSeconds,
+        totalSeconds: runner.timer.totalRemainingSeconds,
+        status: runner.timer.status
+      } : null
+    };
+  }
+
+  // After today's last obligation (or on a no-school day), look ahead through the
+  // saved calendar and imported dated updates. Nothing is inferred beyond them.
+  function lookAheadObligation(book, currentTime) {
+    for (let offset = 1; offset <= 21; offset += 1) {
+      const day = new Date(currentTime);
+      day.setHours(12, 0, 0, 0);
+      day.setDate(day.getDate() + offset);
+      const dateKey = localDateKey(day);
+      const future = buildTodayViewModel({
+        plan: state.plan,
+        teacherId: selectedTeacherId,
+        dateKey,
+        now: day,
+        nowMinutes: -1
+      });
+      const updates = datedUpdatesForDate(book, dateKey, { now: currentTime }).items
+        .filter((item) => item.status !== "cancelled");
+      const items = [
+        ...future.timeline.map((event) => ({
+          title: event.title,
+          type: event.type,
+          startMinutes: event.startMinutes,
+          endMinutes: event.endMinutes,
+          place: event.dutyDetails?.location || "",
+          source: "schedule"
+        })),
+        ...updates.map((item) => ({
+          title: item.title,
+          type: item.kind,
+          startMinutes: item.startMinutes,
+          endMinutes: item.endMinutes,
+          place: item.place ?? "",
+          source: "update",
+          status: item.status,
+          verifiedLabel: item.verifiedLabel,
+          conflicts: item.conflicts
+        }))
+      ].filter((item) => Number.isInteger(item.startMinutes) && Number.isInteger(item.endMinutes))
+        .sort((left, right) => left.startMinutes - right.startMinutes);
+      if (items.length) {
+        return {
+          dateKey,
+          dateLabel: new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(day),
+          cycleDay: future.cycle?.day ?? null,
+          item: items[0]
+        };
+      }
+    }
+    return null;
+  }
+
+  function saveCurrentClassPlace(classCard, place) {
+    const next = { playbook: place.playbook, meeting: place.meeting, grade: place.grade ?? null, option: place.option ?? null };
+    if (previewOnly) {
+      memoryClassPlaces.set(classCard.classKey, { ...next, saved: false });
+      classPlaceMessage = "Preview only. This class place is not saved.";
+      return;
+    }
+    try {
+      saveClassPlace(privateStorage, runnerOwnerKey(), classCard.classKey, next, { now: now() });
+      memoryClassPlaces.delete(classCard.classKey);
+      classPlaceMessage = "Saved on this browser for this class.";
+    } catch (error) {
+      memoryClassPlaces.set(classCard.classKey, { ...next, saved: false });
+      classPlaceMessage = `${error.message} Using this choice until the page reloads.`;
+    }
+  }
+
+  function teacherHomeActions(home) {
+    return {
+      openSchedule: () => openSchedule(),
+      openSchedulePage: () => openSchedule(),
+      openScheduleImport: () => openSetup(),
+      openDatedUpdates: () => {
+        focusDatedAfterRender = true;
+        openSchedule();
+      },
+      openPlaybook: (id) => {
+        playbookView = { ...playbookView, playbookId: id, meeting: getPlaybook(id).nextMeeting, option: null };
+        navigate("projects");
+      },
+      openRunner: () => {
+        const runner = selectedRunner();
+        if (!runner) return;
+        selectedProjectNumber = runner.projectNumber;
+        navigate("experience-runner");
+      },
+      onPlaceChange: (place) => {
+        if (!home.classCard) return;
+        saveCurrentClassPlace(home.classCard, place);
+        render();
+      },
+      onStartClassLesson: () => {
+        const currentTime = now();
+        const card = teacherHomeContext(todayModel(currentTime), currentTime).classCard;
+        if (!card || card.visitKey !== home.classCard?.visitKey) {
+          reviewChangedClass();
+          return;
+        }
+        const lesson = card?.resolved?.lesson;
+        if (!lesson) return;
+        const selection = {
+          expectedVisitKey: card.visitKey,
+          ...(lesson.runner.modeId ? { modeId: lesson.runner.modeId } : {})
+        };
+        const runner = selectedRunner();
+        const sameLesson = runner?.projectNumber === lesson.runner.projectNumber &&
+          (lesson.runner.modeId === undefined || runner?.modeId === lesson.runner.modeId);
+        // Resume only the same class visit. Any other class starts fresh at step 1,
+        // with confirmation before replacing the previous lesson.
+        if (runner && sameLesson && runnerVisitKey === card.visitKey) {
+          openRunner(lesson.runner.projectNumber, selection);
+          return;
+        }
+        openRunner(lesson.runner.projectNumber, { ...selection, restart: Boolean(runner) });
+        if (route === "experience-runner") runnerVisitKey = card.visitKey;
+      }
+    };
+  }
+
+  function datedUpdatesPanel() {
+    const loaded = loadDatedUpdates(privateStorage, { now: now() });
+    const readText = services.readFileText ?? ((file) => file.text());
+    return buildDatedUpdatesPanel({
+      book: loaded.book,
+      preview: datedPreview,
+      status: loaded.status === "invalid"
+        ? "Saved dated updates could not be read. They were left untouched."
+        : loaded.status === "unavailable" && !datedStatus
+          ? "This browser's storage is unavailable, so dated updates cannot be saved here."
+          : datedStatus
+    }, {
+      onCheckText: (text) => {
+        datedPreview = previewDatedUpdatesText(text, { now: now() });
+        datedStatus = "";
+        render();
+      },
+      onReadFile: (file) => {
+        Promise.resolve()
+          .then(() => readText(file))
+          .then((text) => {
+            datedPreview = previewDatedUpdatesText(text, { now: now() });
+            datedStatus = "";
+          })
+          .catch(() => {
+            datedPreview = null;
+            datedStatus = "That file could not be read. Nothing was imported.";
+          })
+          .finally(() => { if (!appDestroyed) render(); });
+      },
+      onApply: () => {
+        if (!datedPreview?.ok) return;
+        try {
+          const saved = saveDatedUpdates(privateStorage, datedPreview.value, { now: now() });
+          datedStatus = `Imported ${saved.updates.length} dated updates for ${saved.checkedFrom} to ${saved.checkedThrough}.`;
+          datedPreview = null;
+        } catch (error) {
+          datedStatus = error.message;
+        }
+        render();
+      },
+      onClear: () => {
+        if (!confirmAction("Remove the dated updates saved on this browser? Your five-day schedule is not changed.")) return;
+        datedStatus = clearDatedUpdates(privateStorage)
+          ? "Dated updates removed from this browser."
+          : "Dated updates could not be removed. Check this browser's storage.";
+        datedPreview = null;
+        render();
+      }
+    }, { documentRef: document });
+  }
 
   function adoptPersistedState(nextState) {
     state = admitLocalState(nextState);
@@ -2323,13 +2622,21 @@ export function renderApp(root, services = {}) {
     return { runner: setRunnerInMemory(next), changed: true };
   }
 
-  function openRunner(projectNumber, { modeId, restart = false } = {}) {
+  function openRunner(projectNumber, { modeId, restart = false, expectedVisitKey } = {}) {
     const project = getProjectByNumber(projectNumber);
     if (!project) return;
     const current = selectedRunner();
     const explicitSelection = modeId !== undefined;
     if (explicitSelection && (projectNumber !== 2 || !getExperienceTimingPlan(2, { modeId }))) return;
     const sameSelection = current?.projectNumber === projectNumber && current?.modeId === modeId;
+    // A restart for a new class always asks first. Cancel keeps the existing lesson.
+    if (!explicitSelection && current && restart === true) {
+      const message = `Start "${EXPERIENCE_TIMING_PLANS[projectNumber - 1].title}" for a new class? This replaces "${current.title}" and resets both timers. Cancel keeps the existing lesson.`;
+      const confirmed = typeof services.confirmReplaceRunner === "function"
+        ? services.confirmReplaceRunner(message) === true
+        : typeof window.confirm === "function" && window.confirm(message) === true;
+      if (!confirmed) return;
+    }
     if (explicitSelection && current && (!sameSelection || restart === true)) {
       const title = getExperienceTimingPlan(2, { modeId }).title;
       const message = restart === true && sameSelection
@@ -2343,51 +2650,65 @@ export function renderApp(root, services = {}) {
     if (
       (explicitSelection && (!sameSelection || restart === true)) ||
       (!explicitSelection && (!current ||
+      restart === true ||
       current.projectNumber !== projectNumber ||
       current.timer.status === "complete" ||
       (!previewOnly && current.timer.status === "ready")))
     ) {
       const plan = EXPERIENCE_TIMING_PLANS[projectNumber - 1];
       const currentTime = now();
-      const activeEvent = todayModel(currentTime).current;
-      let classDurationSeconds;
-      if (activeEvent?.type === "teach" && Number.isInteger(activeEvent.endMinutes)) {
-        const scheduledEnd = new Date(currentTime);
-        scheduledEnd.setHours(
-          Math.floor(activeEvent.endMinutes / 60),
-          activeEvent.endMinutes % 60,
-          0,
-          0
-        );
-        classDurationSeconds = Math.ceil(
-          (scheduledEnd.getTime() - currentTime.getTime()) / 1000
-        );
+      const model = todayModel(currentTime);
+      if (expectedVisitKey) {
+        const card = teacherHomeContext(model, currentTime).classCard;
+        if (!card || card.visitKey !== expectedVisitKey || ["Just finished", "Earlier today"].includes(card.when)) {
+          reviewChangedClass();
+          return;
+        }
       }
+      const activeEvent = currentTeachingEvent(model);
       const created = createExperienceRunner(plan, {
         teacherKey: runnerOwnerKey(),
         nowIso: currentTime.toISOString(),
-        ...(classDurationSeconds !== undefined ? { classDurationSeconds } : {}),
+        classDurationSeconds: classDurationAt(currentTime, model),
         ...(projectNumber === 2 ? {
           modeId: modeId ?? (current?.projectNumber === 2 ? current.modeId : "build-new")
         } : {})
       });
       if (previewOnly) setRunnerInMemory(created);
       else saveRunner(created);
+      if (!previewOnly) runnerVisitKey = activeEvent ? classVisitKey(activeEvent, currentTime) : null;
     }
     selectedProjectNumber = projectNumber;
     navigate("experience-runner");
   }
 
   function applyRunnerAction(action) {
-    const { runner } = reconcileRunner();
+    let { runner } = reconcileRunner();
     if (!runner) return;
     if (action === "finish") {
       if (!confirmFinish()) return;
       action = "next";
     }
+    const currentTime = now();
+    if (action === "start" && runner.timer.status === "ready") {
+      const model = todayModel(currentTime);
+      if (!previewOnly && runnerVisitKey) {
+        const card = teacherHomeContext(model, currentTime).classCard;
+        if (!card || card.visitKey !== runnerVisitKey || ["Just finished", "Earlier today"].includes(card.when)) {
+          reviewChangedClass();
+          return;
+        }
+      }
+      // Only the class clock changes at Start. Keep the selected mode, step and
+      // directions intact; paused and active runners retain their existing clocks.
+      runner = structuredClone(runner);
+      runner.timer.totalRemainingSeconds = classDurationAt(currentTime, model);
+      const event = currentTeachingEvent(model);
+      if (!previewOnly && event) runnerVisitKey = classVisitKey(event, currentTime);
+    }
     const next = saveRunner(applyExperienceRunnerAction(runner, action, {
       teacherKey: runnerOwnerKey(),
-      nowIso: now().toISOString()
+      nowIso: currentTime.toISOString()
     }));
     refreshRunnerView(next);
   }
@@ -3150,7 +3471,8 @@ export function renderApp(root, services = {}) {
     configuredPreview = false;
     previewRunner = null;
     previewOnly = true;
-    navigate("today");
+    const lesson = resolveMeeting("a", getPlaybook("a").nextMeeting).lesson;
+    openRunner(lesson.runner.projectNumber, { modeId: lesson.runner.modeId });
   }
 
   function openConfiguredPreview(projectNumber) {
@@ -3228,6 +3550,12 @@ export function renderApp(root, services = {}) {
       currentReplicaLesson: getReplicaLessonChoice(runner?.modeId),
       localDate: localDateKey(now()),
       welcomeEntrance,
+      playbookView,
+      setPlaybookView: (patch, { focusLesson = false } = {}) => {
+        playbookView = { ...playbookView, ...patch };
+        focusLessonAfterRender = focusLesson;
+        render();
+      },
       setWelcomeEntrance: (value) => {
         welcomeEntrance = value;
         render();
@@ -3241,11 +3569,18 @@ export function renderApp(root, services = {}) {
     else if (route === "setup-help") {
       view = buildSetupHelpView(runtime.getSetupModel(), runtime.getSetupActions(), { document });
     }
-    else if (route === "today") view = buildToday(model, actions, {
-      timelineExpanded,
-      weatherRefreshing,
-      artifactContext: teacherArtifactContext(model, projectView.currentProject.number)
-    });
+    else if (route === "today") {
+      const home = teacherHomeContext(model);
+      view = buildToday(model, actions, {
+        timelineExpanded,
+        weatherRefreshing,
+        teacherHome: home,
+        teacherHomeActions: teacherHomeActions(home),
+        moreToolsOpen,
+        onMoreToolsToggle: (open) => { moreToolsOpen = open; },
+        artifactContext: teacherArtifactContext(model, projectView.currentProject.number)
+      });
+    }
     else if (route === "board") {
       const liveCountdown = model.current?.id && model.countdown
         ? {
@@ -3322,7 +3657,7 @@ export function renderApp(root, services = {}) {
         nowMinutes: currentTime.getHours() * 60 + currentTime.getMinutes()
       }), actions);
     }
-    else if (route === "schedule") view = scheduleRoute(scheduleEditorContext());
+    else if (route === "schedule") view = scheduleRoute(scheduleEditorContext(), datedUpdatesPanel());
     else if (route === "room") view = roomRoute(state, runtime.getRoomPresentation());
     else {
       const context = {
@@ -3370,7 +3705,11 @@ export function renderApp(root, services = {}) {
           attributes: { role: "alert" }
         })
       : null;
+    const keptFocusId = focusedIdInsideRoot();
+    const keptOpenDetails = openDetailsKeys(root);
     root.replaceChildren(...[recoveryNotice, view].filter(Boolean));
+    restoreOpenDetails(root, keptOpenDetails);
+    if (keptFocusId) findById(root, keptFocusId)?.focus?.({ preventScroll: true });
     setBoardShell(
       route === "board" ||
       route === "project-student" ||
@@ -3382,6 +3721,14 @@ export function renderApp(root, services = {}) {
     announceBoundary(model);
     const currentTime = now();
     lastRenderedMinute = `${localDateKey(currentTime)}:${currentTime.getHours()}:${currentTime.getMinutes()}`;
+    if (focusLessonAfterRender && route === "projects") {
+      root.querySelector?.("#pb-lesson-title")?.focus?.();
+    }
+    if (focusDatedAfterRender && route === "schedule") {
+      root.querySelector?.("#dated-updates-title")?.focus?.();
+    }
+    focusLessonAfterRender = false;
+    focusDatedAfterRender = false;
     lastRunnerLayoutKey = (route === "experience-runner" || route === "project-student")
       ? runnerLayoutKey(runner, model)
       : "";
@@ -3462,6 +3809,12 @@ export function renderApp(root, services = {}) {
     const currentTime = now();
     const { runner } = reconcileRunner();
     const clockNode = root.querySelector("[data-live-clock]");
+    if (route === "today" && runner) {
+      const homeStep = root.querySelector('[data-home-timer="step"]');
+      const homeClass = root.querySelector('[data-home-timer="class"]');
+      if (homeStep) homeStep.textContent = formatSeconds(runner.timer.currentStepRemainingSeconds);
+      if (homeClass) homeClass.textContent = formatSeconds(runner.timer.totalRemainingSeconds);
+    }
     if (clockNode) {
       clockNode.textContent = new Intl.DateTimeFormat("en-US", {
         hour: "numeric",
@@ -3472,7 +3825,13 @@ export function renderApp(root, services = {}) {
     const minuteKey = `${localDateKey(currentTime)}:${currentTime.getHours()}:${currentTime.getMinutes()}`;
     if (route === "experience-runner" || route === "project-student") {
       refreshRunnerView(runner);
-    } else if (!["setup", "crew-signup", "student-studio"].includes(route) && minuteKey !== lastRenderedMinute) render();
+    } else if (
+      // Schedule and Playbooks show no time-based content, so they never
+      // re-render on the clock. Today waits while a control is being edited.
+      !["setup", "crew-signup", "student-studio", "schedule", "projects"].includes(route) &&
+      minuteKey !== lastRenderedMinute &&
+      !editingInsideRoot()
+    ) render();
   }, 1000);
 
   const handleVisibilityChange = () => {
@@ -3512,5 +3871,7 @@ export function renderApp(root, services = {}) {
 
 if (typeof document !== "undefined") {
   const root = document.getElementById("app-main");
-  if (root) renderApp(root);
+  const studentTarget = typeof window !== "undefined" ? studentRedirectTarget(window.location) : null;
+  if (studentTarget) window.location.replace(studentTarget);
+  else if (root) renderApp(root);
 }

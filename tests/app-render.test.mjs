@@ -11,7 +11,7 @@ import { createWeatherService } from "../src/services/weather.js";
 function openTeacherEntrance(root) {
   const entry = findAll(
     root,
-    (node) => node.tagName === "button" && textOf(node) === "Open teacher setup"
+    (node) => node.tagName === "button" && textOf(node) === "Open teacher side"
   )[0];
   if (entry) entry.click();
 }
@@ -225,6 +225,7 @@ import {
   updateAnnouncementSection
 } from "../src/model/announcements.js";
 import { EXPERIENCE_TIMING_PLANS } from "../src/model/experience-timing-plans.js";
+import { PLAYBOOK_LESSONS } from "../src/model/playbook-lessons.js";
 import {
   advanceExperienceRunnerClock,
   applyExperienceRunnerAction,
@@ -763,9 +764,11 @@ test("welcome lesson preview performs no durable work and returns cleanly", asyn
     preview[0].click();
 
     assert.equal(controller.previewOnly, true);
-    assert.match(textOf(root), /Preview only\. Nothing is saved\./);
+    assert.match(textOf(root), /Preview only/);
+    assert.match(textOf(root), /Canva logo 1: Start from a template/);
+    assert.doesNotMatch(textOf(root), /Add your schedule once/);
     assert.equal(findAll(root, (node) =>
-      node.tagName === "button" && textOf(node) === "Preview experience"
+      node.tagName === "button" && textOf(node) === "Start class"
     ).length, 1);
     assert.equal(saveCount, 0);
     assert.deepEqual(state, original);
@@ -1142,7 +1145,7 @@ test("late cloud preload may observe auth while lesson preview remains read-only
 
     assert.deepEqual(calls, ["observe"]);
     assert.equal(controller.previewOnly, true);
-    assert.match(textOf(root), /Preview only\. Nothing is saved\./);
+    assert.match(textOf(root), /Preview only/);
     controller.navigate("welcome");
     assert.match(textOf(root), /Set up my schedule/);
     controller.destroy();
@@ -1529,7 +1532,6 @@ test("Preview, no plan, no current event, and a current non-teaching event canno
     openTeacherEntrance(root);
       if (scenario === "preview") {
         findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview a lesson")[0].click();
-        findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview experience")[0].click();
       } else {
         findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
       }
@@ -1698,12 +1700,18 @@ test("Year Map route exposes all 36 choices without private schedule content", a
   const rendered = textOf(root);
 
   assert.match(rendered, /All 36 Experiences/);
-  assert.match(rendered, /Our CIRC year/);
+  assert.match(rendered, /Playbooks A and B/);
   assert.match(rendered, /Neuro art and book checkout/);
   assert.match(rendered, /Tank 15: Share and reflect/);
-  const yearSelect = findAll(root, (node) => node.getAttribute("id") === "circ-year-meeting")[0];
-  assert.equal(yearSelect.children.length, 31);
-  assert.equal(yearSelect.value, "2", "NeuroArt is finished, so start with the first Canva logo visit");
+  assert.match(rendered, /KidWind 1: Make the wind do work/);
+  assert.match(rendered, /Tinkercad 6: Build day and pitch/);
+  const meetingButtons = findAll(root, (node) => node.tagName === "button" && /\bpb-meeting\b/.test(node.className));
+  assert.equal(meetingButtons.length, 32, "Playbook A: 31 meetings plus one buffer");
+  const lessonTitle = findAll(root, (node) => node.getAttribute("id") === "pb-lesson-title")[0];
+  assert.equal(textOf(lessonTitle), "Canva logo 1: Start from a template", "NeuroArt is finished, so start with the first Canva logo visit");
+  assert.match(rendered, /earlier single 31-meeting order/);
+  assert.match(rendered, /there is no Playbook B PDF yet/);
+  assert.equal(findAll(root, (node) => node.tagName === "a" && /Playbook-B|playbook-b/i.test(node.getAttribute("href") ?? "")).length, 0);
   assert.match(rendered, /Canva logo 1: Start from a template/);
   assert.match(rendered, /Canva logo 2: Original from a blank design/);
   assert.match(rendered, /Meet the CIRC Teacher and the Outdoor Classroom/);
@@ -1722,13 +1730,14 @@ test("year lesson opens matching teacher content and child-readable student step
   };
   const teacherText = textOf(await renderRoute(state, "experience-runner"));
   assert.match(teacherText, /Neuro art and book checkout/);
-  assert.match(teacherText, /Grade 5 CIRC Tank Jr/);
+  assert.match(teacherText, /Grade 5: Start with four lines/);
+  assert.doesNotMatch(teacherText, /Tank Jr/);
   assert.match(teacherText, /Watercolor paper/);
   assert.doesNotMatch(teacherText, /Tech Terrarium|Inspect and map the system/);
   const studentText = textOf(await renderRoute(state, "project-student"));
   assert.match(studentText, /Neuro art and book checkout/);
   assert.match(studentText, /Read today's goal/);
-  assert.doesNotMatch(studentText, /PRIVATE_TEACH_LABEL|Teacher context|Grade 5 CIRC Tank Jr/);
+  assert.doesNotMatch(studentText, /PRIVATE_TEACH_LABEL|Teacher context|Grade 5: Start with four lines/);
 });
 
 test("Playbooks features the Grade 6 announcements studio without adding a sixth primary route", async () => {
@@ -2456,7 +2465,7 @@ test("teacher runner shows every timed step and every student direction for the 
 test("every current lesson path resolves to a reviewed meaning-based icon", () => {
   const paths = EXPERIENCE_TIMING_PLANS.flatMap((plan) => [
     plan.steps,
-    ...Object.entries(plan.modeVariants ?? {}).filter(([id]) => !id.startsWith("circ-") && !id.startsWith("tank-")).map(([, variant]) => variant.steps),
+    ...Object.entries(plan.modeVariants ?? {}).filter(([id]) => !id.startsWith("circ-") && !id.startsWith("tank-") && !PLAYBOOK_LESSONS.some((lesson) => lesson.id === id)).map(([, variant]) => variant.steps),
     ...Object.values(plan.fallbacks ?? {}).map((fallback) => fallback.steps)
   ]);
   const steps = paths.flat();
@@ -2734,17 +2743,17 @@ test("teacher detour controls hold the step, stay out of Student directions, and
     openTeacherEntrance(root);
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open class runner")[0].click();
-    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Question Detour").length, 0);
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Pause for a question").length, 0);
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Start class")[0].click();
-    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Question Detour").length, 1);
-    assert.doesNotMatch(textOf(root), /Add 2 minutes|Return to build|Safe Landing/);
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Pause for a question").length, 1);
+    assert.doesNotMatch(textOf(root), /Add 2 minutes|Return to build|Go to cleanup|Safe Landing/);
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Pause")[0].click();
     assert.match(textOf(root), /Resume/);
-    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Question Detour").length, 0);
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Pause for a question").length, 0);
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Resume")[0].click();
 
-    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Question Detour")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Pause for a question")[0].click();
     const detoured = saved.experienceRunners["teacher:teacher-alpha"];
     const heldStepIndex = detoured.timer.currentStepIndex;
     const heldStepSeconds = detoured.timer.currentStepRemainingSeconds;
@@ -2753,7 +2762,7 @@ test("teacher detour controls hold the step, stay out of Student directions, and
     assert.deepEqual(detoured.detour, { status: "active", remainingSeconds: 180 });
     assert.match(textOf(root), /Discussion timer 3:00/);
     assert.match(textOf(root), /Class clock keeps running\. Step time is held\./);
-    for (const label of ["Add 2 minutes", "Return to build", "Safe Landing"]) {
+    for (const label of ["Add 2 minutes", "Return to build", "Go to cleanup"]) {
       assert.equal(
         findAll(root, (node) => node.tagName === "button" && textOf(node) === label).length,
         1,
@@ -2774,9 +2783,9 @@ test("teacher detour controls hold the step, stay out of Student directions, and
     assert.match(studentText, new RegExp(currentDirection.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     assert.doesNotMatch(
       studentText,
-      /Question Detour|Discussion timer|Class clock keeps running|Add 2 minutes|Return to build|Safe Landing|Class ends at|Cleanup begins at|More context|Teacher context|Finished early/
+      /Pause for a question|Question Detour|Discussion timer|Class clock keeps running|Add 2 minutes|Return to build|Go to cleanup|Safe Landing|Class ends at|Cleanup begins at|More context|Teacher context|Finished early/
     );
-    for (const label of ["Question Detour", "Add 2 minutes", "Return to build", "Safe Landing"]) {
+    for (const label of ["Pause for a question", "Add 2 minutes", "Return to build", "Go to cleanup"]) {
       assert.equal(
         findAll(root, (node) => node.tagName === "button" && textOf(node) === label).length,
         0,
@@ -2797,11 +2806,11 @@ test("teacher detour controls hold the step, stay out of Student directions, and
     assert.equal(returned.timer.currentStepIndex, heldStepIndex);
     assert.equal(returned.timer.currentStepRemainingSeconds, heldStepSeconds);
     assert.equal(returned.timer.totalRemainingSeconds, classBefore - 60);
-    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Question Detour").length, 1);
+    assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Pause for a question").length, 1);
     assert.equal(findAll(root, (node) => node.tagName === "button" && textOf(node) === "Pause").length, 1);
 
-    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Question Detour")[0].click();
-    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Safe Landing")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Pause for a question")[0].click();
+    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Go to cleanup")[0].click();
     const landed = saved.experienceRunners["teacher:teacher-alpha"];
     const cleanupIndex = landed.steps.findIndex((step) => step.kind === "cleanup");
     assert.ok(cleanupIndex >= 0);
@@ -2851,12 +2860,12 @@ test("an expired-step detour names available recovery controls while ordinary ex
   const detourRoot = await renderRoute(detourState, "experience-runner");
   const detourText = textOf(detourRoot);
   assert.doesNotMatch(detourText, /Choose Next Step/);
-  assert.match(detourText, /Step time is up\. Return to build or choose Safe Landing\./);
+  assert.match(detourText, /Step time is up\. Return to build or choose Go to cleanup\./);
   assert.equal(
     findAll(detourRoot, (node) => node.tagName === "button" && textOf(node) === "Next Step").length,
     0
   );
-  for (const label of ["Return to build", "Safe Landing"]) {
+  for (const label of ["Return to build", "Go to cleanup"]) {
     assert.equal(
       findAll(detourRoot, (node) => node.tagName === "button" && textOf(node) === label).length,
       1,
@@ -3013,9 +3022,7 @@ test("temporary demo opens a working in-memory preview runner that cannot save o
     openTeacherEntrance(root);
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview a lesson")[0].click();
-    const preview = findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview experience");
-    assert.equal(preview.length, 1);
-    preview[0].click();
+    assert.match(textOf(root), /Canva logo 1: Start from a template/);
     assert.match(textOf(root), /Preview only/);
     assert.match(textOf(root), /Class timer/);
     assert.equal(saveCount, 0);
@@ -3075,7 +3082,6 @@ test("temporary demo clocks advance in memory without writing local state", asyn
     openTeacherEntrance(root);
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview a lesson")[0].click();
-    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview experience")[0].click();
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Start class")[0].click();
     assert.equal(typeof tick, "function");
 
@@ -3084,7 +3090,7 @@ test("temporary demo clocks advance in memory without writing local state", asyn
 
     const stepTimer = findAll(root, (node) => node.getAttribute?.("data-runner-timer") === "step")[0];
     const classTimer = findAll(root, (node) => node.getAttribute?.("data-runner-timer") === "class")[0];
-    assert.equal(textOf(stepTimer), "2:55");
+    assert.equal(textOf(stepTimer), "3:55");
     assert.equal(textOf(classTimer), "34:55");
     assert.equal(saveCount, 0);
     assert.equal(state.experienceRunners["local:default"], undefined);
@@ -4614,7 +4620,8 @@ test("the student entrance offers no way to start, advance or complete the lesso
       clock: { now: () => new Date("2026-09-08T08:05:00-04:00") }
     });
     await controller.ready;
-    findAll(root, (node) => node.tagName === "button" && textOf(node) === "Open student view")[0].click();
+    const studentDoor = findAll(root, (node) => node.tagName === "a" && textOf(node) === "Open student side")[0];
+    assert.equal(studentDoor.getAttribute("href"), "student.html", "the student door is a plain link to the separate student page");
 
     const labels = findAll(root, (node) => node.tagName === "button").map(textOf);
     for (const forbidden of [
@@ -4627,8 +4634,7 @@ test("the student entrance offers no way to start, advance or complete the lesso
     ]) {
       assert.equal(labels.includes(forbidden), false, forbidden);
     }
-    assert.match(textOf(root), /Wait for your teacher to start/);
-    assert.match(textOf(root), /check in with your homeroom teacher first, always/i);
+    assert.match(textOf(root), /change the screen, not who can see what/);
     assert.equal(saves.length, 0);
   } finally {
     controller?.destroy();

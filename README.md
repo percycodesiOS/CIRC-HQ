@@ -5,19 +5,45 @@ CIRC HQ is a calm, teacher-first workspace for running a CIRC day. It keeps the 
 - Product: CIRC HQ | The Playbook
 - Repository: `percycodesiOS/CIRC-HQ`
 - Intended release URL: `https://percycodesios.github.io/CIRC-HQ/`
-- Current content: an ordered 31-meeting route for the remaining CIRC year, plus the original 36-experience Grades 5-6 library
+- Current content: Playbook A (2026-27, this year), an ordered 31-meeting route for the remaining CIRC year plus one buffer; Playbook B (2027-28, next year), a full 35-meeting year plus one buffer; and the original 36-experience Grades 5-6 library
 
 The separate Playbook A and Playbook B source documents remain source material. This release does not publish those raw documents or claim that any unreviewed chemical, heat, wiring, or restricted-tool activity is classroom-ready. It also makes no claim that kindergarten through fourth-grade content is complete.
 
 The intended release URL is not called live until an authorized push, matching GitHub Pages deploy verification, an HTTP 200 response, and clean-browser acceptance all succeed for the same approved commit.
 
+## Student side and teacher side
+
+The same address has two doors. They change the screen, not who can see what. Neither is a login or a security boundary.
+
+- **Student side** is the separate page `student.html`. It shows today's activity: the goal, picture-led steps with minutes, what to turn in, when you are done, an optional next challenge and another way to do it. Students can browse both playbooks. The link carries curriculum identifiers only, for example `student.html?playbook=a&meeting=12&grade=5`, so a bookmark or reload shows the same lesson. The page and everything it imports never read browser storage, a schedule, a class list or cloud data. Opening `index.html#student` or `index.html?view=student` goes straight to the student page before any saved teacher information is read.
+- **Teacher side** opens on a simple home: the next obligation with time and place, this class's lesson with quick prep and a **Start lesson** button, the running timer, later obligations, and links to Schedule, Playbook A, Playbook B and the student side. Weather, Board, the week view, Tech Terrarium and the full timeline sit in a collapsed **More tools** section. Each class's place in a playbook is saved on this browser only, keyed by the teacher's own class label. It is never synced and never put in a student link.
+
+Without a saved schedule, the teacher side asks once: **Set up my schedule** or load a private schedule file. Both playbooks and every lesson still work without one.
+
+## Playbooks A and B
+
+Two full-year routes alternate by school year. Every student meets one A year and one B year across grades 5 and 6.
+
+- **Playbook A (2026-27)**: meeting 1 NeuroArt is finished. Meetings 2 and 3 are the Canva logo visits (template, then an original from a blank design). Then build basics, FLEX A, a December block where grade 5 runs four KidWind wind-turbine meetings while grade 6 runs CIRC Tank, the grade 5 innovation path, Hydroponics, six Tinkercad Skate Park visits, FLEX B, reflect and reset, and a buffer used only by classes with one more visit.
+- **Playbook B (2027-28)**: a full year from the first week. New shared projects practice the same skills: welcome routines, device setup, a library launch, researched fact cards, checking AI answers, materials and water labs, block coding, an arcade and Demo Day. Grade 5 KidWind and grade 6 CIRC Tank repeat because each student meets them once. Grade 5 never runs Tank.
+
+Every lesson shows the goal, strands, Four Cs, design stage, materials and setup, timed steps totaling 35 minutes, what to turn in, a success check, cleanup, a short extension, an accessible or no-tech path, and grade 5 and grade 6 adaptations. The four strands (Digital Literacy, Library and Information Literacy, Engineering and Design, Computer Science and Programming), the Four Cs and Ask, Plan, Build, Test, Improve come from the CIRC K-6 Learning Continuum working draft. It is flexible guidance informed by PA STEELS, not a required course sequence, and no formal standards alignment is claimed.
+
+Capacity comes from the 2026-27 calendar: 35 or 36 visits per class in a full year, and from September 28, 2026, 31 visits on cycle days 1 to 3 and 30 on days 4 and 5. Seasons such as "About December" are guides, not dates. Mark a class by its record, never by the date. Playbook B should be checked against the 2027-28 calendar before relying on it.
+
+The September 2026 teacher guide and classroom card PDFs follow the earlier single 31-meeting order. Meetings 1 to 5 match Playbook A; after that, use the order on screen. They do not include KidWind, Tinkercad or the grade 5 path. There is no Playbook B PDF yet.
+
+## Dated updates
+
+Appointments, meetings and assignment changes outside the five-day schedule load from a small private file on **Schedule > Dated updates**. The file states the date range that was actually checked, and each item has a date, times, title, optional place, source and verified time. The home screen shows source freshness, marks checks older than a week as stale, shows conflicts and drops past dates. A day outside the checked range is "not checked", and an empty checked day is never called proof of no events. CIRC HQ cannot read Outlook, email or any school account by itself. See [the import contract](docs/DATED-UPDATES-IMPORT.md).
+
 ## First use
 
-For the classroom year, choose **Open our CIRC year guide** on Today, or **Playbooks**. Choose your class's next meeting and **Open this lesson**. Check materials under **More context**, then use **Student directions** for the projected goal, steps and timer. Return to the teacher controls to advance each step. Use **Start this lesson for a new class** when repeating a selected CIRC or Tank lesson with another group. Meetings are not dates; the teacher chooses each class's place in the route. No calendar, class completion or student record is inferred by this selector.
+For the classroom year, open **Playbooks**, choose Playbook A or B and a meeting, then **Start this lesson**. The teacher home also shows this class's meeting with **Start lesson**. Check materials under **More context**, then use **Student directions** for the projected goal, steps and timer. Return to the teacher controls to advance each step. Use **Start this lesson for a new class** when repeating a selected lesson with another group. Meetings are not dates; the teacher chooses each class's place in the route. No calendar, class completion or student record is inferred by this selector.
 
-Meeting 1, neuro art, is finished, so the year guide opens on meeting 2. Meetings 2 and 3 are the two Canva personal logo visits: first a logo from a template about something the student is into, then an original logo from a blank design with partner feedback and two sentences about the choices. Students use school Canva through resources.svsd.net and share the logo with the teacher's school account; it counts as turned in when the teacher can open it. A paper sketch is the fallback. These two visits replace the older digitize and Paint logo plan and add no meetings, so the route is still 31 meetings.
+Meeting 1, neuro art, is finished, so Playbook A opens on meeting 2. Meetings 2 and 3 are the two Canva personal logo visits: first a logo from a template about something the student is into, then an original logo from a blank design with partner feedback and two sentences about the choices. Students use school Canva through resources.svsd.net and share the logo with the teacher's school account; it counts as turned in when the teacher can open it. A paper sketch is the fallback. These two visits replace the older digitize and Paint logo plan and add no meetings.
 
-The same section links the full-year teacher PDF and classroom screen-card PDF. The teacher guide has a run page and supports page per meeting; print only the meeting you need. The landscape cards are a projection deck, one step at a time. Both PDFs show the two Canva visits as meetings 2 and 3 with the same seven steps as the live runner. The live runner separates the opening three-minute block of the other lessons into two minutes of readiness and one minute of partner talk; the lesson content and 35-minute total stay the same.
+The Playbooks page links the teacher PDF and classroom screen-card PDF, labeled with the earlier order they follow. The teacher guide has a run page and supports page per meeting; print only the meeting you need. The landscape cards are a projection deck, one step at a time. The live runner separates the opening three-minute block of the other lessons into two minutes of readiness and one minute of partner talk; the lesson content and 35-minute total stay the same.
 
 The normal first action is **Set up my schedule**. The ordinary schedule editor is the primary setup surface and does not require a plan file.
 
@@ -40,9 +66,9 @@ The welcome screen also offers two optional paths:
 
 The FID page loads no teacher app scripts, private schedules, cloud clients, or student storage. Its directions are ordinary HTML and work without JavaScript. It does not submit work or establish attendance/assignment completion. Teachers supply any usual assignment and return directions separately. This addition is prepared locally; it is not described as live until a separately authorized release is verified.
 
-- **Today** shows what is happening now, what comes next, the active duty warning, and the current lesson launcher.
-- **Playbooks** opens the 36 reviewed experiences and their teacher plans.
-- **Schedule** opens the ordinary five-day schedule editor.
+- **Today** is the teacher home: next obligation, this class's lesson, timer, later obligations and shortcuts. The older dashboard is under **More tools**.
+- **Playbooks** opens Playbooks A and B with every lesson in full. The 36 reviewed experiences, announcements and FID stay under **More**.
+- **Schedule** opens the ordinary five-day schedule editor and the private dated updates import.
 - **Room** opens optional shared-room and classroom-resource tools.
 - **Settings** contains private sync, calendar overrides, weather attribution, and advanced backup and restore.
 
@@ -155,7 +181,7 @@ The command bar keeps the current step timer dominant and the total class timer 
 
 The teacher view uses compact cues to keep current directions short and visible. Student directions remain separate from teacher action and teacher help. Longer objectives, materials, safety notes, and additional context stay under **More context**. The reviewed lesson structure also provides consistent early-finish guidance.
 
-**Question Detour** holds the current work step while the real class clock continues. The teacher can return to the build, add discussion time, or choose **Safe Landing**. Safe Landing moves to the first cleanup step without changing the physical artifact.
+**Pause for a question** (the Question Detour) holds the current work step while the real class clock continues. The teacher can return to the build, add discussion time, or choose **Go to cleanup** (Safe Landing). Go to cleanup moves to the first cleanup step without changing the physical artifact.
 
 ## Current Playbook content
 

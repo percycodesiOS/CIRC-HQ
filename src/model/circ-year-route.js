@@ -16,8 +16,8 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Use teacher-approved materials and tools. Keep paths clear. Return tools before moving.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Start with four lines and large spaces. Point to one successful rounded corner.",
-      "Grade 6 CIRC Tank: Choose varied line widths and explain how one color choice supports the design.",
+      "Grade 5: Start with four lines and large spaces. Point to one successful rounded corner.",
+      "Grade 6: Choose varied line widths and explain how one color choice supports the design.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
     ],
@@ -142,8 +142,8 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Follow the school's device and storage rules. Do not photograph people, student lists, or private information.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Capture one image. Use a teacher-provided naming pattern and point out one improvement.",
-      "Grade 6 CIRC Tank: Compare two captures, select the clearer version, and explain the improvement.",
+      "Grade 5: Capture one image. Use a teacher-provided naming pattern and point out one improvement.",
+      "Grade 6: Compare two captures, select the clearer version, and explain the improvement.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
     ],
@@ -269,9 +269,9 @@ export const CIRC_YEAR_LESSONS = freeze([
     "safety": "Use school Canva only. No new accounts, purchases or downloads. Share only with the teacher. Keep personal details private.",
     "teacherContext": [
       "Graphics visit 1 of 2. NeuroArt is finished. This visit and the next replace the older Paint and digitize plan.",
-      "Grade 5 CIRC Tank Jr: Pick one interest and change three things: colors, icon and font.",
-      "Grade 6 CIRC Tank: Explain why the slogan and icon match, and fix the weakest part at stamp size.",
-      "Turn in: Share, then add the teacher's school account. Do not change public or link sharing. It counts only when the teacher account shows in Share and the teacher can open it.",
+      "Grade 5: Pick one interest and change three things: colors, icon and font.",
+      "Grade 6: Explain why the slogan and icon match, and fix the weakest part at stamp size.",
+      "Turn in: Share with your CIRC teacher's school account. It is turned in when your teacher can open it. Keep public and link sharing unchanged. Check access from your school account. A name in the Share box alone is not enough.",
       "If Canva or sign-in fails: paper and pencil sketch, same steps. Move it to Canva next visit.",
       "Interests only. Nobody has to share anything personal. No names of classmates."
     ],
@@ -351,11 +351,11 @@ export const CIRC_YEAR_LESSONS = freeze([
         "minutes": 4,
         "directions": [
           "Choose Share.",
-          "Add Mr. Macek's school account.",
-          "Check that his name shows in Share."
+          "Add your CIRC teacher's school account.",
+          "It is turned in when your teacher can open it."
         ],
         "teacherDirections": [
-          "Sharing counts only after the teacher account shows in Share and you can open it.",
+          "It counts as turned in only when you can open it from your school account.",
           "Do not change public or link sharing. No downloads to the desktop."
         ]
       },
@@ -403,9 +403,9 @@ export const CIRC_YEAR_LESSONS = freeze([
     "safety": "Use school Canva only. No new accounts, purchases or downloads. Share only with the teacher. Keep personal details private.",
     "teacherContext": [
       "Graphics visit 2 of 2. Run it after Canva logo 1. Students start from a blank design, not a template.",
-      "Grade 5 CIRC Tank Jr: Use two or three simple shapes, two or three colors and one font.",
-      "Grade 6 CIRC Tank: Make each choice on purpose and explain how it connects to a strength or value.",
-      "Turn in: Share, then add the teacher's school account. Do not change public or link sharing. It counts only when the teacher account shows in Share and the teacher can open it.",
+      "Grade 5: Use two or three simple shapes, two or three colors and one font.",
+      "Grade 6: Make each choice on purpose and explain how it connects to a strength or value.",
+      "Turn in: Share with your CIRC teacher's school account. It is turned in when your teacher can open it. Keep public and link sharing unchanged. Check access from your school account. A name in the Share box alone is not enough.",
       "If Canva or sign-in fails: paper and pencil sketch, same steps. Move it to Canva next visit.",
       "Who you are means interests, values or strengths. Nobody has to share anything personal. No names of classmates."
     ],
@@ -496,11 +496,11 @@ export const CIRC_YEAR_LESSONS = freeze([
         "minutes": 3,
         "directions": [
           "Choose Share.",
-          "Add Mr. Macek's school account.",
-          "Check that his name shows in Share."
+          "Add your CIRC teacher's school account.",
+          "It is turned in when your teacher can open it."
         ],
         "teacherDirections": [
-          "Sharing counts only after the teacher account shows in Share and you can open it.",
+          "It counts as turned in only when you can open it from your school account.",
           "Do not change public or link sharing. No downloads to the desktop."
         ]
       },
@@ -536,8 +536,8 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Use teacher-approved materials and tools. Keep paths clear. Return tools before moving.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Use a provided word or product choice. Combine one symbol with clear lettering.",
-      "Grade 6 CIRC Tank: Name the audience. Explain how the symbol, lettering, and contrast suit that audience.",
+      "Grade 5: Use a provided word or product choice. Combine one symbol with clear lettering.",
+      "Grade 6: Name the audience. Explain how the symbol, lettering, and contrast suit that audience.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
     ],
@@ -667,8 +667,8 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Scissors are the default. A ChompSaw station opens only after school approval and the exact machine demonstration.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Build one stable shape using a demonstrated connection.",
-      "Grade 6 CIRC Tank: Compare two connection types and explain the tradeoff before choosing.",
+      "Grade 5: Build one stable shape using a demonstrated connection.",
+      "Grade 6: Compare two connection types and explain the tradeoff before choosing.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
     ],
@@ -801,8 +801,8 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Only use the teacher's handling test. Do not throw packages or test near people or equipment.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Protect one simple object and show one before-and-after change.",
-      "Grade 6 CIRC Tank: Compare protection, material use, and the user's opening experience.",
+      "Grade 5: Protect one simple object and show one before-and-after change.",
+      "Grade 6: Compare protection, material use, and the user's opening experience.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
     ],
@@ -932,8 +932,8 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "This lesson stays dry. Students do not mix, pour, heat, demold, or handle uncured resin.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Use a rectangular practice drawing and teacher-supported measurements.",
-      "Grade 6 CIRC Tank: Calculate the rectangular practice volume and explain why an irregular mold needs a different measurement method.",
+      "Grade 5: Use a rectangular practice drawing and teacher-supported measurements.",
+      "Grade 6: Calculate the rectangular practice volume and explain why an irregular mold needs a different measurement method.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
     ],
@@ -1057,7 +1057,7 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Use teacher-approved materials and tools. Keep paths clear. Return tools before moving.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Choose from three teacher-provided classroom problems and draw the one you understand.",
+      "More support: Choose from three teacher-provided classroom problems and draw the one you understand.",
       "Grade 6 CIRC Tank: Find and describe a specific user problem with one direct observation.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
@@ -1178,7 +1178,7 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Use teacher-approved materials and tools. Keep paths clear. Return tools before moving.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Use teacher-provided questions and one user card or partner response.",
+      "More support: Use teacher-provided questions and one user card or partner response.",
       "Grade 6 CIRC Tank: Ask an open follow-up and separate what was observed from what was assumed.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
@@ -1300,7 +1300,7 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Use teacher-approved materials and tools. Keep paths clear. Return tools before moving.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Draw two ideas independently, then create a third with a prompt or partner.",
+      "More support: Draw two ideas independently, then create a third with a prompt or partner.",
       "Grade 6 CIRC Tank: Use two chosen criteria to compare all three ideas.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
@@ -1425,7 +1425,7 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Use teacher-approved materials and tools. Keep paths clear. Return tools before moving.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Use a three-box plan: problem, sketch, and first test.",
+      "More support: Use a three-box plan: problem, sketch, and first test.",
       "Grade 6 CIRC Tank: Include a material limit, approximate dimensions, and a measurable success criterion.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
@@ -1558,7 +1558,7 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Keep moving parts at table level. No launching or pinching tests. Use only teacher-approved tools.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Choose from two demonstrated mechanisms and improve one connection.",
+      "More support: Choose from two demonstrated mechanisms and improve one connection.",
       "Grade 6 CIRC Tank: Compare two mechanisms against the same job and select one using test evidence.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
@@ -1693,7 +1693,7 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Use teacher-approved materials and tools. Keep paths clear. Return tools before moving.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Build one working feature with teacher support.",
+      "More support: Build one working feature with teacher support.",
       "Grade 6 CIRC Tank: Build a working feature within the agreed size and material limits.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
@@ -1823,7 +1823,7 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Only conduct teacher-approved tests at table level. No people, valuables, or live animals are test objects.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Use a teacher-provided test pattern and a simple works/not-yet record.",
+      "More support: Use a teacher-provided test pattern and a simple works/not-yet record.",
       "Grade 6 CIRC Tank: Choose a numerical measure and a success threshold before testing.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
@@ -1947,7 +1947,7 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Use the approved test only. Stop if a part breaks sharply or the setup becomes unstable.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Use pictures, tally marks, or works/not-yet symbols for three trials.",
+      "More support: Use pictures, tally marks, or works/not-yet symbols for three trials.",
       "Grade 6 CIRC Tank: Use measured results and explain variation between the trials.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
@@ -2076,7 +2076,7 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Use teacher-approved materials and tools. Keep paths clear. Return tools before moving.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Change one feature and use the same simple test record.",
+      "More support: Change one feature and use the same simple test record.",
       "Grade 6 CIRC Tank: Compare the measurements and explain a tradeoff or remaining limitation.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
@@ -2205,7 +2205,7 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Use the approved classroom test. Do not test strength, comfort, or function on a person's body.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Use two teacher-provided questions and one partner tryout.",
+      "More support: Use two teacher-provided questions and one partner tryout.",
       "Grade 6 CIRC Tank: Separate observed behavior from opinions and justify the selected change.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
@@ -2334,7 +2334,7 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Use teacher-approved materials and tools. Keep paths clear. Return tools before moving.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Compare two teacher-selected materials using a simple strength and waste check.",
+      "More support: Compare two teacher-selected materials using a simple strength and waste check.",
       "Grade 6 CIRC Tank: Explain the tradeoff among performance, quantity, reuse, and finish.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
@@ -2467,7 +2467,7 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Use the approved gentle handling test. No throwing or heated forming without a separate approved teacher station.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Use one name, one symbol, and one short purpose statement.",
+      "More support: Use one name, one symbol, and one short purpose statement.",
       "Grade 6 CIRC Tank: Connect branding and packaging choices to the user and test evidence.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
@@ -2594,7 +2594,7 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Use teacher-approved materials and tools. Keep paths clear. Return tools before moving.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Use three picture prompts for a 30-45 second supported explanation.",
+      "More support: Use three picture prompts for a 30-45 second supported explanation.",
       "Grade 6 CIRC Tank: Use a roughly 60-second explanation with evidence, a design tradeoff, and a realistic next step.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
@@ -2719,7 +2719,7 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Use teacher-approved materials and tools. Keep paths clear. Return tools before moving.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Use picture prompts and share speaking with a partner if needed.",
+      "More support: Use picture prompts and share speaking with a partner if needed.",
       "Grade 6 CIRC Tank: Stay near the agreed time and answer a question using evidence rather than guesses.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."
@@ -2846,7 +2846,7 @@ export const CIRC_YEAR_LESSONS = freeze([
     ],
     "safety": "Keep demonstrations at the approved stations. Reset loose parts and walk between displays.",
     "teacherContext": [
-      "Grade 5 CIRC Tank Jr: Show the first and final versions and describe one improvement.",
+      "More support: Show the first and final versions and describe one improvement.",
       "Grade 6 CIRC Tank: Explain a supported improvement, remaining limitation, and next test.",
       "Teacher-led classroom work. No new student account, grade, or online assignment is required.",
       "Keep student names off public screens. Use class storage codes for shared work."

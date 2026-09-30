@@ -78,7 +78,27 @@ const ALLOWED_UNTRACKED = new Set([
   "tests/shared-artifact.test.mjs",
   "tests/setup-ui.test.mjs",
   "tests/step-timer.test.mjs",
-  "tests/security.test.mjs"
+  "tests/security.test.mjs",
+  "student.html",
+  "src/student.js",
+  "src/model/playbooks.js",
+  "src/model/playbook-lessons.js",
+  "src/model/dated-updates.js",
+  "src/model/class-progress.js",
+  "src/ui/playbook-view.js",
+  "src/ui/teacher-home.js",
+  "src/ui/dated-updates-panel.js",
+  "src/ui/step-icons.js",
+  "assets/playbook/strand-cs.svg",
+  "assets/playbook/strand-digital.svg",
+  "assets/playbook/strand-engineering.svg",
+  "assets/playbook/strand-library.svg",
+  "docs/DATED-UPDATES-IMPORT.md",
+  "docs/superpowers/plans/2026-09-29-simple-student-teacher-ab.md",
+  "tests/playbooks.test.mjs",
+  "tests/student-page.test.mjs",
+  "tests/dated-updates.test.mjs",
+  "tests/teacher-home.test.mjs"
 ]);
 const FORBIDDEN_CANDIDATE_ROOTS = new Set([
   ".git",
@@ -143,6 +163,10 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "assets/icons/sv-interlock.png",
   "assets/icons/warning-circle.svg",
   "assets/morning-show-studio.png",
+  "assets/playbook/strand-cs.svg",
+  "assets/playbook/strand-digital.svg",
+  "assets/playbook/strand-engineering.svg",
+  "assets/playbook/strand-library.svg",
   "assets/tech-terrarium-hero.webp",
   "assets/tech-terrarium-maker-scene.jpg",
   "ectv-imovie.html",
@@ -158,10 +182,14 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "src/model/admin-plan.js",
   "src/model/announcements.js",
   "src/model/circ-year-route.js",
+  "src/model/class-progress.js",
   "src/model/crew-signup.js",
+  "src/model/dated-updates.js",
   "src/model/experience-runner.js",
   "src/model/experience-timing-plans.js",
   "src/model/lesson-guide.js",
+  "src/model/playbook-lessons.js",
+  "src/model/playbooks.js",
   "src/model/project-catalog.js",
   "src/model/schedule-editor.js",
   "src/model/schedule.js",
@@ -181,16 +209,22 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "src/storage/local-store.js",
   "src/storage/room-sync.js",
   "src/storage/sync-engine.js",
+  "src/student.js",
   "src/ui/announcements.js",
   "src/ui/board.js",
+  "src/ui/dated-updates-panel.js",
+  "src/ui/playbook-view.js",
   "src/ui/project-home.js",
   "src/ui/room.js",
   "src/ui/schedule-editor.js",
   "src/ui/settings.js",
   "src/ui/setup.js",
+  "src/ui/step-icons.js",
   "src/ui/student-studio.js",
+  "src/ui/teacher-home.js",
   "src/ui/today-ui.js",
   "src/ui/view-model.js",
+  "student.html",
   "walkthrough.html"
 ]);
 const REVIEWED_CANDIDATE_MANIFEST = new Set([
@@ -268,7 +302,13 @@ const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "tests/today-ui.test.mjs",
   "tests/view-model.test.mjs",
   "tests/weather.test.mjs",
-  "tests/week.test.mjs"
+  "tests/week.test.mjs",
+  "docs/DATED-UPDATES-IMPORT.md",
+  "docs/superpowers/plans/2026-09-29-simple-student-teacher-ab.md",
+  "tests/playbooks.test.mjs",
+  "tests/student-page.test.mjs",
+  "tests/dated-updates.test.mjs",
+  "tests/teacher-home.test.mjs"
 ]);
 const EXPECTED_FIREBASE_EXAMPLE = `export const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
@@ -647,7 +687,7 @@ function resolveRelativeModulePath(importer, specifier) {
 
 export async function inspectRuntimeImportBoundary(root = ROOT) {
   const runtime = new Set(EXPECTED_PUBLIC_MANIFEST);
-  const pending = ["src/app.js"];
+  const pending = ["src/app.js", "src/student.js"];
   const inspected = new Set();
   let violations = Number(!runtime.has(FIREBASE_CONFIG_RELATIVE_PATH));
   try {
@@ -844,6 +884,8 @@ function isPublicRuntimePath(relativePath) {
     relativePath === "walkthrough.html" ||
     relativePath === "fid.css" ||
     relativePath === "fid.html" ||
+    relativePath === "student.html" ||
+    (relativePath.startsWith("assets/playbook/") && relativePath.endsWith(".svg")) ||
     relativePath === "index.html" ||
     relativePath === "mission-control.html" ||
     (relativePath.startsWith("assets/icons/") && relativePath.endsWith(".svg")) ||

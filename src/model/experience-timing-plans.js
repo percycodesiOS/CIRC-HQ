@@ -1,4 +1,5 @@
 import { CIRC_YEAR_LESSONS, getCircYearLesson } from "./circ-year-route.js";
+import { PLAYBOOK_LESSONS, getPlaybookLessonDefinition } from "./playbook-lessons.js";
 import { PROJECTS } from "./project-catalog.js";
 
 const FIRST_PROJECT_NUMBER = 1;
@@ -261,7 +262,7 @@ export const REPLICA_LESSON_CHOICES = deepFreeze([
 ]);
 
 export function getReplicaLessonChoice(modeId) {
-  return REPLICA_LESSON_CHOICES.find((choice) => choice.id === modeId) ?? getCircYearLesson(modeId);
+  return REPLICA_LESSON_CHOICES.find((choice) => choice.id === modeId) ?? getCircYearLesson(modeId) ?? getPlaybookLessonDefinition(modeId);
 }
 
 function replicaParallelJobs() {
@@ -2960,7 +2961,7 @@ export function assertValidExperienceTimingPlans(plans) {
 }
 
 // Reuse the existing timed runner and storage model for the year sequence.
-for (const lesson of CIRC_YEAR_LESSONS) {
+for (const lesson of [...CIRC_YEAR_LESSONS, ...PLAYBOOK_LESSONS]) {
   PLAN_DEFINITIONS[1].modeVariants[lesson.id] = {
     title: lesson.title,
     safetyTags: lesson.id === "circ-cardboard" ? ["tool", "cutting"] : [],
