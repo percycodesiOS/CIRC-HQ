@@ -1,5 +1,14 @@
 # CIRC HQ - BUILDLOG
 
+## 2026-09-30 Visual theme layer, Grades 5-6 splash, Arcade, ECTV live page
+
+- Added `theme.css`, loaded after `app.css` in `index.html`. It reskins the whole app (Fredoka display type, Nunito Sans body, azure and navy on ice white, white cards with soft shadows, navy gradient runner command bar). `app.css` and `src/app.js` are untouched, so reverting the look is removing the `theme.css` link.
+- Splash: the personal maker banner is hidden on the welcome view and the lockup reads CIRC HQ / GRADES 5-6, so any CIRC room can run the same tool. `src/ui/today-ui.js` welcome copy changed to match (eyebrow and description only). The FID entry is demoted to one quiet dashed line; `fid.html` is unchanged.
+- Added `arcade.html`: one public page for the teacher-built games. The MYnecraft PLAY button reads LINK COMING until a URL is set in the `GAMES` block at the bottom of the file. GameBash is marked In the Workshop with no play button. Whoever owns MYnecraft deployment fills the URL; nothing else is needed.
+- Added `ectv-live.html`: a studio-computer page that full-screens a chosen camera (the ATEM webcam out appears as a Blackmagic camera) with L for live and B for the show board, plus an experimental same-network iPad camera relay. It does not change `ectv.html`.
+- `index.html` gained the Google Fonts links, the `theme.css` link and an Arcade nav link; `mission-control.html` stays byte-identical to it.
+- Verified in a headless browser against this commit: welcome view, nav, theme load, arcade page, no console errors. Built by Claude (Cowork) at Kenny's request; other agents should keep the `theme.css` link when editing `index.html`.
+
 ## 2026-09-30 current teaching guides and WIN materials
 
 - Replaced the earlier single-route PDFs with current Playbook A and B material generated from the same source data as the live lesson views. The teacher guide has the route tables and all 74 unique 35-minute lessons, including both grade paths, KidWind, Tinkercad and the complete practice-data fallbacks. Shared lessons appear once. The projector deck preserves every student direction and has lesson bookmarks.

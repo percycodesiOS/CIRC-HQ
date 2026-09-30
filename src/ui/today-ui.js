@@ -48,9 +48,9 @@ const ICONS = {
 
 export function buildWelcomePresentation() {
   return {
-    eyebrow: "The Playbook",
+    eyebrow: "Grades 5-6",
     title: "CIRC HQ",
-    description: "See what is happening now, run the next class, and keep the whole day on time.",
+    description: "One screen for the whole day. Students follow the board. The teacher runs the room.",
     setupAction: "Set up my schedule",
     syncAction: "Sign in to sync",
     previewAction: "Preview a lesson"

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f2350">
+  <title>ECTV Live</title>
+  <link rel="icon" type="image/png" href="assets/icons/sv-interlock.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Nunito+Sans:opsz,wght@6..12,600;6..12,800&display=swap">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+  <style>
+    :root { --ink: #122649; --blue: #1e86f0; --blue-dark: #0e6fd6; --pale: #e9f2fc; --coral: #ce4433; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #000; color: #fff; font-family: "Nunito Sans", system-ui, sans-serif; }
+    .bar {
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 12px 18px;
+      background: linear-gradient(120deg, #0f2350 0%, #134a9e 58%, #1e86f0 125%);
+    }
+    .bar h1 { font-family: "Fredoka", sans-serif; font-weight: 700; font-size: 22px; margin: 0 8px 0 0; letter-spacing: 1px; }
+    .bar label { font-size: 12px; font-weight: 800; letter-spacing: 1.5px; color: #9cc6f7; }
+    select, button, a.btn {
+      font: inherit; font-weight: 800; font-size: 14px; min-height: 42px; padding: 8px 16px; border-radius: 12px;
+      border: 1.5px solid rgba(255,255,255,.35); background: rgba(255,255,255,.12); color: #fff; cursor: pointer; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    select { min-width: 220px; max-width: 360px; }
+    select option { color: #122649; }
+    button.go { background: #fff; color: var(--blue-dark); border-color: #fff; font-family: "Fredoka", sans-serif; font-size: 17px; letter-spacing: 1px; }
+    button.coral { background: var(--coral); border-color: var(--coral); }
+    .spacer { flex: 1; }
+    .stage { position: relative; height: calc(100% - 66px); background: #000; }
+    video { width: 100%; height: 100%; object-fit: cover; background: #000; display: block; }
+    .msg {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 640px; width: calc(100% - 40px);
+      background: rgba(18,38,73,.92); border: 1px solid rgba(255,255,255,.2); border-radius: 18px; padding: 22px 26px; font-size: 15px; line-height: 1.5;
+    }
+    .msg h2 { font-family: "Fredoka", sans-serif; margin: 0 0 8px; font-size: 22px; }
+    .msg code { font-family: "Fredoka", sans-serif; font-size: 44px; letter-spacing: 6px; color: #8fe3b4; display: block; margin: 10px 0; }
+    .msg input { font: inherit; font-size: 28px; letter-spacing: 6px; text-align: center; width: 100%; padding: 10px; border-radius: 12px; border: 0; margin: 10px 0; }
+    .msg .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+    .hint { font-size: 12.5px; color: #9cc6f7; margin-top: 10px; }
+    body.live .bar { display: none; }
+    body.live .stage { height: 100%; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <h1>ECTV LIVE</h1>
+    <label for="src">SOURCE</label>
+    <select id="src"><option value="">Loading cameras...</option></select>
+    <button id="goLive" class="go" type="button">GO LIVE (L)</button>
+    <button id="recv" type="button">Receive iPad cam</button>
+    <button id="send" type="button">Send this camera</button>
+    <span class="spacer"></span>
+    <a class="btn" href="ectv.html">Show board (B)</a>
+  </div>
+
+  <div class="stage">
+    <video id="v" autoplay playsinline muted></video>
+    <div id="msg" class="msg">
+      <h2>Pick a source, then GO LIVE</h2>
+      The ATEM webcam out shows up here as a camera named Blackmagic. Any USB camera works too.
+      Press L to go full screen, Esc to come back, B for the show board.
+      <div class="hint">Never feed the ATEM's own program back into an ATEM input. That is a mirror tunnel, not a camera.</div>
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById("v");
+    const srcSel = document.getElementById("src");
+    const msg = document.getElementById("msg");
+    let stream = null;
+    let peer = null;
+
+    function say(html) { msg.innerHTML = html; msg.classList.remove("hidden"); }
+    function quiet() { msg.classList.add("hidden"); }
+    function stopStream() { if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; } }
+
+    async function listCameras() {
+      try {
+        await navigator.mediaDevices.getUserMedia({ video: true }).then((s) => s.getTracks().forEach((t) => t.stop()));
+      } catch (e) { /* permission prompt declined or no camera yet */ }
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cams = devices.filter((d) => d.kind === "videoinput");
+      srcSel.innerHTML = cams.length
+        ? cams.map((c, i) => `<option value="${c.deviceId}">${c.label || "Camera " + (i + 1)}</option>`).join("")
+        : `<option value="">No camera found. Plug in and reload.</option>`;
+      const bm = cams.find((c) => /blackmagic|atem/i.test(c.label));
+      if (bm) srcSel.value = bm.deviceId;
+    }
+
+    async function showLocal() {
+      stopStream();
+      const id = srcSel.value;
+      if (!id) { say("<h2>No source selected</h2>Plug the ATEM webcam out or a USB camera into this computer, then reload."); return; }
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: id }, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
+          audio: false
+        });
+        video.srcObject = stream;
+        quiet();
+      } catch (e) {
+        say(`<h2>Could not open that source</h2>${e.message}. Close any other app using it (Teams, Camo, OBS) and try again.`);
+      }
+    }
+
+    async function goLive() {
+      if (!video.srcObject) await showLocal();
+      if (!video.srcObject) return;
+      document.body.classList.add("live");
+      if (document.documentElement.requestFullscreen) { try { await document.documentElement.requestFullscreen(); } catch (e) {} }
+    }
+    function leaveLive() {
+      document.body.classList.remove("live");
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    }
+
+    function code4() { return String(Math.floor(1000 + Math.random() * 9000)); }
+
+    // Receive: this computer shows a code, the iPad enters it and its camera arrives over the network.
+    function receiveMode() {
+      stopStream();
+      if (peer) { peer.destroy(); peer = null; }
+      if (typeof Peer === "undefined") { say("<h2>Network mode unavailable</h2>The PeerJS library did not load. The school network may block it."); return; }
+      const code = code4();
+      peer = new Peer("ectv-" + code);
+      say(`<h2>On the iPad, open this same page and press Send this camera</h2>Enter this code:<code>${code}</code><div class="hint">Both devices need to be on the same school network. Experimental: test it before a show, never during one.</div>`);
+      peer.on("call", (call) => {
+        call.answer();
+        call.on("stream", (remote) => { video.srcObject = remote; quiet(); });
+        call.on("close", () => say("<h2>iPad disconnected</h2>Press Receive iPad cam to start again."));
+      });
+      peer.on("error", (e) => say(`<h2>Network mode error</h2>${e.type || e.message}. The school network may block this. Fall back to the HDMI adapter.`));
+    }
+
+    // Send: the iPad picks its camera and calls the computer's code.
+    async function sendMode() {
+      if (typeof Peer === "undefined") { say("<h2>Network mode unavailable</h2>The PeerJS library did not load on this device."); return; }
+      say(`<h2>Enter the code on the studio computer</h2><input id="code" inputmode="numeric" maxlength="4" placeholder="0000"><div class="row"><button id="dial" class="go" type="button">SEND</button></div><div class="hint">Keep this iPad plugged in and its screen awake. Use the back camera for the studio.</div>`);
+      document.getElementById("dial").addEventListener("click", async () => {
+        const code = document.getElementById("code").value.trim();
+        if (code.length !== 4) return;
+        stopStream();
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+        } catch (e) { say(`<h2>Camera blocked</h2>${e.message}`); return; }
+        video.srcObject = stream;
+        if (peer) { peer.destroy(); }
+        peer = new Peer();
+        peer.on("open", () => {
+          const call = peer.call("ectv-" + code, stream);
+          say("<h2>Sending</h2>This iPad is now a camera for the studio computer. Leave this page open.");
+          call.on("close", () => say("<h2>Disconnected</h2>Press Send this camera to reconnect."));
+        });
+        peer.on("error", (e) => say(`<h2>Could not reach the studio computer</h2>${e.type || e.message}. Check the code and the network.`));
+      });
+    }
+
+    document.getElementById("goLive").addEventListener("click", goLive);
+    document.getElementById("recv").addEventListener("click", receiveMode);
+    document.getElementById("send").addEventListener("click", sendMode);
+    srcSel.addEventListener("change", showLocal);
+    document.addEventListener("keydown", (e) => {
+      if (e.target.tagName === "INPUT") return;
+      if (e.key === "l" || e.key === "L") { document.body.classList.contains("live") ? leaveLive() : goLive(); }
+      if (e.key === "b" || e.key === "B") { window.location.href = "ectv.html"; }
+    });
+    document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement) document.body.classList.remove("live"); });
+    navigator.mediaDevices?.addEventListener?.("devicechange", listCameras);
+    if (navigator.mediaDevices) listCameras(); else say("<h2>This browser cannot access cameras</h2>Use Chrome or Edge on the studio computer.");
+  </script>
+</body>
+</html>

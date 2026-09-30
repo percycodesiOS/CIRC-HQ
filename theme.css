@@ -1,0 +1,242 @@
+/* CIRC HQ theme layer. Loads after app.css and reskins it: azure and navy on ice white,
+   Fredoka for display type, Nunito Sans for body. Built for any CIRC room, not one teacher. */
+
+:root {
+  --canvas: #f2f5fa;
+  --surface: #ffffff;
+  --blue: #1e86f0;
+  --blue-dark: #0e6fd6;
+  --pale-blue: #e9f2fc;
+  --ink: #122649;
+  --heading: #122649;
+  --secondary: #52618a;
+  --border: rgba(18, 38, 73, 0.12);
+  --warning: #fbeae6;
+  --warning-border: rgba(206, 68, 51, 0.3);
+  --radius-large: 22px;
+  --radius: 16px;
+  --accent-grad: linear-gradient(180deg, #1e86f0, #0b62cc);
+  --shadow-card: 0 14px 34px rgba(18, 38, 73, 0.10);
+  --shadow-glow: 0 10px 24px rgba(14, 111, 214, 0.35);
+  font-family: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+}
+
+html, body {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(30, 134, 240, 0.08), transparent 45%),
+    radial-gradient(circle at 100% 100%, rgba(206, 68, 51, 0.05), transparent 40%),
+    radial-gradient(rgba(18, 38, 73, 0.05) 1.4px, transparent 1.4px) 0 0 / 26px 26px,
+    var(--canvas);
+}
+
+h1, h2, h3, h4,
+.brand-lockup strong,
+.page-heading h1,
+.clock-value,
+.runner-timer-value,
+.project-title,
+.project-library-title,
+.entrance-card h2,
+.student-waiting-card h2 {
+  font-family: "Fredoka", "Nunito Sans", system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: var(--heading);
+}
+
+/* Header and nav */
+.site-header {
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 6px 20px rgba(18, 38, 73, 0.06);
+}
+.brand-lockup strong { font-size: 1.35rem; color: var(--blue-dark); }
+.brand-lockup strong + span {
+  font-family: "Nunito Sans", system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 0.68rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+.primary-nav button,
+.primary-nav .nav-link {
+  font-family: "Nunito Sans", system-ui, sans-serif;
+  font-weight: 700;
+  color: var(--ink);
+  border-radius: 999px;
+  text-decoration: none;
+}
+.primary-nav button:hover,
+.primary-nav .nav-link:hover { background: var(--pale-blue); }
+.primary-nav button[aria-current="page"] {
+  background: var(--pale-blue);
+  color: var(--blue-dark);
+  box-shadow: inset 0 0 0 1.5px rgba(14, 111, 214, 0.25);
+}
+.primary-nav { grid-template-columns: repeat(6, minmax(64px, 1fr)); gap: 4px; }
+.primary-nav button,
+.primary-nav .nav-link { border-bottom: 0 !important; border-radius: 12px; }
+.primary-nav .nav-link {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.primary-nav .nav-link svg { width: 22px; height: 22px; }
+
+/* Buttons */
+.primary-action,
+.entrance-cta.primary-action,
+.welcome-primary {
+  font-family: "Fredoka", "Nunito Sans", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  color: #fff;
+  background: var(--accent-grad);
+  border: 0;
+  border-radius: 14px;
+  box-shadow: var(--shadow-glow), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.primary-action:hover { filter: brightness(1.05); }
+.secondary-action,
+.entrance-cta.secondary-action {
+  font-weight: 700;
+  color: var(--ink);
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(18, 38, 73, 0.06);
+}
+.button-link { color: var(--blue-dark); font-weight: 700; }
+
+/* Splash: CIRC HQ lockup, no personal banner */
+.welcome-view.welcome-terrarium {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.welcome-view.welcome-terrarium .welcome-maker,
+.welcome-terrarium .welcome-maker,
+img.welcome-maker { display: none !important; }
+.welcome-copy { display: flex; flex-direction: column; padding: 34px 8px 8px; }
+.welcome-copy > * { order: 5; }
+.welcome-copy h1 {
+  order: 1;
+  margin: 0;
+  font-size: clamp(3.4rem, 8vw, 5.4rem);
+  line-height: 1;
+  letter-spacing: 1px;
+  color: var(--blue-dark);
+  text-shadow: 3px 4px 0 rgba(18, 38, 73, 0.18), 0 18px 38px rgba(14, 111, 214, 0.28);
+}
+.welcome-copy .eyebrow {
+  order: 2;
+  margin: 14px 0 0;
+  font-weight: 800;
+  font-size: 0.9rem;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.welcome-copy .welcome-description {
+  order: 3;
+  margin: 6px 0 26px;
+  font-weight: 600;
+  color: var(--secondary);
+}
+.welcome-entrances { gap: 18px; }
+.entrance-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-card);
+}
+.entrance-card.entrance-student { background: linear-gradient(0deg, var(--pale-blue), #fff); }
+.entrance-card h2 { font-size: 1.35rem; }
+.entrance-card p { color: var(--secondary); font-weight: 600; }
+.student-waiting-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-card);
+}
+
+/* FID: demoted to one quiet line. It only matters on a snow day. */
+.fid-home-entry {
+  margin: 26px 0 0;
+  padding: 10px 16px;
+  background: transparent;
+  border: 1.5px dashed rgba(18, 38, 73, 0.22);
+  border-left: 1.5px dashed rgba(18, 38, 73, 0.22);
+  border-radius: 999px;
+  font-family: "Nunito Sans", system-ui, sans-serif;
+}
+.fid-home-entry p { display: none; }
+.fid-home-entry h2 {
+  margin: 0;
+  font-family: "Nunito Sans", system-ui, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--secondary);
+}
+.fid-home-entry h2::before { content: "Snow day? "; color: var(--ink); font-weight: 800; }
+.fid-home-entry .fid-open-link {
+  min-height: 34px;
+  padding: 4px 14px;
+  font-size: 0.85rem;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--border);
+  color: var(--blue-dark);
+}
+
+/* Today: the experience card reads like a published unit */
+.project-hero-copy .eyebrow,
+.eyebrow {
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--blue-dark);
+}
+.project-title { letter-spacing: 0; color: var(--heading); }
+
+/* Activity screen: navy gradient command bar, Fredoka timers, step cards */
+.runner-command-bar {
+  background: linear-gradient(120deg, #0f2350 0%, #134a9e 58%, #1e86f0 125%);
+  box-shadow: 0 12px 30px rgba(15, 35, 80, 0.30);
+}
+.runner-command-bar .runner-timer-value { color: #fff; }
+.runner-command-step { font-family: "Fredoka", system-ui, sans-serif; }
+.runner-step-card,
+.runner-student-directions {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-card);
+}
+.runner-student-directions li { font-weight: 700; font-size: 1.15em; }
+
+/* Higher-specificity fixes after the first visual check */
+.experience-runner .runner-command-bar,
+.runner-command-bar {
+  background: linear-gradient(120deg, #0f2350 0%, #134a9e 58%, #1e86f0 125%) !important;
+  border: 0 !important;
+  border-radius: 0 0 22px 22px;
+}
+.runner-preview-label,
+.runner-heading .runner-preview-label {
+  background: var(--pale-blue) !important;
+  border-color: rgba(14, 111, 214, 0.35) !important;
+  color: var(--blue-dark) !important;
+}
+.runner-now-grid { grid-template-columns: minmax(0, 1fr) !important; }
+.runner-teacher-help { max-width: none; }
+.runner-student-directions li::marker { color: var(--blue-dark); font-weight: 800; }
