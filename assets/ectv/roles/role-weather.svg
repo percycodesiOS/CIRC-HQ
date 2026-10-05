@@ -1,23 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="480" height="360" role="img" aria-label="Weather reporter pointing at a weather map with a sun and a cloud">
-  <rect width="240" height="180" rx="18" fill="#062234"/>
-  <rect x="8" y="8" width="224" height="164" rx="12" fill="#102f46"/>
-  <rect x="82" y="22" width="134" height="100" rx="10" fill="#07172b" stroke="#c7efff" stroke-width="3"/>
-  <circle cx="122" cy="56" r="17" fill="#ffd66e"/>
-  <g stroke="#ffd66e" stroke-width="4" stroke-linecap="round">
-    <line x1="122" y1="28" x2="122" y2="35"/>
-    <line x1="122" y1="77" x2="122" y2="84"/>
-    <line x1="94" y1="56" x2="101" y2="56"/>
-    <line x1="143" y1="56" x2="150" y2="56"/>
-  </g>
-  <path d="M150 96a16 16 0 0 1 31-5 13 13 0 0 1-2 26h-24a11 11 0 0 1-5-21z" fill="#c7efff"/>
-  <g stroke="#a6eaff" stroke-width="4" stroke-linecap="round">
-    <line x1="158" y1="122" x2="154" y2="132"/>
-    <line x1="172" y1="122" x2="168" y2="132"/>
-    <line x1="186" y1="122" x2="182" y2="132"/>
-  </g>
-  <circle cx="44" cy="70" r="16" fill="#f5f1e8"/>
-  <path d="M22 130a22 22 0 0 1 44 0z" fill="#a6eaff"/>
-  <line x1="60" y1="98" x2="88" y2="74" stroke="#f5f1e8" stroke-width="7" stroke-linecap="round"/>
-  <rect x="16" y="146" width="208" height="16" rx="8" fill="#07172b"/>
-  <rect x="16" y="146" width="208" height="5" rx="2.5" fill="#a6eaff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="480" height="360" role="img" aria-labelledby="title desc">
+  <title id="title">Weather reporter</title>
+  <desc id="desc">A studio weather map with sun, clouds, rain and a pointer, ready for the school forecast.</desc>
+  <rect width="240" height="180" rx="18" fill="#faf7ee"/><circle cx="196" cy="42" r="34" fill="#e5edcf"/><path d="M18 66V37a11 11 0 0 1 11-11h42" fill="none" stroke="#dbe4d2" stroke-width="2" stroke-linecap="round"/><ellipse cx="121" cy="157" rx="99" ry="9" fill="#dce2cd"/>
+
+<path d="M104 133v14m30-14v14M87 153h64" fill="none" stroke="#24543e" stroke-width="5" stroke-linecap="round"/>
+<rect x="24" y="27" width="191" height="109" rx="11" fill="#356346" stroke="#24543e" stroke-width="2.5"/><rect x="31" y="34" width="177" height="89" rx="5" fill="#f2f3dd"/>
+<path d="m63 39 20 10 29-7 18 8 31-9 14 17-13 20 15 24-22 15-25-6-23 9-23-12-29 3-8-22 15-19-9-14Z" fill="#c5d889" stroke="#94ac87" stroke-width="1.5"/><path d="m83 49 6 33-5 26m23-64 6 32 17 35m31-70-19 34 20 3M55 89l58-13 29-1m-58 33 29-32" fill="none" stroke="#a7bf80" stroke-width="1.5"/>
+<g stroke="#cfaa5f" stroke-width="2.5" stroke-linecap="round"><path d="M77 47v-6m0 44v-6M55 63h-6m44 0h-6M61 47l-4-4m32 32 4 4m-32-4-4 4m32-32 4-4"/><circle cx="77" cy="63" r="12" fill="#f4d66a"/></g>
+<path d="M132 70c-7 0-9-10-3-14 0-13 17-16 22-5 13-4 19 15 8 19Z" fill="#fffdf7" stroke="#668368" stroke-width="2"/><path d="m136 78-3 7m12-7-3 7m12-7-3 7" stroke="#668368" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="115" cy="99" r="3" fill="#24543e"/><circle cx="115" cy="99" r="7" fill="none" stroke="#fffdf7" stroke-width="2"/>
+<path d="m187 146-64-43" stroke="#24543e" stroke-width="4" stroke-linecap="round"/><path d="m188 147-16-11" stroke="#b7d28a" stroke-width="7" stroke-linecap="round"/><circle cx="119" cy="129" r="2" fill="#c5e77f"/>
+<g stroke="#668368" stroke-width="1.5"><rect x="38" y="139" width="29" height="23" rx="5" fill="#fffdf7"/><rect x="72" y="139" width="29" height="23" rx="5" fill="#fffdf7"/><circle cx="52.5" cy="150.5" r="5" fill="#f4d66a" stroke="#cfaa5f"/><path d="M80 153c-4-1-3-6 0-6 1-6 8-7 10-2 6-1 8 7 3 8Z" fill="#dce9cf"/></g>
 </svg>

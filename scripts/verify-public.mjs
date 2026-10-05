@@ -140,6 +140,7 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "assets/ectv/roles/role-anchors.svg",
   "assets/ectv/roles/role-camera.svg",
   "assets/ectv/roles/role-computer.svg",
+  "assets/ectv/roles/role-question.svg",
   "assets/ectv/roles/role-weather.svg",
   "assets/guides/CIRC-Classroom-Cards.pdf",
   "assets/guides/CIRC-Classroom-Toolkit.pdf",

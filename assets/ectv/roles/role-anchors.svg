@@ -1,19 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="480" height="360" role="img" aria-label="Two anchors reading the news at the ECTV desk">
-  <rect width="240" height="180" rx="18" fill="#062234"/>
-  <rect x="8" y="8" width="224" height="164" rx="12" fill="#102f46"/>
-  <rect x="86" y="18" width="68" height="22" rx="11" fill="#ff8d75"/>
-  <text x="120" y="33" font-family="Trebuchet MS, Segoe UI, Arial, sans-serif" font-size="12" font-weight="900" fill="#062234" text-anchor="middle">ON AIR</text>
-  <circle cx="84" cy="74" r="17" fill="#f5f1e8"/>
-  <path d="M60 128a24 24 0 0 1 48 0z" fill="#a6eaff"/>
-  <circle cx="156" cy="74" r="17" fill="#f5f1e8"/>
-  <path d="M132 128a24 24 0 0 1 48 0z" fill="#c7efff"/>
-  <rect x="24" y="126" width="192" height="36" rx="8" fill="#07172b"/>
-  <rect x="24" y="126" width="192" height="8" rx="4" fill="#a6eaff"/>
-  <rect x="44" y="142" width="46" height="12" rx="3" fill="#ffd66e"/>
-  <rect x="150" y="142" width="46" height="12" rx="3" fill="#ffd66e"/>
-  <g fill="#f5f1e8">
-    <rect x="115" y="96" width="10" height="24" rx="5"/>
-    <rect x="118" y="120" width="4" height="10"/>
-  </g>
-  <circle cx="120" cy="96" r="7" fill="#a6eaff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="480" height="360" role="img" aria-labelledby="title desc">
+  <title id="title">News anchors</title>
+  <desc id="desc">Two illustrated student anchors with microphones and cue cards at a bright green newsroom desk.</desc>
+  <rect width="240" height="180" rx="18" fill="#faf7ee"/><circle cx="196" cy="42" r="34" fill="#e5edcf"/><path d="M18 66V37a11 11 0 0 1 11-11h42" fill="none" stroke="#dbe4d2" stroke-width="2" stroke-linecap="round"/><ellipse cx="121" cy="157" rx="99" ry="9" fill="#dce2cd"/>
+
+<rect x="91" y="18" width="58" height="22" rx="11" fill="#24543e"/><circle cx="105" cy="29" r="4" fill="#c5e77f"/><path d="M116 26h20m-20 6h13" stroke="#faf7ee" stroke-width="2.5" stroke-linecap="round"/>
+<g stroke="#24543e" stroke-width="2">
+<path d="M44 115V86a10 10 0 0 1 10-10h36a10 10 0 0 1 10 10v29m40 0V86a10 10 0 0 1 10-10h36a10 10 0 0 1 10 10v29" fill="#dce9cf" stroke="#94ac87"/>
+<path d="M48 118V100c0-31 48-31 48 0v18" fill="#80a46a"/><path d="M143 118V100c0-31 48-31 48 0v18" fill="#c5d889"/>
+<path d="M66 71v10q6 7 13 0V71" fill="#e9b992"/><ellipse cx="72" cy="59" rx="16" ry="19" fill="#f2c9a6"/>
+<path d="M161 71v10q6 7 13 0V71" fill="#bd8964"/><ellipse cx="167" cy="59" rx="16" ry="19" fill="#d6a579"/>
+</g>
+<path d="M56 60V51c0-10 7-17 18-16 12 1 16 10 14 21-8 0-15-3-20-10-1 8-5 11-12 14Zm95-2c-6-3-7-12-1-16-1-7 7-11 12-8 5-7 14-4 16 1 10-2 17 8 10 14l-4 11-4-11c-11 5-17 3-22-1Z" fill="#345142"/>
+<path d="M65 60h1m12 0h1m-11 8q4 3 8 0m84-8h1m12 0h1m-11 8q4 3 8 0" fill="none" stroke="#345142" stroke-width="2" stroke-linecap="round"/>
+<path d="M34 117h172v25a12 12 0 0 1-12 12H46a12 12 0 0 1-12-12Z" fill="#356346" stroke="#24543e" stroke-width="2.5"/><path d="M45 143h150" stroke="#72956b" stroke-width="2" stroke-linecap="round"/>
+<rect x="25" y="111" width="190" height="12" rx="6" fill="#b7d28a" stroke="#24543e" stroke-width="2.5"/>
+<path d="m59 107 5-14h24l-5 14Zm98 0-5-14h24l5 14Z" fill="#fffdf7" stroke="#668368" stroke-width="1.5"/><path d="M68 98h12m-13 4h9m81-4h12m-11 4h9" stroke="#94ac87" stroke-width="1.5" stroke-linecap="round"/>
+<g fill="#24543e" stroke="#24543e" stroke-width="2.5" stroke-linecap="round"><path d="M45 111V93l9-8m141 26V93l-9-8" fill="none"/><rect x="51" y="76" width="8" height="15" rx="4" transform="rotate(28 55 83)"/><rect x="181" y="76" width="8" height="15" rx="4" transform="rotate(-28 185 83)"/></g>
+<path d="M116 136h8m-4-4v8" stroke="#c5e77f" stroke-width="2" stroke-linecap="round"/>
 </svg>
