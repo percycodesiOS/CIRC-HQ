@@ -362,6 +362,7 @@ test("public server manifest is an exact reviewed allowlist", () => {
   assert.equal(typeof devServer.getPublicStaticManifest, "function");
   assert.deepEqual(devServer.getPublicStaticManifest(), [
     "app.css",
+    "arcade.html",
     "assets/circ-hq-maker.webp",
     "assets/designers-challenge-sketch.webp",
     "assets/ectv/03-anchor-background.png",
@@ -405,6 +406,7 @@ test("public server manifest is an exact reviewed allowlist", () => {
   "assets/tech-terrarium-hero.webp",
   "assets/tech-terrarium-maker-scene.jpg",
     "ectv-imovie.html",
+    "ectv-live.html",
     "ectv.css",
     "ectv.html",
     "fid.css",
@@ -460,6 +462,7 @@ test("public server manifest is an exact reviewed allowlist", () => {
     "src/ui/today-ui.js",
     "src/ui/view-model.js",
     "student.html",
+    "theme.css",
     "walkthrough.html"
   ]);
 });
@@ -1202,6 +1205,18 @@ test("verifier detectors fail closed for credential shapes and unsafe web links"
     "http://example.invalid/",
     "https://unreviewed.example.invalid/"
   ].join("\n")), 2);
+});
+
+test("reviewed public theme dependencies do not allow unrelated URLs on the same hosts", async () => {
+  for (const file of ["index.html", "mission-control.html", "arcade.html", "ectv-live.html", "theme.css"]) {
+    assert.equal(verifier.countUnsafeRuntimeLinks(await readFile(path.join(ROOT, file), "utf8")), 0, file);
+  }
+  assert.equal(verifier.countUnsafeRuntimeLinks([
+    "https://fonts.googleapis.com/css2?family=Unreviewed",
+    "https://fonts.gstatic.com/unreviewed.woff2",
+    "https://cdnjs.cloudflare.com/ajax/libs/peerjs/2.0.0/peerjs.min.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/unreviewed/1.0.0/code.js"
+  ].join("\n")), 4);
 });
 
 test("Firebase private writes use an exact child document and closed envelope", async () => {

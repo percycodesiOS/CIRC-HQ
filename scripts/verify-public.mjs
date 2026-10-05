@@ -130,6 +130,7 @@ const GATE_NAMES = Object.freeze([
 ]);
 const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "app.css",
+  "arcade.html",
   "assets/circ-hq-maker.webp",
   "assets/designers-challenge-sketch.webp",
   "assets/ectv/03-anchor-background.png",
@@ -173,6 +174,7 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "assets/tech-terrarium-hero.webp",
   "assets/tech-terrarium-maker-scene.jpg",
   "ectv-imovie.html",
+  "ectv-live.html",
   "ectv.css",
   "ectv.html",
   "fid.css",
@@ -228,6 +230,7 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "src/ui/today-ui.js",
   "src/ui/view-model.js",
   "student.html",
+  "theme.css",
   "walkthrough.html"
 ]);
 const REVIEWED_CANDIDATE_MANIFEST = new Set([
@@ -851,6 +854,13 @@ export async function inspectLocalPaths(root = ROOT) {
 export function countUnsafeRuntimeLinks(text) {
   const links = text.match(/https?:\/\/[^\s"'`<>)]+/gi) ?? [];
   const reviewedStudentLinks = new Set([
+    // Exact dependencies already used by the reviewed public theme and ECTV page.
+    // Other URLs on these hosts remain rejected.
+    "https://fonts.googleapis.com/",
+    "https://fonts.gstatic.com/",
+    "https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap",
+    "https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Nunito+Sans:opsz,wght@6..12,600;6..12,800&display=swap",
+    "https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js",
     "https://moodle.svsd.net/course/view.php?id=13811",
     "https://forecast.weather.gov/MapClick.php?FcstType=text&lat=40.7112&lg=english&lon=-80.1072",
     "https://forecast.weather.gov/MapClick.php?FcstType=graphical&lat=40.7112&lg=english&lon=-80.1072&unit=0",
@@ -885,6 +895,9 @@ export function countUnsafeRuntimeLinks(text) {
 
 function isPublicRuntimePath(relativePath) {
   return relativePath === "app.css" ||
+    relativePath === "arcade.html" ||
+    relativePath === "ectv-live.html" ||
+    relativePath === "theme.css" ||
     relativePath === "walkthrough.html" ||
     relativePath === "fid.css" ||
     relativePath === "fid.html" ||

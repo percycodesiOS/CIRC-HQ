@@ -20,6 +20,7 @@ const CONTENT_TYPES = new Map([
 
 const PUBLIC_STATIC_FILES = new Set([
   "app.css",
+  "arcade.html",
   "assets/circ-hq-maker.webp",
   "assets/designers-challenge-sketch.webp",
   "assets/ectv/03-anchor-background.png",
@@ -63,6 +64,7 @@ const PUBLIC_STATIC_FILES = new Set([
   "assets/tech-terrarium-hero.webp",
   "assets/tech-terrarium-maker-scene.jpg",
   "ectv-imovie.html",
+  "ectv-live.html",
   "ectv.css",
   "ectv.html",
   "fid.css",
@@ -118,6 +120,7 @@ const PUBLIC_STATIC_FILES = new Set([
   "src/ui/today-ui.js",
   "src/ui/view-model.js",
   "student.html",
+  "theme.css",
   "walkthrough.html"
 ]);
 
