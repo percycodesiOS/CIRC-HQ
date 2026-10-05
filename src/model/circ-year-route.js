@@ -389,6 +389,172 @@ export const CIRC_YEAR_LESSONS = freeze([
     ]
   },
   {
+    "id": "circ-logo-jingle",
+    "title": "Logo to jingle: Give your brand a sound",
+    "label": "Logo to jingle: Give your brand a sound",
+    "objective": "I can turn my first logo into a short slogan and a 10-15 second musical message.",
+    "summary": "Reuse your first logo, choose a short slogan, and generate a jingle with your teacher.",
+    "materials": [
+      "Your saved first logo",
+      "School Canva through resources.svsd.net",
+      "Teacher-operated jingle generator or approved Canva audio",
+      "Headphones at a low volume",
+      "Paper and pencils for planning"
+    ],
+    "supplies": [
+      "Your saved first logo",
+      "School Canva through resources.svsd.net",
+      "Teacher-operated jingle generator or approved Canva audio",
+      "Headphones at a low volume",
+      "Paper and pencils for planning"
+    ],
+    "gradeBand": "5-6",
+    "safety": "Use your school Canva account. Your teacher operates external AI generators. Keep personal details out of prompts. No student AI accounts, purchases or public posting. Keep headphones low.",
+    "teacherContext": [
+      "This replaces Logo 2. NeuroArt/book checkout and Logo 1 are finished. Reuse the first logo.",
+      "Grade 5: Choose a slogan of six words or fewer and one mood. Grade 6: Explain how words and music fit the logo, then improve one choice.",
+      "Students plan the brand, slogan and sound. The teacher operates external AI tools and plays selected examples. Do not send under-13 students to generators or promise every group an individual render within this class.",
+      "Suno turns a slogan into a sung jingle. Use an existing teacher account if available. Free and paid plans have different download and use rights; check the active plan before exporting or publishing. Suno requires users to be at least 13, with parental consent under 18.",
+      "AI Jingle Maker has a script helper, AI voices and royalty-free music beds. Its instant result is a spoken slogan over music. The advertised starter pack is $39 plus tax for 100 voiceovers, not a free student tool. Custom sung jingles are a separate paid service. Use only if already available; no purchase is required for this lesson.",
+      "Model prompt: Create a 10-15 second original jingle for a fictional brand called [brand]. Use this slogan exactly: [slogan]. Mood: [mood]. Make the words easy to hear. No extra lyrics or imitation of an existing song. Generated duration may vary; trim in Canva.",
+      "If students need wording help, use the teacher-operated script helper to suggest three slogans under six words. Students choose and revise the one that best fits their first logo.",
+      "Before class, test the generator, playback and download access. Have approved Canva stock audio ready. Students can speak their slogan over that track if generation is unavailable. BeepBox is an optional original-music fallback.",
+      "Turn in the first logo, chosen slogan and sound plan in Canva. Add generated audio when available, or perform over the approved backing track. Share only with the teacher school account. Keep public and link sharing unchanged.",
+      "Royalty-free means use follows the applicable license; it does not mean every generator is free. Check the source and permitted use before publishing. In Canva, use teacher-approved stock audio rather than Popular Music."
+    ],
+    "fastFinish": "Try a second tempo. Ask which version matches your logo, then keep the stronger one.",
+    "resources": [
+      {
+        "label": "Suno - generate a sung jingle (teacher)",
+        "url": "https://suno.com/",
+        "description": "Teacher-operated: turn your slogan and sound description into vocals and music. Plan-specific download and use rights apply; no student sign-up.",
+        "teacherOnly": true
+      },
+      {
+        "label": "AI Jingle Maker - slogan helper + voice + music (teacher)",
+        "url": "https://www.aijinglemaker.com/",
+        "description": "Spoken slogan over royalty-free music. Paid: $39 plus tax for 100 voiceovers. Use an existing account only; a purchase is not required.",
+        "teacherOnly": true
+      },
+      {
+        "label": "School Canva - use your existing logo",
+        "url": "https://resources.svsd.net/",
+        "description": "Open Canva with your school account. Put the logo, slogan and available audio on a short video page."
+      },
+      {
+        "label": "Canva - add music to a video",
+        "url": "https://www.canva.com/features/add-music-to-video/",
+        "description": "Official help for uploading audio, trimming its length and changing its volume."
+      },
+      {
+        "label": "BeepBox - optional original-music backup",
+        "url": "https://www.beepbox.co/",
+        "description": "Free, no sign-in. Make your own backing track only if you choose the manual music option."
+      }
+    ],
+    "steps": [
+      {
+        "id": "p02-jingle-logo",
+        "label": "Open your first logo",
+        "kind": "ready",
+        "minutes": 4,
+        "directions": [
+          "Open resources.svsd.net, then Canva.",
+          "Find your first logo. Today you are adding sound.",
+          "Name the feeling or idea your logo should communicate."
+        ],
+        "teacherDirections": [
+          "Show an existing logo and a short jingle. Today adds a sound identity to the first logo."
+        ]
+      },
+      {
+        "id": "p02-jingle-slogan",
+        "label": "Write the slogan",
+        "kind": "work",
+        "minutes": 5,
+        "directions": [
+          "Write or choose three slogan ideas using six words or fewer.",
+          "Try an action plus a benefit: Build bright. Think big.",
+          "Choose one that matches your logo. Improve one word."
+        ],
+        "teacherDirections": [
+          "Use the script helper from your teacher account if needed. Students select and revise the wording."
+        ]
+      },
+      {
+        "id": "p02-jingle-music",
+        "label": "Plan your sound",
+        "kind": "work",
+        "minutes": 7,
+        "directions": [
+          "Choose a mood: upbeat, calm, funny or dramatic.",
+          "Write your brand name, exact slogan and sound choice.",
+          "Share that plan with your teacher. You do not need an AI account."
+        ],
+        "teacherDirections": [
+          "Use the model prompt in teacher context. Generate selected examples while students prepare their Canva pages."
+        ]
+      },
+      {
+        "id": "p02-jingle-combine",
+        "label": "Generate and combine",
+        "kind": "work",
+        "minutes": 8,
+        "directions": [
+          "Watch the teacher turn a slogan into a jingle.",
+          "Copy your first logo onto a Canva video page. Add the slogan.",
+          "Use teacher-provided audio or an approved backing track. Aim for 10-15 seconds.",
+          "Make the words easy to hear. Record the music source in your design."
+        ],
+        "teacherDirections": [
+          "Use Suno for sung words or AI Jingle Maker for spoken words over music. If unavailable, use approved Canva audio and a spoken slogan. Students can finish their sound plan before audio arrives."
+        ]
+      },
+      {
+        "id": "p02-jingle-test",
+        "label": "Listen and fix",
+        "kind": "exit",
+        "minutes": 4,
+        "directions": [
+          "Play or perform your jingle for a partner.",
+          "Can your partner repeat the slogan and explain how it matches the logo?",
+          "Fix one unclear word, loud sound, or timing problem."
+        ],
+        "teacherDirections": [
+          "Look for a matching logo, memorable slogan and clear sound choice. Check available audio or a live performance; retain unfinished generation plans."
+        ]
+      },
+      {
+        "id": "p02-jingle-share",
+        "label": "Share with teacher",
+        "kind": "cleanup",
+        "minutes": 3,
+        "directions": [
+          "Choose Share.",
+          "Add your CIRC teacher school account. It is turned in when your teacher can open it.",
+          "Save the logo, slogan, sound plan and any available audio."
+        ],
+        "teacherDirections": [
+          "Do not change public or link sharing. Test a few shared designs from your school account."
+        ]
+      },
+      {
+        "id": "p02-jingle-reset",
+        "label": "Devices back",
+        "kind": "cleanup",
+        "minutes": 4,
+        "directions": [
+          "Return headphones and lower the volume.",
+          "Put your device back on the cart and plug it in.",
+          "Clear your table."
+        ],
+        "teacherDirections": [
+          "Count devices and collect paper versions. No extra performance is required after devices are put away."
+        ]
+      }
+    ]
+  },
+  {
     "id": "circ-canva-original",
     "title": "Canva logo 2: Original from a blank design",
     "label": "Canva logo 2: Original from a blank design",
@@ -2978,11 +3144,11 @@ export const CIRC_YEAR_ROUTE = freeze([
   },
   {
     "contact": 3,
-    "title": "Canva logo 2: Original from a blank design",
-    "lessonId": "circ-canva-original",
-    "purpose": "I can make an original logo from a blank design that shows my interests, values or strengths.",
+    "title": "Logo to jingle: Give your brand a sound",
+    "lessonId": "circ-logo-jingle",
+    "purpose": "I can turn my first logo into a short slogan and a 10-15 second musical message.",
     "projectNumber": 2,
-    "modeId": "circ-canva-original"
+    "modeId": "circ-logo-jingle"
   },
   {
     "contact": 4,
@@ -3191,5 +3357,5 @@ export const CIRC_YEAR_ROUTE = freeze([
   }
 ]);
 // NeuroArt (meeting 1) is finished, so the year guide opens on the first Canva logo visit.
-export const CIRC_YEAR_NEXT_CONTACT = 2;
+export const CIRC_YEAR_NEXT_CONTACT = 3;
 export function getCircYearLesson(id) { return CIRC_YEAR_LESSONS.find(lesson => lesson.id === id) ?? null; }

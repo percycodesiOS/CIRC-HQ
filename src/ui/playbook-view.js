@@ -171,6 +171,13 @@ export function buildLessonCard(resolved, { audience = "student", grade = null, 
       callout(h, "pb-prep", "Before class", lesson.prep),
       callout(h, "pb-materials", "Materials", lesson.materials)
     ]) : callout(h, "pb-materials", "You will use", lesson.materials),
+    lesson.resources?.some(resource => audience === "teacher" || !resource.teacherOnly) ? h("section", { className: "pb-callout pb-resources" }, [
+      h("h3", { text: "Lesson resources" }),
+      h("ul", { className: "plain-list" }, lesson.resources.filter(resource => audience === "teacher" || !resource.teacherOnly).map(resource => h("li", {}, [
+        h("a", { text: resource.label, attributes: { href: resource.url, target: "_blank", rel: "noopener noreferrer" } }),
+        h("p", { text: resource.description })
+      ])))
+    ]) : null,
     h("section", { className: "pb-steps-section" }, [
       h("h3", { text: `Steps | ${lesson.minutes} minutes` }),
       stepCards(h, lesson, audience)

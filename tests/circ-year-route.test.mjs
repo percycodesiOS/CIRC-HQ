@@ -7,7 +7,7 @@ import { createExperienceRunner, validateExperienceRunner } from "../src/model/e
 test("every year meeting opens a complete valid 35-minute plan and survives runner validation", () => {
   assert.equal(CIRC_YEAR_ROUTE.length, 31);
   assert.deepEqual(CIRC_YEAR_ROUTE.map(row => row.contact), Array.from({ length: 31 }, (_, i) => i + 1));
-  assert.equal(CIRC_YEAR_LESSONS.length, 23);
+  assert.equal(CIRC_YEAR_LESSONS.length, 24);
   for (const row of CIRC_YEAR_ROUTE) {
     const plan = getExperienceTimingPlan(row.projectNumber, row.modeId ? { modeId: row.modeId } : undefined);
     assert.ok(plan, row.title);
@@ -44,8 +44,8 @@ test("new lessons retain materials, grade support, cleanup and usable teacher di
 });
 
 test("the two Canva logo visits replace digitize and the Paint logo without adding meetings", () => {
-  assert.equal(CIRC_YEAR_NEXT_CONTACT, 2);
-  assert.deepEqual(CIRC_YEAR_ROUTE.slice(0, 3).map(row => row.lessonId), ["circ-neuro", "circ-canva-template", "circ-canva-original"]);
+  assert.equal(CIRC_YEAR_NEXT_CONTACT, 3);
+  assert.deepEqual(CIRC_YEAR_ROUTE.slice(0, 3).map(row => row.lessonId), ["circ-neuro", "circ-canva-template", "circ-logo-jingle"]);
   assert.ok(!CIRC_YEAR_ROUTE.some(row => row.lessonId === "circ-digitize" || row.lessonId === "circ-logo"));
   // Older saved runners for the replaced lessons still open.
   for (const id of ["circ-digitize", "circ-logo"]) assert.ok(getExperienceTimingPlan(2, { modeId: id }), id);

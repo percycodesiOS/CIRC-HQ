@@ -30,8 +30,8 @@ test("Playbook A keeps the finished NeuroArt and both Canva visits, then fits 31
   assert.equal(meetings[0].done, true);
   assert.equal(meetings[0].paths.both, "year:circ-neuro");
   assert.equal(meetings[1].paths.both, "year:circ-canva-template");
-  assert.equal(meetings[2].paths.both, "year:circ-canva-original");
-  assert.equal(PLAYBOOKS[0].nextMeeting, 2);
+  assert.equal(meetings[2].paths.both, "year:circ-logo-jingle");
+  assert.equal(PLAYBOOKS[0].nextMeeting, 3);
   assert.equal(meetings.at(-1).kind, "buffer");
   // From September 28, 2026 cycle days 1 to 3 have 31 visits and days 4 and 5 have 30.
   // Meeting 1 was taught before then, so 30 route meetings plus the buffer fill days 1 to 3.
@@ -72,7 +72,7 @@ test("every meeting path opens a complete, runnable 35-minute lesson", () => {
     }
   }
   assert.equal(PLAYBOOK_LESSONS.length, 22);
-  for (const key of lessonMetaKeys()) assert.ok(PLAYBOOKS.some(playbook => allPaths(playbook.id).some(item => item.ref === key)), `unused lesson metadata ${key}`);
+  for (const key of lessonMetaKeys()) assert.ok(key === "year:circ-canva-original" || PLAYBOOKS.some(playbook => allPaths(playbook.id).some(item => item.ref === key)), `unused lesson metadata ${key}`);
 });
 
 test("grade 6 runs all fifteen CIRC Tank lessons in order and grade 5 never enters Tank", () => {
@@ -230,4 +230,17 @@ test("teacher-prepared source and AI cards are marked as preparation, not a read
     assert.match(getLessonForRef(ref).prepRequired, /^Preparation required: .*This packet does not supply/, ref);
   }
   assert.equal(getLessonForRef("year:circ-cardboard").prepRequired, "");
+});
+
+
+test("jingle reuses the first logo, exposes usable resources, and retains the older lesson", () => {
+  const lesson = resolveMeeting("a", 3).lesson;
+  assert.equal(listMeetings("a")[1].done, true);
+  assert.equal(lesson.runner.modeId, "circ-logo-jingle");
+  assert.deepEqual(lesson.steps.map(step => step.minutes), [4, 5, 7, 8, 4, 3, 4]);
+  assert.match(lesson.goal, /first logo/);
+  assert.match(lesson.turnIn, /teacher can open it/);
+  assert.ok(lesson.resources.some(resource => resource.url === "https://www.beepbox.co/"));
+  assert.ok(lesson.resources.every(resource => resource.url.startsWith("https://")));
+  assert.ok(getLessonForRef("year:circ-canva-original"), "older saved lesson remains available");
 });

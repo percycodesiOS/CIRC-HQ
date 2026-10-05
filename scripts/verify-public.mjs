@@ -854,6 +854,11 @@ export async function inspectLocalPaths(root = ROOT) {
 export function countUnsafeRuntimeLinks(text) {
   const links = text.match(/https?:\/\/[^\s"'`<>)]+/gi) ?? [];
   const reviewedStudentLinks = new Set([
+    "https://www.beepbox.co/",
+    "https://suno.com/",
+    "https://www.aijinglemaker.com/",
+    "https://resources.svsd.net/",
+    "https://www.canva.com/features/add-music-to-video/",
     // Exact dependencies already used by the reviewed public theme and ECTV page.
     // Other URLs on these hosts remain rejected.
     "https://fonts.googleapis.com/",

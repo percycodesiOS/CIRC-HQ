@@ -114,7 +114,7 @@ test("class places are saved per class on this browser only and bad saves are le
   assert.equal(guessGrade("Grade 6 Blue"), 6);
   assert.equal(guessGrade("Homeroom 15"), null);
   const empty = loadClassProgress(storage, "teacher:alpha");
-  assert.deepEqual(classPlace(empty.book, "class-1", "6 Room"), { playbook: "a", meeting: 2, grade: 6, option: null, saved: false });
+  assert.deepEqual(classPlace(empty.book, "class-1", "6 Room"), { playbook: "a", meeting: 3, grade: 6, option: null, saved: false });
   saveClassPlace(storage, "teacher:alpha", "class-1", { playbook: "a", meeting: 10, grade: 5 }, { now: new Date("2026-09-29T12:00:00Z") });
   const saved = classPlace(loadClassProgress(storage, "teacher:alpha").book, "class-1");
   assert.equal(saved.meeting, 10);
@@ -199,7 +199,7 @@ test("Today opens on the simple teacher home with advanced tools collapsed", asy
   assert.ok(more, "More tools exists");
   assert.equal(more.getAttribute("open"), null, "More tools starts collapsed");
   const studentLink = findAll(root, node => node.tagName === "a" && textOf(node) === "Student page")[0];
-  assert.equal(studentLink.getAttribute("href"), "student.html?playbook=a&meeting=2");
+  assert.equal(studentLink.getAttribute("href"), "student.html?playbook=a&meeting=3");
   const meetingSelect = findAll(root, node => node.getAttribute("id") === "th-class-meeting")[0];
   meetingSelect.change("5");
   const saved = JSON.parse(storage.getItem(`${CLASS_PROGRESS_STORAGE_KEY}:${encodeURIComponent("teacher:teacher-alpha")}`));
@@ -220,7 +220,7 @@ test("between blocks Today shows a transition and the next class instead of inve
 test("a class that just ended stays on the card so it can be marked done", async () => {
   const { root, controller } = await renderToday(memoryStorage(), "2026-09-29T09:40:00-04:00");
   assert.match(textOf(root), /Just finished \| This class PRIVATE_CLASS_ONE/);
-  assert.ok(findAll(root, node => node.tagName === "button" && textOf(node) === "Done. Next time: meeting 3")[0]);
+  assert.ok(findAll(root, node => node.tagName === "button" && textOf(node) === "Done. Next time: meeting 4")[0]);
   controller.destroy();
   const late = await renderToday(memoryStorage(), "2026-09-29T15:00:00-04:00");
   assert.match(textOf(late.root), /Earlier today \| This class PRIVATE_CLASS_TWO/);
@@ -291,7 +291,7 @@ test("Start lesson resumes the same class visit but starts a fresh lesson for th
   try {
     buttonByText(app.root, "Start lesson").click();
     const first = app.savedRunner();
-    assert.equal(first.modeId, "circ-canva-template");
+    assert.equal(first.modeId, "circ-logo-jingle");
     assert.equal(app.confirms.length, 0, "no existing lesson, so no confirmation");
     app.controller.navigate("today");
     buttonByText(app.root, "Start lesson").click();
@@ -383,7 +383,7 @@ test("a stale focused class card refreshes before it can start the previous clas
     assert.equal(classPlace(saved.book, "class-one").meeting, 4, "the prior class's edit is preserved");
 
     buttonByText(app.root, "Start lesson").click();
-    assert.equal(app.savedRunner().modeId, "circ-canva-template", "the reviewed current class starts its own lesson");
+    assert.equal(app.savedRunner().modeId, "circ-logo-jingle", "the reviewed current class starts its own lesson");
     assert.equal(app.savedRunner().timer.status, "ready");
     assert.equal(app.confirms.length, 0);
   } finally { app.destroy(); }

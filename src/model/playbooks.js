@@ -82,6 +82,7 @@ const KIDWIND_READY = "Build and pilot one working station, choose and record th
 const LESSON_META = freeze({
   "year:circ-neuro": meta("DL", "RM", "build improve", ["Finished for this year. Reuse only for a class that missed it."], "Artwork in the class tray, or the Paint file saved where the teacher showed.", "Paper and markers with the same line rules.", ["Four to six lines, large spaces, round every sharp corner.", "Vary line widths and explain one color choice."]),
   "year:circ-canva-template": meta("D", "RMT", "plan build improve", [CART, "Two or three real logos ready to show very small", "Board checklist posted", "Paper and pencils out for the fallback"], "Share with your CIRC teacher's school account. It is turned in when your teacher can open it. Keep public and link sharing unchanged.", "Paper and pencil sketch with the same steps. Move it to Canva next visit.", ["Pick one interest. Change the colors, icon and font.", "Explain why the slogan and icon match. Fix the weakest part at stamp size."]),
+  "year:circ-logo-jingle": meta("D", "RMOT", "plan build test improve", [CART, "First logos ready; NeuroArt and Logo 1 are finished", "Open a teacher-operated jingle generator and test playback; prepare approved Canva audio as backup", "Model a six-word slogan becoming a short jingle"], "Share with your CIRC teacher's school account. It is turned in when your teacher can open it. Keep public and link sharing unchanged. Include the first logo, slogan, sound plan and available audio. A live performance counts.", "Paper and pencil: show the first logo, write a slogan and perform it over a clapped beat. A partner may speak, or show the words.", ["One short slogan and a simple repeated beat.", "Explain how the tempo and mood match your logo, and revise after listener feedback."]),
   "year:circ-canva-original": meta("D", "RMOT", "plan build test improve", [CART, "Board checklist posted", "Partner feedback starters on the board", "Paper and pencils out for the fallback"], "Share with your CIRC teacher's school account. It is turned in when your teacher can open it. Keep public and link sharing unchanged. Add two sentences about your choices.", "Paper sketch from a blank page with the same checklist.", ["Two or three simple shapes, two or three colors, one font.", "Make each choice on purpose and explain how it shows a strength or value."]),
   "year:circ-cardboard": meta("E", "TO", "build test improve", [TRAYS, "Teacher cut station set. The knife stays with the teacher."], "Three labeled joint samples and one stable shape in the class tray.", "Paper and cardstock tabs and slots work for every step.", ["Build one stable shape using a demonstrated join.", "Compare two join types and explain the tradeoff before choosing."]),
   "year:circ-packaging": meta("E", "TRO", "ask build test improve", [TRAYS, "Model products and reclaimed boxes at each table", "Handling test card posted"], "Your package and one before and after change, shown to the teacher.", "Cardstock package tested by hand with the same handling card.", ["Protect one object. Show one before and after change.", "Compare protection, material use and how easy it is to open."]),
@@ -167,8 +168,8 @@ function unit(title, season, meetings) { return { title, season, meetings }; }
 const PLAYBOOK_A_UNITS = [
   unit("Graphics and identity", "Fall", [
     { ...both("year:circ-neuro"), done: true },
-    both("year:circ-canva-template", "Graphics visit 1 of 2. Replaces the older digitize plan."),
-    both("year:circ-canva-original", "Graphics visit 2 of 2. Replaces the older Paint logo plan.")
+    { ...both("year:circ-canva-template", "Logo 1 was completed last week. Keep it for the jingle."), done: true },
+    both("year:circ-logo-jingle", "Use the first logo. This jingle replaces the second-logo assignment.")
   ]),
   unit("Build basics", "Fall", [
     both("year:circ-cardboard"),
@@ -296,10 +297,10 @@ export const PLAYBOOKS = freeze([
     name: "Playbook A",
     year: "2026-27",
     status: "This year",
-    summary: "This year's route. NeuroArt is finished. Two Canva logo visits come next, then building, grade 5 KidWind in December while grade 6 runs CIRC Tank, water flow, and a six-visit Tinkercad skate park.",
+    summary: "This year's route. NeuroArt/book checkout and Logo 1 are finished. Make a jingle from your first logo next, then building, grade 5 KidWind in December while grade 6 runs CIRC Tank, water flow, and a six-visit Tinkercad skate park.",
     capacity: "31 meetings plus one buffer. From September 28, 2026 cycle days 1 to 3 have 31 visits left and days 4 and 5 have 30, so the buffer is only for days 1 to 3. Dates can shift. Mark a class by its record, never by the date.",
     balance: "More 3D design and building. Playbook B carries more library and research work.",
-    nextMeeting: 2,
+    nextMeeting: 3,
     units: numberUnits(PLAYBOOK_A_UNITS)
   },
   {
@@ -372,6 +373,7 @@ export function getLessonForRef(ref) {
     const exit = steps.filter(step => step.kind === "exit").flatMap(step => step.directions);
     base = {
       title: source.title,
+      resources: (source.resources ?? []).map(resource => ({ ...resource })),
       goal: source.objective,
       materials: [...source.materials],
       safety: source.safety,

@@ -765,7 +765,7 @@ test("welcome lesson preview performs no durable work and returns cleanly", asyn
 
     assert.equal(controller.previewOnly, true);
     assert.match(textOf(root), /Preview only/);
-    assert.match(textOf(root), /Canva logo 1: Start from a template/);
+    assert.match(textOf(root), /Logo to jingle: Give your brand a sound/);
     assert.doesNotMatch(textOf(root), /Add your schedule once/);
     assert.equal(findAll(root, (node) =>
       node.tagName === "button" && textOf(node) === "Start class"
@@ -1708,12 +1708,13 @@ test("Year Map route exposes all 36 choices without private schedule content", a
   const meetingButtons = findAll(root, (node) => node.tagName === "button" && /\bpb-meeting\b/.test(node.className));
   assert.equal(meetingButtons.length, 32, "Playbook A: 31 meetings plus one buffer");
   const lessonTitle = findAll(root, (node) => node.getAttribute("id") === "pb-lesson-title")[0];
-  assert.equal(textOf(lessonTitle), "Canva logo 1: Start from a template", "NeuroArt is finished, so start with the first Canva logo visit");
+  assert.equal(textOf(lessonTitle), "Logo to jingle: Give your brand a sound", "NeuroArt and Logo 1 are finished, so start with the jingle");
   assert.match(rendered, /Current Playbooks A and B, including both grade paths/);
   assert.match(rendered, /CIRC circuit game, Canva quick start and NeuroArt check/);
   assert.equal(findAll(root, (node) => node.tagName === "a" && node.getAttribute("href") === "assets/guides/CIRC-Classroom-Toolkit.pdf").length, 1);
-  assert.match(rendered, /Canva logo 1: Start from a template/);
-  assert.match(rendered, /Canva logo 2: Original from a blank design/);
+  assert.match(rendered, /Logo to jingle: Give your brand a sound/);
+  assert.match(rendered, /AI Jingle Maker - slogan helper/);
+  assert.match(rendered, /Suno - generate a sung jingle/);
   assert.match(rendered, /Meet the CIRC Teacher and the Outdoor Classroom/);
   assert.match(rendered, /Demo Day/);
   assert.equal(findAll(root, (node) => /\bproject-library-card\b/.test(node.className)).length, 36);
@@ -3022,7 +3023,7 @@ test("temporary demo opens a working in-memory preview runner that cannot save o
     openTeacherEntrance(root);
 
     findAll(root, (node) => node.tagName === "button" && textOf(node) === "Preview a lesson")[0].click();
-    assert.match(textOf(root), /Canva logo 1: Start from a template/);
+    assert.match(textOf(root), /Logo to jingle: Give your brand a sound/);
     assert.match(textOf(root), /Preview only/);
     assert.match(textOf(root), /Class timer/);
     assert.equal(saveCount, 0);
