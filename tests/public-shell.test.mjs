@@ -28,7 +28,7 @@ async function listJavaScriptFiles(directory) {
   return files;
 }
 
-test("public entrypoints are byte-identical ordinary local shells", async () => {
+test("public entrypoints are byte-identical local shells with only reviewed theme fonts", async () => {
   const [indexBytes, missionBytes] = await Promise.all([
     readFile(path.join(ROOT, "index.html")),
     readFile(path.join(ROOT, "mission-control.html"))
@@ -41,14 +41,19 @@ test("public entrypoints are byte-identical ordinary local shells", async () => 
   assert.doesNotMatch(html, /favicon\.(?:ico|svg)/i);
   assert.match(html, /<script[^>]+type="module"[^>]+src="src\/app\.js"/);
   assert.doesNotMatch(html, /<x-dc|<sc-if|<sc-for|support\.js|text\/x-dc/i);
-  assert.doesNotMatch(html, /https?:\/\//i);
+  assert.deepEqual(html.match(/https?:\/\/[^\s"'<>]+/gi), [
+    "https://fonts.googleapis.com",
+    "https://fonts.gstatic.com",
+    "https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap"
+  ]);
+  assert.match(html, /<link rel="stylesheet" href="theme\.css">/);
 });
 
 test("public shell exposes the approved name and exact navigation", async () => {
   const html = await readPublicSource("index.html");
-  assert.match(html, /<title>CIRC HQ \| The Playbook<\/title>/);
+  assert.match(html, /<title>CIRC HQ \| Grades 5-6<\/title>/);
   assert.match(html, />\s*CIRC HQ\s*</);
-  assert.match(html, />\s*The Playbook\s*</);
+  assert.match(html, />\s*Grades 5-6\s*</);
   assert.doesNotMatch(html, /class="brand-mark"/);
   assert.doesNotMatch(html, /<span[^>]*>\s*CIRC\s*<\/span>/);
   assert.doesNotMatch(html, /Mission Control|Teaching Zone/i);
@@ -56,7 +61,7 @@ test("public shell exposes the approved name and exact navigation", async () => 
   assert.match(html, /data-route="settings"[^>]*aria-label="Settings"/);
 
   const nav = html.match(/<nav[\s\S]*?<\/nav>/i)?.[0] ?? "";
-  const labels = [...nav.matchAll(/<button[^>]+aria-label="([^"]+)"[^>]*>/gi)].map(
+  const labels = [...nav.matchAll(/<(?:button|a)[^>]+aria-label="([^"]+)"[^>]*>/gi)].map(
     (match) => match[1].trim()
   );
   assert.deepEqual(labels, [
@@ -64,13 +69,15 @@ test("public shell exposes the approved name and exact navigation", async () => 
     "Playbooks",
     "Schedule",
     "Room",
+    "Arcade",
     "Settings"
   ]);
   assert.equal((nav.match(/<img\b/gi) ?? []).length, 5);
   for (const icon of ["house", "books", "calendar-dots", "chalkboard-teacher", "gear-six"]) {
     assert.match(nav, new RegExp(`assets/icons/${icon}\\.svg`));
   }
-  assert.doesNotMatch(nav, /<svg\b/i);
+  assert.equal((nav.match(/<svg\b/gi) ?? []).length, 1);
+  assert.match(nav, /<a class="nav-link" href="arcade\.html" aria-label="Arcade">/);
 });
 
 test("release documentation names the CIRC HQ repository URL and current content scope", async () => {
