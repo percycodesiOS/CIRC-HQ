@@ -175,6 +175,8 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "assets/tech-terrarium-maker-scene.jpg",
   "ectv-imovie.html",
   "ectv-live.html",
+  "ectv-scripts.css",
+  "ectv-scripts.html",
   "ectv.css",
   "ectv.html",
   "fid.css",
@@ -183,6 +185,7 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "index.html",
   "mission-control.html",
   "src/app.js",
+  "src/ectv-scripts.js",
   "src/model/access.js",
   "src/model/admin-plan.js",
   "src/model/announcements.js",
@@ -854,6 +857,14 @@ export async function inspectLocalPaths(root = ROOT) {
 export function countUnsafeRuntimeLinks(text) {
   const links = text.match(/https?:\/\/[^\s"'`<>)]+/gi) ?? [];
   const reviewedStudentLinks = new Set([
+    "https://www.youtube.com/watch?v=YoqiYSvwCs0",
+    "https://www.youtube-nocookie.com/embed/YoqiYSvwCs0",
+    "https://www.youtube.com/watch?v=eJC75rducTo",
+    "https://www.youtube-nocookie.com/embed/eJC75rducTo",
+    "https://www.youtube.com/watch?v=rZV1inYSCbY",
+    "https://www.youtube-nocookie.com/embed/rZV1inYSCbY",
+    "https://www.youtube.com/watch?v=-CeLBsqU6qw",
+    "https://www.youtube-nocookie.com/embed/-CeLBsqU6qw",
     "https://www.beepbox.co/",
     "https://suno.com/",
     "https://www.aijinglemaker.com/",
@@ -902,6 +913,8 @@ function isPublicRuntimePath(relativePath) {
   return relativePath === "app.css" ||
     relativePath === "arcade.html" ||
     relativePath === "ectv-live.html" ||
+    relativePath === "ectv-scripts.html" ||
+    relativePath === "ectv-scripts.css" ||
     relativePath === "theme.css" ||
     relativePath === "walkthrough.html" ||
     relativePath === "fid.css" ||

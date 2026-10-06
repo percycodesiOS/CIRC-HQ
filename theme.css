@@ -1,24 +1,24 @@
-/* CIRC HQ theme layer. Loads after app.css and reskins it: azure and navy on ice white,
+/* CIRC HQ theme layer. Loads after app.css and reskins it: navy and blue with warm cream surfaces,
    Fredoka for display type, Nunito Sans for body. Built for any CIRC room, not one teacher. */
 
 :root {
-  --canvas: #f2f5fa;
+  --canvas: #fffaf1;
   --surface: #ffffff;
-  --blue: #1e86f0;
-  --blue-dark: #0e6fd6;
-  --pale-blue: #e9f2fc;
-  --ink: #122649;
-  --heading: #122649;
+  --blue: #175fb5;
+  --blue-dark: #175fb5;
+  --pale-blue: #eaf3ff;
+  --ink: #102b50;
+  --heading: #102b50;
   --secondary: #52618a;
   --border: rgba(18, 38, 73, 0.12);
   --warning: #fbeae6;
   --warning-border: rgba(206, 68, 51, 0.3);
   --radius-large: 22px;
   --radius: 16px;
-  --accent-grad: linear-gradient(180deg, #1e86f0, #0b62cc);
+  --accent-grad: linear-gradient(180deg, #175fb5, #0b62cc);
   --shadow-card: 0 14px 34px rgba(18, 38, 73, 0.10);
   --shadow-glow: 0 10px 24px rgba(14, 111, 214, 0.35);
-  font-family: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
 }
 
 html, body {
@@ -38,7 +38,7 @@ h1, h2, h3, h4,
 .project-library-title,
 .entrance-card h2,
 .student-waiting-card h2 {
-  font-family: "Fredoka", "Nunito Sans", system-ui, sans-serif;
+  font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
   font-weight: 700;
   letter-spacing: 0.2px;
   color: var(--heading);
@@ -96,7 +96,7 @@ h1, h2, h3, h4,
 .primary-action,
 .entrance-cta.primary-action,
 .welcome-primary {
-  font-family: "Fredoka", "Nunito Sans", system-ui, sans-serif;
+  font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
   font-weight: 600;
   letter-spacing: 0.6px;
   color: #fff;
@@ -210,7 +210,7 @@ img.welcome-maker { display: none !important; }
 
 /* Activity screen: navy gradient command bar, Fredoka timers, step cards */
 .runner-command-bar {
-  background: linear-gradient(120deg, #0f2350 0%, #134a9e 58%, #1e86f0 125%);
+  background: linear-gradient(120deg, #0f2350 0%, #134a9e 58%, #175fb5 125%);
   box-shadow: 0 12px 30px rgba(15, 35, 80, 0.30);
 }
 .runner-command-bar .runner-timer-value { color: #fff; }
@@ -227,7 +227,7 @@ img.welcome-maker { display: none !important; }
 /* Higher-specificity fixes after the first visual check */
 .experience-runner .runner-command-bar,
 .runner-command-bar {
-  background: linear-gradient(120deg, #0f2350 0%, #134a9e 58%, #1e86f0 125%) !important;
+  background: linear-gradient(120deg, #0f2350 0%, #134a9e 58%, #175fb5 125%) !important;
   border: 0 !important;
   border-radius: 0 0 22px 22px;
 }

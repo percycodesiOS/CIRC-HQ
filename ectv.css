@@ -1,18 +1,18 @@
 /* ECTV - The Morning Ehrman Show
    Visual identity matched to the approved Moodle welcome panel:
-   navy-to-teal panels, cyan and light-blue controls, cream cards, bold sans headings. */
+   navy panels, blue and light-blue controls, cream cards, bold sans headings. */
 
 :root {
-  --panel-deep: #07172b;
-  --panel-mid: #102f46;
-  --panel-dark: #062234;
-  --control: #a6eaff;
-  --control-border: #c7efff;
+  --panel-deep: #102b50;
+  --panel-mid: #174784;
+  --panel-dark: #102b50;
+  --control: #d7e7fa;
+  --control-border: #84baff;
   --cream: #f5f1e8;
-  --card: #fffdf7;
-  --ink: #12283a;
+  --card: #fffaf1;
+  --ink: #102b50;
   --muted: #4c6478;
-  --yellow: #ffd66e;
+  --yellow: #f5cf46;
   --coral: #ff8d75;
   --line: rgba(7, 23, 43, 0.14);
   --shadow: 0 14px 34px rgba(7, 23, 43, 0.14);
@@ -20,15 +20,7 @@
   --font: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
 }
 
-/* The iMovie guide uses purple accents while keeping the ECTV layout. */
-.imovie-guide {
-  --panel-deep: #241039;
-  --panel-mid: #42235e;
-  --panel-dark: #32184b;
-  --control: #dec5ff;
-  --control-border: #ecdcff;
-}
-.imovie-guide .homeroom-banner svg { stroke: var(--control); }
+/* iMovie shares the school palette. */
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }

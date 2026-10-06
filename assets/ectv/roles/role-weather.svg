@@ -1,14 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="480" height="360" role="img" aria-labelledby="title desc">
   <title id="title">Weather reporter</title>
   <desc id="desc">A studio weather map with sun, clouds, rain and a pointer, ready for the school forecast.</desc>
-  <rect width="240" height="180" rx="18" fill="#faf7ee"/><circle cx="196" cy="42" r="34" fill="#e5edcf"/><path d="M18 66V37a11 11 0 0 1 11-11h42" fill="none" stroke="#dbe4d2" stroke-width="2" stroke-linecap="round"/><ellipse cx="121" cy="157" rx="99" ry="9" fill="#dce2cd"/>
+  <rect width="240" height="180" rx="18" fill="#faf7ee"/><circle cx="196" cy="42" r="34" fill="#cfdced"/><path d="M18 66V37a11 11 0 0 1 11-11h42" fill="none" stroke="#d2dae4" stroke-width="2" stroke-linecap="round"/><ellipse cx="121" cy="157" rx="99" ry="9" fill="#cdd6e2"/>
 
-<path d="M104 133v14m30-14v14M87 153h64" fill="none" stroke="#24543e" stroke-width="5" stroke-linecap="round"/>
-<rect x="24" y="27" width="191" height="109" rx="11" fill="#356346" stroke="#24543e" stroke-width="2.5"/><rect x="31" y="34" width="177" height="89" rx="5" fill="#f2f3dd"/>
-<path d="m63 39 20 10 29-7 18 8 31-9 14 17-13 20 15 24-22 15-25-6-23 9-23-12-29 3-8-22 15-19-9-14Z" fill="#c5d889" stroke="#94ac87" stroke-width="1.5"/><path d="m83 49 6 33-5 26m23-64 6 32 17 35m31-70-19 34 20 3M55 89l58-13 29-1m-58 33 29-32" fill="none" stroke="#a7bf80" stroke-width="1.5"/>
+<path d="M104 133v14m30-14v14M87 153h64" fill="none" stroke="#243954" stroke-width="5" stroke-linecap="round"/>
+<rect x="24" y="27" width="191" height="109" rx="11" fill="#354963" stroke="#243954" stroke-width="2.5"/><rect x="31" y="34" width="177" height="89" rx="5" fill="#f2f3dd"/>
+<path d="m63 39 20 10 29-7 18 8 31-9 14 17-13 20 15 24-22 15-25-6-23 9-23-12-29 3-8-22 15-19-9-14Z" fill="#89abd8" stroke="#8797ac" stroke-width="1.5"/><path d="m83 49 6 33-5 26m23-64 6 32 17 35m31-70-19 34 20 3M55 89l58-13 29-1m-58 33 29-32" fill="none" stroke="#809bbf" stroke-width="1.5"/>
 <g stroke="#cfaa5f" stroke-width="2.5" stroke-linecap="round"><path d="M77 47v-6m0 44v-6M55 63h-6m44 0h-6M61 47l-4-4m32 32 4 4m-32-4-4 4m32-32 4-4"/><circle cx="77" cy="63" r="12" fill="#f4d66a"/></g>
-<path d="M132 70c-7 0-9-10-3-14 0-13 17-16 22-5 13-4 19 15 8 19Z" fill="#fffdf7" stroke="#668368" stroke-width="2"/><path d="m136 78-3 7m12-7-3 7m12-7-3 7" stroke="#668368" stroke-width="2.5" stroke-linecap="round"/>
-<circle cx="115" cy="99" r="3" fill="#24543e"/><circle cx="115" cy="99" r="7" fill="none" stroke="#fffdf7" stroke-width="2"/>
-<path d="m187 146-64-43" stroke="#24543e" stroke-width="4" stroke-linecap="round"/><path d="m188 147-16-11" stroke="#b7d28a" stroke-width="7" stroke-linecap="round"/><circle cx="119" cy="129" r="2" fill="#c5e77f"/>
-<g stroke="#668368" stroke-width="1.5"><rect x="38" y="139" width="29" height="23" rx="5" fill="#fffdf7"/><rect x="72" y="139" width="29" height="23" rx="5" fill="#fffdf7"/><circle cx="52.5" cy="150.5" r="5" fill="#f4d66a" stroke="#cfaa5f"/><path d="M80 153c-4-1-3-6 0-6 1-6 8-7 10-2 6-1 8 7 3 8Z" fill="#dce9cf"/></g>
+<path d="M132 70c-7 0-9-10-3-14 0-13 17-16 22-5 13-4 19 15 8 19Z" fill="#fffdf7" stroke="#667383" stroke-width="2"/><path d="m136 78-3 7m12-7-3 7m12-7-3 7" stroke="#667383" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="115" cy="99" r="3" fill="#243954"/><circle cx="115" cy="99" r="7" fill="none" stroke="#fffdf7" stroke-width="2"/>
+<path d="m187 146-64-43" stroke="#243954" stroke-width="4" stroke-linecap="round"/><path d="m188 147-16-11" stroke="#8aa9d2" stroke-width="7" stroke-linecap="round"/><circle cx="119" cy="129" r="2" fill="#7face7"/>
+<g stroke="#667383" stroke-width="1.5"><rect x="38" y="139" width="29" height="23" rx="5" fill="#fffdf7"/><rect x="72" y="139" width="29" height="23" rx="5" fill="#fffdf7"/><circle cx="52.5" cy="150.5" r="5" fill="#f4d66a" stroke="#cfaa5f"/><path d="M80 153c-4-1-3-6 0-6 1-6 8-7 10-2 6-1 8 7 3 8Z" fill="#cfdae9"/></g>
 </svg>

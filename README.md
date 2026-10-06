@@ -246,3 +246,9 @@ Verification checks the public candidate boundary, runtime imports, entrypoint i
 ## Publication status
 
 Repository work, commit creation, push, GitHub Pages deployment, Firebase Console changes, private cloud writes, and live-site confirmation are separate actions. Local tests or a committed candidate do not make the intended URL live. This documentation change performs no deployment and uploads no private teacher data.
+
+## Public script reading page - October 5, 2026
+
+`ectv-scripts.html` is the permanent, account-free reading address and QR target. It contains only the reviewed current-week broadcast script with generic role labels, daily lunch notices, camera cues and four Cultural Day videos. It does not import the teacher application, storage, crew roster or school authentication. A New York date selects today; outside the published week a notice says that these scripts are not current. The native day list still works without JavaScript. The source remains the freshly read Moodle editor; after any live script edit, publish the reviewed reading copy too. Do not export teacher-only materials or rosters. This is publication, not an automatic Moodle connection.
+
+Welcome, the Moodle classroom doorways and public CIRC/ECTV surfaces share navy, blue, cream and yellow. Script role colors retain their spoken-job meaning.
