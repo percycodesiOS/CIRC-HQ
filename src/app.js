@@ -1293,21 +1293,21 @@ function boardRoute(board, navigate) {
 function playbookGuides() {
   return element("section", { className: "pb-guides", attributes: { "aria-labelledby": "pb-guides-title" } }, [
     element("h2", { text: "Printable guides", attributes: { id: "pb-guides-title" } }),
-    element("p", { text: "Current Playbooks A and B, including both grade paths, KidWind and Tinkercad. The teacher guide starts with the route and contains each shared lesson once. Print only the lesson you need. The screen-card deck uses PDF bookmarks and one step per page for projection." }),
+    element("p", { text: "The September 30 references cover Playbooks A and B, including both grade paths, KidWind and Tinkercad. Use the current on-screen lesson for updates. Print only the lesson you need. The screen-card deck uses PDF bookmarks and one step per page for projection." }),
     element("div", { className: "classroom-year-downloads" }, [
       element("a", {
         className: "secondary-action",
-        text: "Current teacher guide: Playbooks A and B",
+        text: "Full-year teacher reference (September 30)",
         attributes: { href: "assets/guides/CIRC-Teacher-Guide.pdf", target: "_blank", rel: "noopener" }
       }),
       element("a", {
         className: "secondary-action",
-        text: "Current classroom screen cards",
+        text: "Classroom screen-card reference (September 30)",
         attributes: { href: "assets/guides/CIRC-Classroom-Cards.pdf", target: "_blank", rel: "noopener" }
       }),
       element("a", {
         className: "secondary-action",
-        text: "CIRC circuit game, Canva quick start and NeuroArt check",
+        text: "Circuit Rescue, logo-to-jingle and NeuroArt check",
         attributes: { href: "assets/guides/CIRC-Classroom-Toolkit.pdf", target: "_blank", rel: "noopener" }
       })
     ])

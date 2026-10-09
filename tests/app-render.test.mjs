@@ -1709,8 +1709,8 @@ test("Year Map route exposes all 36 choices without private schedule content", a
   assert.equal(meetingButtons.length, 32, "Playbook A: 31 meetings plus one buffer");
   const lessonTitle = findAll(root, (node) => node.getAttribute("id") === "pb-lesson-title")[0];
   assert.equal(textOf(lessonTitle), "Logo to jingle: Give your brand a sound", "NeuroArt and Logo 1 are finished, so start with the jingle");
-  assert.match(rendered, /Current Playbooks A and B, including both grade paths/);
-  assert.match(rendered, /CIRC circuit game, Canva quick start and NeuroArt check/);
+  assert.match(rendered, /The September 30 references cover Playbooks A and B, including both grade paths/);
+  assert.match(rendered, /Circuit Rescue, logo-to-jingle and NeuroArt check/);
   assert.equal(findAll(root, (node) => node.tagName === "a" && node.getAttribute("href") === "assets/guides/CIRC-Classroom-Toolkit.pdf").length, 1);
   assert.match(rendered, /Logo to jingle: Give your brand a sound/);
   assert.match(rendered, /AI Jingle Maker - slogan helper/);
@@ -1778,6 +1778,17 @@ test("Playbooks features the Grade 6 announcements studio without adding a sixth
     assert.match(textOf(root), /Grade 6 Morning Announcements/);
     assert.match(textOf(root), /rite of passage/i);
     assert.match(textOf(root), /Live scripts are on Moodle/);
+    for (const [label, href] of [
+      ["Full-year teacher reference (September 30)", "assets/guides/CIRC-Teacher-Guide.pdf"],
+      ["Classroom screen-card reference (September 30)", "assets/guides/CIRC-Classroom-Cards.pdf"],
+      ["Circuit Rescue, logo-to-jingle and NeuroArt check", "assets/guides/CIRC-Classroom-Toolkit.pdf"]
+    ]) {
+      const link = findAll(root, node => node.tagName === "a" && textOf(node) === label);
+      assert.equal(link.length, 1, label);
+      assert.equal(link[0].attributes.get("href"), href);
+    }
+    assert.match(textOf(root), /Use the current on-screen lesson for updates\. Print only the lesson you need\./);
+    assert.doesNotMatch(textOf(root), /Current teacher guide:|Current classroom screen cards/);
     const moodleLink = findAll(root, node => node.tagName === "a" && textOf(node) === "Open scripts in Moodle")[0];
     assert.equal(moodleLink.attributes.get("href"), "https://moodle.svsd.net/course/view.php?id=13811");
     assert.equal(moodleLink.attributes.get("rel"), "noopener noreferrer");
