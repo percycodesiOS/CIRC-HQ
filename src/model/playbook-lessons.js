@@ -50,6 +50,80 @@ const KIDWIND_BASIS = "Adapted from KidWind's MacGyver Windmills activity. The f
 
 export const PLAYBOOK_LESSONS = freeze([
   lesson({
+    id: "circuit-rescue-build",
+    title: "Circuit Rescue 1: Build the game",
+    objective: "I can explain an open and closed circuit and build a game that signals a touch.",
+    materials: ["Six reusable circuit trays for 27 students in teams of four or five", "Per tray: covered switched 2-AA holder, two AA cells, active buzzer rated for 3 V, three insulated clip leads and a blunt conductive tool with insulated grip", "Team cardboard board, continuous foil rim, tape, large card tokens and diagram", "Teacher-tested spare circuit and pre-cut board openings"],
+    safety: "Use only teacher-checked 3 V battery circuits. Power off before changing connections. Keep the buzzer in series; never join battery terminals directly. No person is part of the circuit. Teacher prepares openings and covers sharp edges. Stop for heat or damaged parts. No coin cells, mains, student soldering or shock feature.",
+    teacherContext: [
+      "Regular CIRC class over two or three class contacts, about two to three full five-day rotations. Each class starts at its own stage. A week does not give the same class five visits.",
+      "Pilot one matched set first: three contacts sound and three separated positions stay silent. Check volume at the actual 3 V supply. Run one table's sound test at a time if needed.",
+      "Six team sets are reused between classes; retain each class's labeled cardboard boards and paper records. Do not buy electronics for every student. Arduino and Raspberry Pi demonstrations are optional teacher extensions, not prerequisites.",
+      "Circuit: battery positive to buzzer positive; buzzer negative to one continuous foil rim; conductive tool to battery negative. Tool touching rim closes the loop. Keep all other exposed connections apart. A teacher checks before power.",
+      "For multiple openings, use a continuous foil sheet with folded rims or a tested metal-to-metal bridge. Ordinary tape adhesive is an insulator; overlapped taped foil may not conduct.",
+      "Support: offer one large pre-cut opening and a picture diagram. Stretch: label the switch and explain why a passive buzzer is unsuitable for a plain DC circuit. No parts yet: build a paper model and have a partner say buzz on contact; label it a simulation.",
+      "Maker background: Adafruit Low-Tech Buzzing Operation Game. Source link is in the README and teacher master. This classroom adaptation requires the exact component instructions and a teacher pilot."
+    ],
+    fastFinish: "Make an interchangeable challenge card. Explain how its answer links to one large removable token.",
+    steps: [
+      ["ready", "Watch the touch", "ready", 3, ["Watch the tool touch the foil rim.", "Say what changed when the sound began."], ["Show a checked working circuit, or explicitly label a paper simulation."]],
+      ["safe", "Trace and check", "safety", 5, ["Trace battery, buzzer, rim, tool and back to the battery.", "Point to the gap when the tool is away.", "Switch off before touching connections."], ["Demonstrate open/closed and the off switch. Nobody connects battery ends directly."]],
+      ["plan", "Plan one opening", "work", 4, ["Draw one large opening and its token.", "Mark where the foil rim and tool will touch."], ["Approve one opening first; adult makes any knife cut."]],
+      ["build", "Build and connect", "work", 13, ["Make the cardboard board from approved pieces.", "Fold foil around the opening and tape loose edges.", "Connect with power off and ask for the teacher check."], ["Use six table trays. Rotate builder, circuit tracer, tester and recorder. Clip to exposed metal, not through tape."]],
+      ["check", "Three on and three off", "work", 5, ["After approval, try three rim touches.", "Try three positions away from the rim.", "Record sound or silence each time."], ["Call brief tests table by table. Save a failed test as evidence and park an unsafe set."]],
+      ["reset", "Save and return", "cleanup", 3, ["Switch off. Return reusable electronics to their tray.", "Save the board with class and team codes.", "Count the tools."], ["Disconnect and inspect packs; keep boards separate between classes."]],
+      ["exit", "Explain the switch", "exit", 2, ["Say or point: the circuit closes when ___."], ["Accept a diagram or spoken answer. Record the class's actual stage."]]
+    ]
+  }),
+  lesson({
+    id: "circuit-rescue-test",
+    title: "Circuit Rescue 2: Test and improve",
+    objective: "I can compare repeated trials, change one feature and use evidence to decide whether it helped.",
+    materials: ["Saved team game boards and six reusable, teacher-checked 3 V circuit trays", "Same large token and retrieval tool for each before/after test", "Record sheet, pencil, ruler, cardboard and tape"],
+    safety: "Power off before changing connections or the board. Teacher checks each reconnect. Keep buzzer in series and all other exposed connections apart. Stop for heat or damaged parts. Use blunt tools and low-volume, brief tests; the game never shocks anyone.",
+    teacherContext: [
+      "Second class contact. Retrieve this class's boards; electronics are shared with every class. Start with the three-on/three-off check.",
+      "Fair test: one attempt removes the same token from the same starting spot. Keep the player, hand, tool and time limit the same before/after unless one of those is the explicitly selected design variable. Count separate rim contacts; lift away before another contact counts.",
+      "Run three baseline trials, change only opening size or grip, then run three comparison trials. Rotate roles after the before/after pair so player changes do not confuse the comparison.",
+      "Use larger openings, supported grip or a partner operating while another traces and records. A paper contact simulation is valid design practice but is not a verified electrical test.",
+      "A class can finish the two-contact core today. The third contact is for wider user testing, access improvements or unfinished work. This unit does not automatically advance the annual playbook."
+    ],
+    fastFinish: "Compare the total contacts in each set of three trials, then explain one limitation in your comparison.",
+    steps: [
+      ["ready", "Retrieve and check", "ready", 4, ["Find your coded board and record sheet.", "Power stays off until the teacher checks it."], ["Confirm that the class has built the board; otherwise continue visit 1."]],
+      ["rule", "Choose a fair rule", "work", 4, ["Name the token, start position, player and time limit.", "Keep the rule the same for all trials."], ["Use a short pilot to choose a workable limit; 20 seconds is a starting estimate."]],
+      ["baseline", "Run three trials", "work", 7, ["Count separate rim touches on each attempt.", "Record all three results, including a failed attempt."], ["Stagger sound checks. Watch for ambiguous continuous contact; define it once."]],
+      ["change", "Change one thing", "work", 7, ["Switch off.", "Change opening size or grip, not both.", "Predict what will happen."], ["Adults handle cuts. Write the one variable; keep the rest unchanged."]],
+      ["retest", "Repeat three trials", "work", 7, ["Repeat with the same player and rule.", "Compare the two sets of results."], ["Check wiring again before power. Accept results that do not improve."]],
+      ["reset", "Save and reset", "cleanup", 4, ["Power off and return all reusable electronics.", "Store your board and evidence together."], ["Count six sets and the shared spares before the next class."]],
+      ["exit", "Keep or undo", "exit", 2, ["We would keep or undo the change because our results show ___."], ["Check an evidence-based reason, not a claim that fewer contacts always proves a better design."]]
+    ]
+  }),
+  lesson({
+    id: "circuit-rescue-share",
+    title: "Circuit Rescue 3: Make it work for someone else",
+    objective: "I can use another player's feedback to improve access and explain my circuit with evidence.",
+    materials: ["Saved boards and records, six reusable checked 3 V circuit trays", "Large tokens, cardboard, tape and feedback cards", "Optional teacher-prepared math challenge cards"],
+    safety: "Use the same checked 3 V circuit and power-off rules. Teacher checks reconnections and handles cuts. No shock feature, sharp probe, mains or battery short circuit. Choose quiet paper play if sound is uncomfortable.",
+    teacherContext: [
+      "Optional third class contact makes a three-rotation unit. Use it for unfinished build/testing or user feedback; do not count it as five daily visits.",
+      "This is user feedback, not a controlled before/after experiment across different players. Let users choose a larger opening, supported grip or a nonmoving role.",
+      "If math is included, use a teacher-selected skill and checked answer cards. Math is optional; successful circuit explanation and design evidence remain the core goal.",
+      "An optional Arduino teacher demonstration may count contacts after its exact model and input/driver wiring are checked. No circuit here connects directly to a GPIO pin. A Raspberry Pi is not required.",
+      "Return the shared electronics at the end. Cardboard boards or paper designs may go home under the teacher's normal practice; individual take-home electronics require a separate quantity and budget decision."
+    ],
+    fastFinish: "Draw the same circuit as symbols and label the place where the tool acts as a switch.",
+    steps: [
+      ["ready", "Check your game", "ready", 4, ["Retrieve your board and evidence.", "Get a teacher circuit check before power."], ["Prioritize teams with unfinished tests. Use the paper path if parts are unavailable."]],
+      ["explain", "Teach a partner", "work", 4, ["Explain the goal and show where the circuit opens.", "Show the off switch."], ["Keep a one-minute explanation for each game."]],
+      ["user", "Watch a new player", "work", 8, ["Let another team try the game.", "Ask what was clear and what was difficult.", "Record their feedback without arguing."], ["Pair teams to avoid queues. Call sound tests as needed."]],
+      ["improve", "Improve access", "work", 8, ["Switch off and improve one difficulty.", "Use a bigger token, opening, label or supported grip."], ["Keep the change useful to the observed user; do not require speed or fine motor accuracy to earn credit."]],
+      ["share", "Show the evidence", "work", 5, ["Show the circuit path, a result and the change.", "Say what still needs testing."], ["Accept speaking, pointing, drawing or a short written explanation."]],
+      ["reset", "Return the class set", "cleanup", 4, ["Power off. Return packs, buzzers, leads and tools.", "Store the board or follow the teacher's take-home direction."], ["Count the reusable set. Remove batteries for storage according to their instructions."]],
+      ["exit", "One design lesson", "exit", 2, ["Finish: our user's feedback changed ___."], ["Record completion from evidence, not from elapsed time."]]
+    ]
+  }),
+  lesson({
     id: "kidwind-lift",
     title: "KidWind 1: Make the wind do work",
     objective: "I can build blades that turn wind into work and measure how far they lift a load.",

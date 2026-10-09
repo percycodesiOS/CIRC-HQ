@@ -24,6 +24,7 @@ import {
 import {
   EXPERIENCE_TIMING_PLANS,
   REPLICA_LESSON_CHOICES,
+  CIRCUIT_RESCUE_LESSON_CHOICES,
   getExperienceTimingPlan,
   getReplicaLessonChoice
 } from "./model/experience-timing-plans.js";
@@ -928,7 +929,7 @@ function replicaLessonChooser(actions) {
     actionButton(choice.label, "primary-action replica-lesson-button", () => actions.openRunner(2, { modeId: choice.id })),
     element("p", { text: choice.summary })
   ]);
-  const currentLesson = (resin) => actions.currentReplicaLesson && (actions.currentReplicaLesson.id === "replica-resin") === resin
+  const currentLesson = (section) => actions.currentReplicaLesson && (actions.currentReplicaLesson.id.startsWith("circuit-rescue-") ? "circuit" : actions.currentReplicaLesson.id === "replica-resin" ? "resin" : "replica") === section
     ? element("div", { className: "replica-current-lesson" }, [
       element("p", { text: `Current lesson: ${actions.currentReplicaLesson.title}. Reopen it to continue, or explicitly reset it for a new class.` }),
       actionButton("Start this lesson for a new class", "secondary-action", () => actions.openRunner(2, { modeId: actions.currentReplicaLesson.id, restart: true }))
@@ -950,16 +951,27 @@ function replicaLessonChooser(actions) {
     }, [
       element("p", { className: "section-kicker", text: "Tech Terrarium lesson choices" }),
       element("h2", { text: "Ehrman Crest replica lessons", attributes: { id: "replica-lessons-heading" } }),
-      element("p", { text: "School aerial view at the front; rocks, lizard habitat and technology at the back. Preserve the habitat and check the aerial reference before placing school features." }),
+      element("p", { text: "Finish the shared cardboard school first. Classes have not touched the Tech Terrarium. Keep each team's work apart and preserve the existing habitat and technology." }),
       element("p", { text: "Choose the lesson your crew needs. Each lesson plan totals 35 minutes; during a scheduled class, the class clock uses its remaining time. Opening the same choice keeps its current step; replacing a different lesson requires confirmation." }),
       element("div", { className: "replica-lesson-choices" }, REPLICA_LESSON_CHOICES.filter((choice) => !["replica-resin", "setup-devices"].includes(choice.id)).map(choiceCard)),
-      element("p", { text: "Ready to build with cardboard? Choose Day 5. Students assemble with tape and tabs while the teacher manages the hot-glue station. Resin is not required for this school-model lesson." }),
-      currentLesson(false),
+      element("p", { text: "Choose Day 5 for the current finish-and-ChompSaw lesson. Repeat it for every class through all five cycle days. The historical button label does not mean that all classes meet on Day 5. Paper/cardboard only at the saw; plexiglass and the computer-casing door are adult work." }),
+      currentLesson("replica"),
       actionButton("Original Tech Terrarium", "secondary-action", () => actions.openRunner(2, { modeId: "build-new" })),
       element("details", { className: "replica-operation-notes" }, [
         element("summary", { text: "Daily preparation" }),
         element("p", { text: "Announcement crew arrives by 8:50 a.m.; the 8:55 broadcast targets three minutes including the opening, silence, Pledge and closing. On Day 4, prepare and finalize all announcements for the following week. Select actual broadcast dates yourself; this does not change the school rotation or calendar." })
       ])
+    ]),
+    element("section", {
+      className: "replica-lessons",
+      attributes: { "aria-labelledby": "circuit-rescue-heading" }
+    }, [
+      element("p", { className: "section-kicker", text: "Regular CIRC class" }),
+      element("h2", { text: "Circuit Rescue: build a buzzer game", attributes: { id: "circuit-rescue-heading" } }),
+      element("p", { text: "An Operation-style battery circuit over two or three class contacts, about two or three full rotations. Six reusable team sets serve each incoming class. Start each class at its actual stage; no Arduino or Raspberry Pi is required." }),
+      element("p", { text: "Pilot the matched 3 V parts before class. The game signals contact and never shocks anyone. Use the paper simulation while parts are unavailable. These choices use the existing lesson timer and Student directions; they do not change the annual route automatically." }),
+      element("div", { className: "replica-lesson-choices" }, CIRCUIT_RESCUE_LESSON_CHOICES.map(choiceCard)),
+      currentLesson("circuit")
     ]),
     element("section", {
       className: "replica-lessons",
@@ -969,7 +981,7 @@ function replicaLessonChooser(actions) {
       element("h2", { text: "Resin on hold: design without pouring", attributes: { id: "standalone-resin-heading" } }),
       element("p", { text: "Use paper, cardboard and classroom materials for the dry design lesson while supplies are unresolved. No resin purchase or whole-school casting project is required. Any later teacher trial needs a separate materials and school-procedure check." }),
       element("div", { className: "replica-lesson-choices" }, REPLICA_LESSON_CHOICES.filter((choice) => choice.id === "replica-resin").map(choiceCard)),
-      currentLesson(true)
+      currentLesson("resin")
     ])
   ]);
 }

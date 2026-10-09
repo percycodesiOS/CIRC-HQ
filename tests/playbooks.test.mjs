@@ -14,7 +14,7 @@ import {
   strandCoverage
 } from "../src/model/playbooks.js";
 import { PLAYBOOK_LESSONS } from "../src/model/playbook-lessons.js";
-import { getExperienceTimingPlan, validateExperienceTimingPlan } from "../src/model/experience-timing-plans.js";
+import { getExperienceTimingPlan, REPLICA_LESSON_CHOICES, validateExperienceTimingPlan } from "../src/model/experience-timing-plans.js";
 import { createExperienceRunner, validateExperienceRunner } from "../src/model/experience-runner.js";
 
 const RESET_LESSONS = new Set(["year:catch-up", "year:reflect-reset"]);
@@ -71,7 +71,7 @@ test("every meeting path opens a complete, runnable 35-minute lesson", () => {
       assert.equal(validateExperienceRunner(JSON.parse(JSON.stringify(runner)), { teacherKey: "teacher:playbook-test" }).ok, true, where);
     }
   }
-  assert.equal(PLAYBOOK_LESSONS.length, 22);
+  assert.equal(PLAYBOOK_LESSONS.length, 25);
   for (const key of lessonMetaKeys()) assert.ok(key === "year:circ-canva-original" || PLAYBOOKS.some(playbook => allPaths(playbook.id).some(item => item.ref === key)), `unused lesson metadata ${key}`);
 });
 
@@ -230,6 +230,23 @@ test("teacher-prepared source and AI cards are marked as preparation, not a read
     assert.match(getLessonForRef(ref).prepRequired, /^Preparation required: .*This packet does not supply/, ref);
   }
   assert.equal(getLessonForRef("year:circ-cardboard").prepRequired, "");
+});
+
+test("public cardboard and Circuit Rescue plans retain preparation without personal or class-progress notes", () => {
+  const ids = ["replica-cardboard", "circuit-rescue-build", "circuit-rescue-test", "circuit-rescue-share"];
+  for (const modeId of ids) {
+    const plan = getExperienceTimingPlan(2, { modeId });
+    const context = [...REPLICA_LESSON_CHOICES, ...PLAYBOOK_LESSONS].find(lesson => lesson.id === modeId);
+    assert.ok(context, modeId);
+    const text = JSON.stringify({ plan, context });
+    assert.doesNotMatch(text, /Kenny|Macek|expected Friday|photos have not been reviewed|seven classes a day|workload estimate|classes have not touched|untouched Tech Terrarium|October 2 correction/i, modeId);
+    assert.equal(plan.steps.reduce((sum, step) => sum + step.minutes, 0), 35, modeId);
+    if (modeId === "replica-cardboard" || modeId === "circuit-rescue-build") assert.match(text, /pilot/i, modeId);
+  }
+  const cardboard = getExperienceTimingPlan(2, { modeId: "replica-cardboard" });
+  assert.deepEqual(cardboard.steps.map(step => step.minutes), [3, 6, 3, 15, 3, 3, 2]);
+  assert.match(JSON.stringify(cardboard), /six teams/i);
+  assert.match(JSON.stringify(REPLICA_LESSON_CHOICES.find(lesson => lesson.id === "replica-cardboard")), /separate adult preparation/i);
 });
 
 

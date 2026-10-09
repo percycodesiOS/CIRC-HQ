@@ -175,22 +175,27 @@ export const REPLICA_LESSON_CHOICES = deepFreeze([
     "id": "replica-cardboard",
     "title": "Build the Cardboard School",
     "label": "Day 5: Build the Cardboard School",
-    "objective": "I can turn a checked top-view plan into a stable cardboard module, test its fit, and leave a useful handoff.",
-    "summary": "Build the aerial school view at the front with cardboard. Preserve the rocks, lizard habitat and technology at the back, and leave a clear handoff for the next crew.",
+    "objective": "I can finish one assigned part of the shared cardboard school, use a safe tool routine, and leave evidence for the next class.",
+    "summary": "Finish the shared cardboard school across a full five-day rotation before work on the Tech Terrarium. Teams work apart; the teacher calls short ChompSaw turns.",
     "materials": [
-      "Cardboard, pencils, rulers and approved cutting tools",
+      "Clean paper/cardboard no thicker than 3 mm, pencils, rulers and a teacher-supervised ChompSaw",
       "Masking tape or paper tabs for student assembly",
       "Existing hot-glue gun, glue sticks and heat-resistant mat at the teacher station",
-      "Confirmed top-view reference and labeled storage trays"
+      "Six team trays, pre-cut backup shapes, six bounded job cards and a private class tool-turn sheet"
     ],
-    "safety": "Students dry-fit with tape or tabs. The teacher handles knife cuts, hot glue and cooled joints under the school's tool procedure. Keep cords and hot tools at the marked station. No heat gun, epoxy or water is needed for this lesson.",
+    "safety": "ChompSaw is paper/cardboard only: never plexiglass, PC casing, plastic, metal or electronics. Teacher supervises one called child; no standing queue. Keep cardboard flat, follow feed arrows and power off after each cut. Students use tape/tabs. Adult cutting, glue and door work happen separately; never run saw and hot glue simultaneously with one adult.",
     "teacherContext": [
-      "Use the known cardboard and existing glue equipment. Precut thick pieces or make requested cuts at the teacher station. A tape-and-tab build remains a complete lesson if the glue station is unavailable.",
+      "Finish the shared cardboard school before work on the Tech Terrarium. Inspect the model before assigning jobs; check each wall, roof and door before deciding the next task.",
+      "Repeat this 35-minute plan for each class over all five cycle days. For a class of 27, use six teams of four or five. The five days are different classes, not five visits for one class.",
+      "Plan one supervised saw until equipment/staffing are confirmed. A 15-minute cutting window allows about 10-15 beginner turns at 60-90 seconds each, including startup and transitions. Pilot the pace. Record who still needs a turn and prioritize them at their next class contact; do not rush all 27 through.",
+      "Any plexiglass panel or reclaimed PC-casing door requires separate adult preparation. Students can make a cardboard template only. Inspect actual material, dimensions, edges, clearances and attachment before adult fabrication; no permanent attachment is approved by the timer.",
+      "Give each table one bounded job. Support uses pre-cut templates; independent builders measure and test a join; finished teams check fit/labels or make a checked door template. Keep the saw off whenever adult attention is needed elsewhere.",
+      "ChompSaw maker directions: clear flat surface, empty closed drawer, power off before plugging in, face drawer, wait about ten seconds, cardboard 3 mm or less, feed along arrows, rotate for curves, power off after each cut and empty drawer at least every 30 minutes of cutting. Keep staples, tape and glue out of the cut path. Follow the exact manual for faults. Sources: ChompShop Learn ChompSaw and manufacturer FAQ, checked October 2, 2026. Links are in the README and private teacher master.",
       "Confirm the school outline and parent-drop-off direction from a trusted reference. If unavailable, build freestanding feature modules and leave site placement undecided. Mark new fountains and other modifications PROPOSED.",
       "Use one shared model scale only after a real reference dimension is confirmed. Otherwise label the prototype not to scale. Keep new modules removable from the shared base so future crews can revise them.",
       "Mark the front school-model area and the separate rear rocks, lizard habitat and technology. Keep tools, loose parts and glue out of the habitat. The teacher checks animal access, ventilation and existing equipment. The resin unit is a separate project; this model can progress with cardboard and the existing glue equipment."
     ],
-    "fastFinish": "Add one labeled brace or test a doorway fit, then sketch the next module without taking another crew's space."
+    "fastFinish": "Check an existing label or fit, test a spare joint, or make a teacher-approved cardboard door template. Do not expand the shared model."
   },
   {
     "id": "replica-service",
@@ -260,6 +265,12 @@ export const REPLICA_LESSON_CHOICES = deepFreeze([
     "fastFinish": "Help someone at your table who is not finished yet, then check your own night light is back at 25 percent."
   }
 ]);
+
+// Optional regular-CIRC unit; these choices reuse the existing teacher runner.
+// They do not silently reorder the annual playbooks or publish private progress.
+export const CIRCUIT_RESCUE_LESSON_CHOICES = deepFreeze(
+  PLAYBOOK_LESSONS.filter((lesson) => lesson.id.startsWith("circuit-rescue-"))
+);
 
 export function getReplicaLessonChoice(modeId) {
   return REPLICA_LESSON_CHOICES.find((choice) => choice.id === modeId) ?? getCircYearLesson(modeId) ?? getPlaybookLessonDefinition(modeId);
@@ -634,58 +645,59 @@ function replicaModeVariants() {
     },
     "replica-cardboard": {
       ...defineModeVariant(2, [
-        ["build-handoff", "READ THE BUILD PLAN", "ready", 3, [
-          "Read the previous crew's plan and labels.",
-          "Choose one school module your team can finish today."
+        ["build-handoff", "READ THE FINISH JOB", "ready", 3, [
+          "Find your table's job and tray.",
+          "Finish one assigned part of the shared cardboard school."
         ], [
-          "Say: Today we start building a cardboard version of Ehrman Crest. One useful, checked module is success.",
-          "Choose a wall, entrance, roof section or route marker. Keep proposed modifications labeled and separate."
+          "Finish the cardboard school before work on the Tech Terrarium. Inspect the model and assign six bounded finish jobs.",
+          "Repeat this lesson for every class over all five cycle days; do not assume the same children return tomorrow."
         ]],
-        ["build-tools", "CHECK THE TOOL STATION", "safety", 4, [
-          "Use only the cutting and assembly tools your teacher gives you.",
-          "Fit the parts together with tape or tabs before asking the teacher to glue them.",
-          "Keep hands away from the hot-glue station and let the teacher check cooled pieces."
+        ["build-tools", "WATCH THE CHOMPSAW", "safety", 6, [
+          "Paper and cardboard only. Never bring plexiglass or computer parts to this saw.",
+          "Keep cardboard flat. Feed along the arrows and turn it for a curve.",
+          "Show safe hands and the stop response. Wait at your seat until called."
         ], [
-          "Set a marked adult glue-and-cut station on a heat-resistant mat. Manage hot glue, knife cuts, cords and cooling under the school's tool procedure.",
-          "Use tape and tabs throughout if the station is unavailable. Existing tools do not remove the need for supervision."
+          "Demonstrate with clean cardboard 3 mm or thinner. Wait about ten seconds after startup and switch off after each cut. Keep staples, glue and tape out of the cut path.",
+          "Use tape and tabs throughout if the station is unavailable. Do not run hot glue while supervising the saw alone.",
+          "Any plexiglass panel or reclaimed PC-casing door is separate adult work after inspecting material, size, edges and attachment."
         ]],
-        ["build-mark", "MEASURE AND MARK", "work", 5, [
-          "Draw your module on cardboard and label its parts.",
-          "Mark folds, tabs and the doorway before cutting.",
-          "Check one measurement with a partner."
+        ["build-mark", "MEASURE AND MARK", "work", 3, [
+          "Draw and label the needed part.",
+          "Check one measurement with a partner.",
+          "Use the pre-cut backup if your tool turn has not come yet."
         ], [
-          "Use the shared reference and consistent scale if confirmed; otherwise mark not to scale.",
-          "If no aerial reference is ready, build a freestanding module and leave its final site location undecided."
+          "Use six teams of four or five for 27 students. Give support templates, independent measuring jobs and finish-check jobs.",
+          "Approve the first blanks. No standing saw queue. Keep work apart from the shared display."
         ]],
-        ["build-module", "BUILD ONE MODULE", "work", 12, [
-          "Cut only as directed, then fold or tape your pieces together.",
-          "Check that the parts fit before asking the teacher to glue them.",
-          "Add a brace if your module will not stand on its own."
+        ["build-module", "FINISH AT YOUR TABLE", "work", 15, [
+          "Build with tape or tabs and test the fit.",
+          "Only the called student goes to the saw. Everyone else keeps working.",
+          "Rotate maker, measurer, tester and recorder roles."
         ], [
-          "Manage the glue queue while other teams dry-fit, label, measure and brace. Do not let tool waiting stop all six groups.",
-          "Keep modules removable from the shared base. No epoxy pour or working fountain today."
+          "One saw at 60-90 seconds per turn serves about 10-15 beginners here. Pilot the real pace, including startup and transitions; do not promise all 27 turns today.",
+          "Record remaining turns privately for this class's next contact. Close the saw if another group needs adult attention."
         ]],
-        ["build-test", "TEST THE FIT", "work", 4, [
-          "Set your module in its agreed place, or beside the plan if the location is undecided.",
-          "Check that it stands and leaves the planned route clear.",
-          "Improve one weak connection or crowded spot."
+        ["build-test", "CHECK BEFORE PLACEMENT", "work", 3, [
+          "Show that the part stands, fits and has a clean finish.",
+          "Wait for approval before adding it to the school.",
+          "Protect every other team's work."
         ], [
-          "Check a stable stand, a readable label and fit with adjacent modules. This checks the model, not actual building safety.",
-          "Record disagreements rather than overwriting another crew's work."
+          "Power off. Inspect the real contribution and approve placement or name one next action.",
+          "Keep the Tech Terrarium and habitat separate from this work. Never infer physical completion from the timer."
         ]],
-        ["build-reset", "LABEL AND STORE", "cleanup", 5, [
-          "Label your module with a team code and its next step.",
-          "Save useful scraps and return tools as directed.",
-          "Leave hot tools and cooling pieces for the teacher."
+        ["build-reset", "LABEL AND STORE", "cleanup", 3, [
+          "Label the tray with your class/team code and next action.",
+          "Count tools back and clear scraps.",
+          "Leave the saw and adult tools for the teacher."
         ], [
-          "Unplug and secure the glue equipment; protect cooling work and clear the station.",
-          "Store modules in labeled trays. Keep student names out of public display or shared files."
+          "Secure and clean the saw according to its manual; empty the drawer at least every 30 minutes of cutting.",
+          "Refresh the six job cards for the incoming class. Keep student names off public displays."
         ]],
-        ["build-exit", "EXPLAIN ONE BUILD CHOICE", "exit", 2, [
-          "Complete: Our module represents ___ and we made it stable by ___.",
-          "Leave the next crew one specific action."
+        ["build-exit", "LEAVE THE NEXT STEP", "exit", 2, [
+          "We made ___. We checked ___. Next it needs ___."
         ], [
-          "Accept a brief written, spoken or drawn handoff. Check the module against the plan, stability and label criteria."
+          "Accept speech, pointing or a drawing. Record group progress separately from individual tool practice.",
+          "Include cycle day 5 classes before closing the rotation; carry remaining work forward based on actual evidence."
         ]]
       ], replicaParallelJobs(), { preserveExisting: true, requiresTeacherPlan: true, dismantleGluedStructure: false }),
       title: "Build the Cardboard School",
@@ -2964,7 +2976,7 @@ export function assertValidExperienceTimingPlans(plans) {
 for (const lesson of [...CIRC_YEAR_LESSONS, ...PLAYBOOK_LESSONS]) {
   PLAN_DEFINITIONS[1].modeVariants[lesson.id] = {
     title: lesson.title,
-    safetyTags: lesson.id === "circ-cardboard" ? ["tool", "cutting"] : [],
+    safetyTags: lesson.id.startsWith("circuit-rescue-") ? ["electrical", "tool"] : lesson.id === "circ-cardboard" ? ["tool", "cutting"] : [],
     steps: lesson.steps.map((step) => ({ ...step, label: step.label.toUpperCase() })),
     parallelJobs: Array.from({ length: 6 }, (_, index) => ({
       id: "table-" + (index + 1), label: "Table " + (index + 1), maxStudents: 6,

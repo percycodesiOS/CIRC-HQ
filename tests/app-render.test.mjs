@@ -2486,7 +2486,8 @@ test("every current lesson path resolves to a reviewed meaning-based icon", () =
 
   assert.equal(paths.length, 48);
   assert.equal(steps.length, 382);
-  assert.equal(uniqueSteps.size, 273);
+  // The school finish lesson now shares LEAVE THE NEXT STEP with another exit.
+  assert.equal(uniqueSteps.size, 272);
   for (const step of steps) assert.equal(reviewedFiles.has(runnerStepIconFile(step)), true);
 
   const distribution = Object.fromEntries(
@@ -2503,7 +2504,7 @@ test("every current lesson path resolves to a reviewed meaning-based icon", () =
     "gear-six": 94,
     house: 1,
     "play-circle": 16,
-    "presentation-chart": 42,
+    "presentation-chart": 41,
     student: 10,
     "warning-circle": 45
   });
@@ -4457,7 +4458,10 @@ for (const [modeId, label, title] of [
   ["replica-layout", "Next session: Aerial Layout & Dry Prototype", "Aerial Layout & Dry Prototype"],
   ["replica-cardboard", "Day 5: Build the Cardboard School", "Build the Cardboard School"],
   ["replica-service", "Friday, September 11: Remember & Serve", "Remember & Serve"],
-  ["replica-resin", "Resin unit: Design and Measure a Feature", "Design and Measure a Resin Feature"]
+  ["replica-resin", "Resin unit: Design and Measure a Feature", "Design and Measure a Resin Feature"],
+  ["circuit-rescue-build", "Circuit Rescue 1: Build the game", "Circuit Rescue 1: Build the game"],
+  ["circuit-rescue-test", "Circuit Rescue 2: Test and improve", "Circuit Rescue 2: Test and improve"],
+  ["circuit-rescue-share", "Circuit Rescue 3: Make it work for someone else", "Circuit Rescue 3: Make it work for someone else"]
 ]) {
   test(`${modeId} runs without an account, keeps every student step separate, and explicitly restarts for another class`, async () => {
     const previousDocument = globalThis.document;
