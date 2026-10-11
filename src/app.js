@@ -36,6 +36,7 @@ import {
   validateExperienceRunner
 } from "./model/experience-runner.js";
 import { PROJECTS, getProjectByNumber } from "./model/project-catalog.js";
+import { handoutForRef } from "./model/lesson-finder.js";
 import {
   addScheduleEvent,
   compileScheduleDraft,
@@ -1121,7 +1122,10 @@ function studentRunnerRoute(project, runner, actions) {
         ? element("p", { className: "runner-preview-label", text: "Preview only" })
         : null,
       element("p", { className: "board-lesson", text: `Step ${timer.currentStepIndex + 1} of ${runner.steps.length}: ${step.label}` }),
-      actionButton("Exit student view", "primary-action", () => actions.navigate("today"))
+      element("div", { className: "runner-student-exits" }, [
+        actionButton("Teacher controls", "secondary-action", () => actions.navigate("experience-runner")),
+        actionButton("Exit student view", "primary-action", () => actions.navigate("today"))
+      ])
     ]),
     element("section", { className: "board-section runner-student-step" }, [
       element("h2", { text: step.label }),
@@ -1293,8 +1297,13 @@ function boardRoute(board, navigate) {
 function playbookGuides() {
   return element("section", { className: "pb-guides", attributes: { "aria-labelledby": "pb-guides-title" } }, [
     element("h2", { text: "Printable guides", attributes: { id: "pb-guides-title" } }),
-    element("p", { text: "The September 30 references cover Playbooks A and B, including both grade paths, KidWind and Tinkercad. Use the current on-screen lesson for updates. Print only the lesson you need. The screen-card deck uses PDF bookmarks and one step per page for projection." }),
+    element("p", { text: "Every lesson has its own small student PDF and a Word response sheet on the handouts page, made from the on-screen lesson. The September 30 references cover Playbooks A and B, including both grade paths, KidWind and Tinkercad. Use the current on-screen lesson for updates. Print only the lesson you need. The screen-card deck uses PDF bookmarks and one step per page for projection." }),
     element("div", { className: "classroom-year-downloads" }, [
+      element("a", {
+        className: "primary-action",
+        text: "Handouts and guides: one PDF per lesson",
+        attributes: { href: "resources.html", target: "_blank", rel: "noopener" }
+      }),
       element("a", {
         className: "secondary-action",
         text: "Full-year teacher reference (September 30)",
@@ -1328,7 +1337,8 @@ function projectsRoute(actions) {
         resolved.lesson.runner.projectNumber,
         resolved.lesson.runner.modeId ? { modeId: resolved.lesson.runner.modeId } : {}
       ) : null,
-      studentHref: buildStudentLink({ playbook: view.playbookId, meeting: view.meeting, grade: view.grade, option: view.option })
+      studentHref: buildStudentLink({ playbook: view.playbookId, meeting: view.meeting, grade: view.grade, option: view.option }),
+      handoutHref: resolved.lesson ? handoutForRef(resolved.lesson.ref)?.files.pdf ?? null : null
     }
   }) : null;
   const browser = buildPlaybookBrowser(view.playbookId, {

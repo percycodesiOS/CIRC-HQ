@@ -17,7 +17,8 @@
   color: #f5f1e8;
 }
 
-.fid-attendance h2 {
+.fid-attendance h2,
+.fid-attendance .fid-attendance-title {
   margin: 0 0 8px;
   color: #a6eaff;
   font-size: 1.24rem;
