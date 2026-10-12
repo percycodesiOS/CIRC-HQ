@@ -2822,8 +2822,9 @@ export function validateExperienceTimingPlan(plan) {
     return { ok: false, errors };
   }
 
-  if (plan.steps.length < 7 || plan.steps.length > 9) {
-    errors.push(issue("step-count-must-be-7-to-9", "steps", plan.steps.length));
+  const maxSteps = number === 2 && plan.activeModeId === "circ-station-rotation" ? 10 : 9;
+  if (plan.steps.length < 7 || plan.steps.length > maxSteps) {
+    errors.push(issue(maxSteps === 10 ? "step-count-must-be-7-to-10" : "step-count-must-be-7-to-9", "steps", plan.steps.length));
   }
 
   const ids = new Set();

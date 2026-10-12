@@ -50,6 +50,72 @@ const KIDWIND_BASIS = "Adapted from KidWind's MacGyver Windmills activity. The f
 
 export const PLAYBOOK_LESSONS = freeze([
   lesson({
+    id: "circ-station-rotation",
+    title: "CIRC build stations: explore, make, improve",
+    objective: "I can try a MYnecraft feature, help build one shared project part, and explain what I checked.",
+    materials: [
+      "MYnecraft devices with existing worlds preserved and a way to keep downloaded saves",
+      "One prepared teacher-supervised ChompSaw station, its exact manual, approved clean cardboard blanks and pre-cut alternatives",
+      "Groups of four, a smaller final group as needed, coded work trays and a private individual tool-turn checklist",
+      "Existing EC model, checked measurements, cardboard, paper, rulers, pencils, suitable scissors and tape/tabs",
+      "Teacher-selected paint and craft supplies for the model, four colored cardboard SV logos, two flags and two flagpoles",
+      "Teacher-selected materials and size guides for an Eddie's cave model, bird-nest model and E/C bubble letters"
+    ],
+    safety: "Only the called group approaches the teacher-supervised ChompSaw; one child has a supported turn at a time. Follow the exact machine manual, teacher demonstration and school procedure. Use approved clean paper/cardboard no thicker than 3 mm, with no tape or glue in the cut line. Plexiglass, PC casing, metal and electronics stay out of this station. Power off between cuts and whenever the teacher must attend elsewhere; one adult does not supervise the saw and hot glue at the same time. Pre-cut pieces, suitable scissors or a partner-assist role are complete participation options. Cave and nest work are models for review, not approval for animal use, outdoor placement or changes to an enclosure.",
+    teacherContext: [
+      "This week's 35-minute lesson repeats for each incoming class across the five-day cycle. Different cycle days are different classes, not five visits by the same children. Preserve each class's actual progress.",
+      "Open MYnecraft using the school-approved classroom link: https://percycodesios.github.io/CyberGrader.io/game/mynecraft.html . Keep the separate primary MYnecraft site and each student's existing world unchanged.",
+      "Use groups of four, with the last group smaller when needed. Plan up to seven called groups: 3 minutes of MYnecraft, seven 4-minute teacher-station windows, and 4 minutes to save and reset. Seven groups is capacity planning, not a verified roster. Skip empty group calls without inventing students.",
+      "Only groups rotate through the ChompSaw demonstration. Other groups continue MYnecraft or their assigned project job; this is not a five-station carousel. Give each group one bounded job, its size or fit limit, approved materials, a tray and a done check before opening the tool station.",
+      "Within each group window, demonstrate the exact machine and offer each child one brief supported practice turn before returning the group to its work. Four minutes includes demonstration, individual turns and reset and is a planning target, not proof that four beginners can finish. Pilot the actual pace. Never shorten safety checks or rush a cut to match the timer.",
+      "Use the existing private class checklist to record actual practice, a chosen assist/no-saw role, or a turn still needed. Give unfinished turns priority at the next contact; never count a demonstration or a group turn as an individual cut. Keep names and this checklist out of the public lesson.",
+      "Station 1 - ChompSaw demo and practice: call the group, show the approved operation, support one child at a time and check the reset. Other members observe from the designated place. Use a clear, flat worktop and clean cardboard no thicker than 3 mm. Wait about ten seconds for full speed, keep tape/glue out of the cut line and power off between cuts. Follow the full exact manual at https://learn.chompshop.com/learn-chompsaw and school procedure; prepare small practice blanks and pre-cut backup pieces.",
+      "Station 2 - EC model: assign one contribution from paint, roof, doors/windows, four colored cardboard SV logos for the front, the entrance overhang, or two flags and two flagpoles. Check the actual space before cutting or attaching. Teacher chooses dimensions, logo reference, colors, paint, drying area, attachments and flag/pole materials from available stock. Nobody removes another group's work.",
+      "Station 3 - Eddie's cave: sketch and make a freestanding model with an opening and stable base, sized to the teacher's checked space. Teacher chooses dimensions, materials and finish. Keep the existing habitat, rocks, technology and attached work unchanged. No animal fit, enclosure installation or permanent attachment is assumed.",
+      "Station 4 - Bird Nest: make a model with a base and sides from supplied craft materials. Check that it keeps its shape when its tray is moved. Teacher chooses its size, materials and display location. Do not collect or disturb a wild nest, use an animal to test it, or install it outdoors.",
+      "Station 5 - E/C bubble letters: sketch thick, rounded E and C outlines, check the teacher-selected size, then make and finish readable letters. Teacher chooses whether letters are separate or joined, their material, colors and mounting. A traceable template or pre-cut letters is a full participation route.",
+      "I Spy stays an optional idea on the teacher's board. It is not an open or required station until the teacher chooses its objects, location and directions. Do not invent a hunt, object list or prize.",
+      "Grade 5 support: offer a template, one measured dimension and a spoken or drawn explanation. Grade 6 stretch: record two useful dimensions, compare fit before and after a change, and explain the choice. Both grades share the same design goal; do not grade cutting speed or motor skill.",
+      "Before class, inspect the real model and stock, identify independent jobs, arrange drying/storage space, and prepare the tool station under the existing manual. Inspect a finished contribution before placement. Timer completion never proves physical completion, individual tool practice or suitability for animal use."
+    ],
+    fastFinish: "Check one part's fit, finish or readability with a partner. Improve or explain one choice, then leave a clear next step in the coded tray. Continue a teacher-approved MYnecraft task if directed; do not start I Spy or add unapproved model features.",
+    steps: [
+      ["explore", "Start in MYnecraft", "ready", 3, [
+        "Open MYnecraft and try one new feature your teacher points out.",
+        "Show a partner what it does. Keep your existing world and a downloaded backup.",
+        "Find your group of four. Work on MYnecraft or your approved project until called."
+      ], [
+        "Name one current feature and show the three-minute goal. Do not reset or replace students' existing worlds.",
+        "Confirm group numbers and each group's project job. The final group may have fewer than four children."
+      ]],
+      ...Array.from({ length: 7 }, (_, index) => [
+        `group-${index + 1}`, `Group ${index + 1} at the tool`, "work", 4, [
+          `Group ${index + 1}: go when called. Watch the demonstration and take your brief turn as directed.`,
+          "Everyone else: continue MYnecraft or your assigned project. Do not switch project stations.",
+          "Measure or sketch, make one part, and check its fit, strength or readability. Ask before attaching it.",
+          "After your turn, return to your group's job. Your teacher records any turn still needed.",
+          "Use the pre-cut pieces or an assist role if needed."
+        ], [
+          `Call group ${index + 1} if present. Demonstrate the approved operation, then support one child's brief practice turn at a time. Check the station before another turn.`,
+          "Record each actual turn or alternative role privately. Four minutes is a target; pause or adjust the plan instead of rushing. Keep any missed individual turn on the next-contact list.",
+          "Other groups keep their approved independent project or MYnecraft task. Stop the saw before helping elsewhere. Approve fitting and placement separately."
+        ]
+      ]),
+      ["save-reset", "Save and reset", "cleanup", 3, [
+        "Save your MYnecraft work and keep a downloaded backup where directed.",
+        "Put your project in its coded tray. Return tools and clear scraps.",
+        "Leave drying work where directed."
+      ], [
+        "Secure the saw using its manual, count tools and check stored or drying work. Inspect contributions before any permanent placement."
+      ]],
+      ["handoff", "Share the next step", "exit", 1, [
+        "Tell your teacher: We made ___. We checked ___. Next it needs ___."
+      ], [
+        "Reconcile the private individual-turn list and each group's actual progress. Preserve needed practice for the next contact; no student or project is marked complete from elapsed time."
+      ]]
+    ]
+  }),
+  lesson({
     id: "circuit-rescue-build",
     title: "Circuit Rescue 1: Build the game",
     objective: "I can explain an open and closed circuit and build a game that signals a touch.",

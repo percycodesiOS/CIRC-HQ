@@ -69,12 +69,12 @@ function withTrappedStorage(callback) {
   }
 }
 
-function renderStudent(search) {
+function renderStudent(search, date = "2026-09-29T12:00:00Z") {
   const root = new Node("main");
   const location = { search };
   const pushed = [];
   const history = { pushState: (_state, _title, url) => { pushed.push(url); location.search = url.startsWith("?") ? url : ""; } };
-  const page = withTrappedStorage(() => renderStudentPage(root, { location, history, documentRef, scrollTo: () => {} }));
+  const page = withTrappedStorage(() => renderStudentPage(root, { location, history, documentRef, scrollTo: () => {}, now: () => new Date(date) }));
   return { root, location, pushed, page };
 }
 
@@ -174,4 +174,37 @@ test("the teacher's student link never carries the private class label", () => {
   const links = findAll(home, node => node.tagName === "a").map(node => node.getAttribute("href"));
   assert.ok(links.includes("student.html?playbook=a&meeting=4&grade=5"));
   assert.ok(links.every(href => !/PRIVATE/.test(href)));
+});
+
+test("station directions are stable, storage-free and student-safe after the special week", () => {
+  const screen = renderStudent("?lesson=circ-station-rotation&grade=6&class=PRIVATE", "2026-10-19T12:00:00Z");
+  const text = textOf(screen.root);
+  assert.match(text, /CIRC build stations: explore, make, improve/);
+  assert.match(text, /Groups work|MYnecraft/);
+  assert.match(text, /You are done when Your group can show/);
+  assert.match(text, /Retained for next year/);
+  assert.doesNotMatch(text, /PRIVATE|Teacher notes|Station week teacher guide|Meeting null/);
+  const links = findAll(screen.root, node => node.tagName === "a").map(node => node.getAttribute("href"));
+  assert.ok(links.includes("assets/guides/CIRC-Station-Week-Student-Packet.pdf"));
+  assert.ok(links.includes("https://percycodesios.github.io/CyberGrader.io/game/mynecraft.html"));
+  assert.ok(!links.includes("assets/guides/CIRC-Station-Week-Teacher-Guide.pdf"));
+  const grade = findAll(screen.root, node => node.tagName === "button" && textOf(node) === "Grade 5")[0];
+  withTrappedStorage(() => grade.click());
+  assert.equal(screen.pushed.at(-1), "?lesson=circ-station-rotation&grade=5");
+  assert.equal(studentRedirectTarget({ search: "?view=student&lesson=circ-station-rotation&teacher=PRIVATE", hash: "" }), "student.html?lesson=circ-station-rotation");
+});
+
+test("the dated student entry opens stations while annual bookmarks keep their lesson", () => {
+  const fresh = renderStudent("", "2026-10-12T12:00:00Z");
+  assert.match(textOf(fresh.root), /October 12-16 \| This week's CIRC lesson/);
+  const open = findAll(fresh.root, node => node.tagName === "button" && textOf(node) === "Open this week's lesson")[0];
+  withTrappedStorage(() => open.click());
+  assert.equal(fresh.pushed.at(-1), "?lesson=circ-station-rotation");
+  assert.match(textOf(fresh.root), /CIRC build stations: explore, make, improve/);
+  const booked = renderStudent("?playbook=a&meeting=3", "2026-10-12T12:00:00Z");
+  const heading = findAll(booked.root, node => node.getAttribute("id") === "pb-lesson-title")[0];
+  assert.match(textOf(heading), /jingle/i);
+  const after = renderStudent("", "2026-10-19T12:00:00Z");
+  assert.doesNotMatch(textOf(after.root), /This week's CIRC lesson/);
+  assert.match(textOf(after.root), /Retained for next year/);
 });

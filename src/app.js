@@ -85,7 +85,7 @@ import { buildTodayPresentation, buildWelcomePresentation } from "./ui/today-ui.
 import { buildTodayViewModel } from "./ui/view-model.js";
 import { buildWeekModel } from "./model/week.js";
 import { runnerStepIconFile } from "./ui/step-icons.js";
-import { buildStudentLink, getPlaybook, parseStudentLink, playbookPlaceLabel, resolveMeeting } from "./model/playbooks.js";
+import { buildStudentLink, currentWeekLesson, getPlaybook, parseStudentLink, playbookPlaceLabel, resolveClassLesson, resolveMeeting, resolveSupplementalLesson } from "./model/playbooks.js";
 import { classPlace, loadClassProgress, saveClassPlace } from "./model/class-progress.js";
 import {
   clearDatedUpdates,
@@ -94,7 +94,7 @@ import {
   previewDatedUpdatesText,
   saveDatedUpdates
 } from "./model/dated-updates.js";
-import { buildLessonCard, buildPlaybookBrowser } from "./ui/playbook-view.js";
+import { buildCurrentWeekEntry, buildLessonCard, buildPlaybookBrowser, buildSupplementalLibrary } from "./ui/playbook-view.js";
 import { buildTeacherAgenda, buildTeacherHome, formatSeconds } from "./ui/teacher-home.js";
 import { buildDatedUpdatesPanel } from "./ui/dated-updates-panel.js";
 
@@ -305,6 +305,7 @@ function welcomeEntranceCards(actions) {
 
 function welcomeRoute(actions) {
   const presentation = buildWelcomePresentation();
+  const weekLesson = currentWeekLesson(actions.localDate);
   const setup = element("button", {
     className: "primary-action welcome-primary",
     text: presentation.setupAction,
@@ -347,6 +348,8 @@ function welcomeRoute(actions) {
       ]) : null,
       actions.welcomeEntrance === "teacher"
         ? element("div", { className: "welcome-teacher-actions" }, [
+            buildCurrentWeekEntry(weekLesson, { audience: "teacher", documentRef: document, onStart: actions.openPreview }),
+            weekLesson ? element("p", { text: "Start the station lesson without setting up a schedule. This preview stays on screen only; reloading resets its timers." }) : null,
             element("div", { className: "welcome-actions" }, [setup, sync, preview]),
             element("p", {}, [actionButton("Browse Playbooks A and B", "button-link", () => actions.navigate("projects"))]),
             element("p", {}, [element("a", { className: "button-link", text: "Complete first-use walkthrough", attributes: { href: "walkthrough.html", target: "_blank", rel: "noopener" } })]),
@@ -1316,7 +1319,9 @@ function playbookGuides() {
 
 function projectsRoute(actions) {
   const view = actions.playbookView;
-  const resolved = resolveMeeting(view.playbookId, view.meeting, { grade: view.grade, option: view.option });
+  const resolved = view.lesson ? resolveSupplementalLesson(view.lesson) : resolveMeeting(view.playbookId, view.meeting, { grade: view.grade, option: view.option });
+  const openSupplemental = lesson => actions.setPlaybookView({ lesson }, { focusLesson: true });
+  const week = currentWeekLesson(actions.localDate);
   const lessonCard = resolved ? buildLessonCard(resolved, {
     audience: "teacher",
     documentRef: document,
@@ -1328,15 +1333,15 @@ function projectsRoute(actions) {
         resolved.lesson.runner.projectNumber,
         resolved.lesson.runner.modeId ? { modeId: resolved.lesson.runner.modeId } : {}
       ) : null,
-      studentHref: buildStudentLink({ playbook: view.playbookId, meeting: view.meeting, grade: view.grade, option: view.option })
+      studentHref: buildStudentLink(view.lesson ? { lesson: view.lesson, grade: view.grade } : { playbook: view.playbookId, meeting: view.meeting, grade: view.grade, option: view.option })
     }
   }) : null;
   const browser = buildPlaybookBrowser(view.playbookId, {
     audience: "teacher",
-    selected: view.meeting,
+    selected: view.lesson ? null : view.meeting,
     documentRef: document,
-    onSwitchPlaybook: (id) => actions.setPlaybookView({ playbookId: id, meeting: getPlaybook(id).nextMeeting, option: null }),
-    onOpenMeeting: (id, number) => actions.setPlaybookView({ playbookId: id, meeting: number, option: null }, { focusLesson: true })
+    onSwitchPlaybook: (id) => actions.setPlaybookView({ playbookId: id, meeting: getPlaybook(id).nextMeeting, option: null, lesson: null }),
+    onOpenMeeting: (id, number) => actions.setPlaybookView({ playbookId: id, meeting: number, option: null, lesson: null }, { focusLesson: true })
   });
   const cards = PROJECTS.map((project) => {
     const button = element("button", {
@@ -1361,10 +1366,12 @@ function projectsRoute(actions) {
         element("p", { className: "date-line", text: "Two full-year routes that alternate by school year. Pick a meeting to see the whole lesson." })
       ])
     ]),
+    buildCurrentWeekEntry(week, { audience: "teacher", documentRef: document, onOpenLesson: openSupplemental, onStart: week ? () => actions.openRunner(2, { modeId: week.supplementalId }) : null }),
     element("div", { className: "pb-teacher-layout" }, [
       element("div", { className: "pb-teacher-lesson" }, [lessonCard]),
       element("div", { className: "pb-teacher-browser" }, [browser])
     ]),
+    buildSupplementalLibrary({ audience: "teacher", documentRef: document, onOpenLesson: openSupplemental }),
     playbookGuides(),
     element("details", { className: "pb-more" }, [
       element("summary", { text: "More: all 36 experiences, morning announcements, FID and replica lessons" }),
@@ -2197,7 +2204,8 @@ export function renderApp(root, services = {}) {
   }
 
   function teacherHomeContext(model, currentTime = now()) {
-    if (!state.plan) return { hasPlan: false };
+    const weekLesson = currentWeekLesson(localDateKey(currentTime));
+    if (!state.plan) return { hasPlan: false, weekLesson };
     const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
     const loaded = loadDatedUpdates(privateStorage, { now: currentTime });
     const dated = datedUpdatesForDate(loaded.book, localDateKey(currentTime), {
@@ -2229,7 +2237,7 @@ export function renderApp(root, services = {}) {
         classKey,
         visitKey: classVisitKey(event, currentTime),
         place,
-        resolved: resolveMeeting(place.playbook, place.meeting, { grade: place.grade, option: place.option }),
+        resolved: resolveClassLesson(place, localDateKey(currentTime)),
         message: classPlaceMessage
       };
     }
@@ -2238,6 +2246,7 @@ export function renderApp(root, services = {}) {
     const runnerStep = runner ? runner.steps?.[runner.timer.currentStepIndex] : null;
     return {
       hasPlan: true,
+      weekLesson,
       planProblem: ["plan-required", "plan-unsupported", "teacher-unavailable"].includes(model.status)
         ? model.nextAction
         : "",
@@ -2336,8 +2345,17 @@ export function renderApp(root, services = {}) {
         openSchedule();
       },
       openPlaybook: (id) => {
-        playbookView = { ...playbookView, playbookId: id, meeting: getPlaybook(id).nextMeeting, option: null };
+        playbookView = { ...playbookView, playbookId: id, meeting: getPlaybook(id).nextMeeting, option: null, lesson: null };
         navigate("projects");
+      },
+      openSupplementalLesson: (lesson) => {
+        if (!resolveSupplementalLesson(lesson)) return;
+        playbookView = { ...playbookView, lesson };
+        navigate("projects");
+      },
+      startWeekLesson: () => {
+        const week = currentWeekLesson(localDateKey(now()));
+        if (week) openRunner(2, { modeId: week.supplementalId });
       },
       openRunner: () => {
         const runner = selectedRunner();
@@ -2346,7 +2364,7 @@ export function renderApp(root, services = {}) {
         navigate("experience-runner");
       },
       onPlaceChange: (place) => {
-        if (!home.classCard) return;
+        if (!home.classCard || currentWeekLesson(localDateKey(now()))) return;
         saveCurrentClassPlace(home.classCard, place);
         render();
       },
@@ -3488,7 +3506,7 @@ export function renderApp(root, services = {}) {
     configuredPreview = false;
     previewRunner = null;
     previewOnly = true;
-    const lesson = resolveMeeting("a", getPlaybook("a").nextMeeting).lesson;
+    const lesson = (currentWeekLesson(localDateKey(now())) ?? resolveMeeting("a", getPlaybook("a").nextMeeting)).lesson;
     openRunner(lesson.runner.projectNumber, { modeId: lesson.runner.modeId });
   }
 

@@ -4658,3 +4658,45 @@ test("the student entrance offers no way to start, advance or complete the lesso
     globalThis.window = previousWindow;
   }
 });
+
+test("first-use station week offers a working read-only lesson before schedule setup, then normal preview returns", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  globalThis.document = fakeDocument();
+  globalThis.window = { location: { hostname: "example.test" }, setInterval: () => 1, clearInterval: () => {}, fetch: async () => ({ ok: false }) };
+  try {
+    for (const date of ["2026-10-12T09:00:00-04:00", "2026-10-19T09:00:00-04:00"]) {
+      const root = new FakeNode("main");
+      const state = stateWithoutPlan();
+      const original = structuredClone(state);
+      let saves = 0;
+      const controller = renderApp(root, {
+        store: { load: () => ({ state, error: null }), save: () => { saves += 1; throw new Error("preview cannot save"); } },
+        loadPrivateSeed: false, weatherService: {}, clock: { now: () => new Date(date) }
+      });
+      await controller.ready;
+      openTeacherEntrance(root);
+      const during = date.startsWith("2026-10-12");
+      if (during) {
+        assert.match(textOf(root), /Start the station lesson without setting up a schedule/);
+        const start = findAll(root, node => node.tagName === "button" && textOf(node) === "Start station lesson")[0];
+        assert.ok(start);
+        start.click();
+        assert.match(textOf(root), /CIRC build stations: explore, make, improve/);
+        assert.match(textOf(root), /Start class/);
+        controller.navigate("welcome");
+      } else {
+        assert.doesNotMatch(textOf(root), /Start station lesson/);
+      }
+      findAll(root, node => node.tagName === "button" && textOf(node) === "Preview a lesson")[0].click();
+      assert.match(textOf(root), during ? /CIRC build stations: explore, make, improve/ : /Logo to jingle: Give your brand a sound/);
+      assert.equal(controller.previewOnly, true);
+      assert.equal(saves, 0);
+      assert.deepEqual(state, original);
+      controller.destroy();
+    }
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+  }
+});

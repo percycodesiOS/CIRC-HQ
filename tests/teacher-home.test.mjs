@@ -469,3 +469,34 @@ test("a replacement confirmation after a class ends or changes preserves the sav
     } finally { app.destroy(); }
   }
 });
+
+test("station week starts the special lesson without advancing saved annual progress, then resumes it", async () => {
+  const storage = memoryStorage();
+  saveClassPlace(storage, "teacher:teacher-alpha", "class-one", { playbook: "a", meeting: 14, grade: 6 });
+  const key = `${CLASS_PROGRESS_STORAGE_KEY}:${encodeURIComponent("teacher:teacher-alpha")}`;
+  const held = storage.getItem(key);
+  const app = await mountApp({ time: "2026-10-12T09:00:00-04:00", storage });
+  try {
+    const text = textOf(app.root);
+    assert.match(text, /CIRC build stations: explore, make, improve/);
+    assert.match(text, /Playbook A meeting 14 stays saved/);
+    assert.doesNotMatch(text, /Done\. Next time: meeting/);
+    assert.equal(findAll(app.root, node => node.getAttribute("id") === "th-class-meeting").length, 0);
+    const link = findAll(app.root, node => node.tagName === "a" && textOf(node) === "Student page")[0];
+    assert.equal(link.getAttribute("href"), "student.html?lesson=circ-station-rotation&grade=6");
+    buttonByText(app.root, "Start lesson").click();
+    assert.equal(app.savedRunner().modeId, "circ-station-rotation");
+    buttonByText(app.root, "Start class").click();
+    app.setTime("2026-10-12T09:36:00-04:00");
+    app.tick();
+    assert.match(textOf(app.root), /Lesson complete|This lesson is finished/);
+    assert.equal(storage.getItem(key), held, "finishing the timer cannot complete the held annual lesson");
+    app.setTime("2026-10-19T09:00:00-04:00");
+    app.controller.navigate("today");
+    assert.doesNotMatch(textOf(findAll(app.root, node => /\bth-class\b/.test(node.className))[0]), /build stations/);
+    assert.ok(buttonByText(app.root, "Done. Next time: meeting 15"));
+    const annualLink = findAll(app.root, node => node.tagName === "a" && textOf(node) === "Student page")[0];
+    assert.equal(annualLink.getAttribute("href"), "student.html?playbook=a&meeting=14&grade=6");
+    assert.equal(storage.getItem(key), held);
+  } finally { app.destroy(); }
+});

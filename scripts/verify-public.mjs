@@ -23,6 +23,8 @@ const ALLOWED_UNTRACKED = new Set([
   "assets/icons/LICENSE-phosphor.txt",
   "assets/guides/CIRC-Classroom-Cards.pdf",
   "assets/guides/CIRC-Classroom-Toolkit.pdf",
+  "assets/guides/CIRC-Station-Week-Student-Packet.pdf",
+  "assets/guides/CIRC-Station-Week-Teacher-Guide.pdf",
   "assets/guides/CIRC-Teacher-Guide.pdf",
   "assets/guides/ECTV-Interview-Edit-Handout.pdf",
   "assets/icons/arrow-right.svg",
@@ -145,6 +147,8 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "assets/ectv/roles/role-weather.svg",
   "assets/guides/CIRC-Classroom-Cards.pdf",
   "assets/guides/CIRC-Classroom-Toolkit.pdf",
+  "assets/guides/CIRC-Station-Week-Student-Packet.pdf",
+  "assets/guides/CIRC-Station-Week-Teacher-Guide.pdf",
   "assets/guides/CIRC-Teacher-Guide.pdf",
   "assets/guides/ECTV-Interview-Edit-Handout.pdf",
   "assets/icons/arrow-right.svg",
@@ -362,6 +366,8 @@ const TEXT_EXTENSIONS = new Set([
   ".txt"
 ]);
 const REVIEWED_BINARY_ASSETS = new Map([
+  ["assets/guides/CIRC-Station-Week-Student-Packet.pdf","694D5594A8A59586892E879C6C461DEEC5F086A31DA5BF5C1226233935A418EF"],
+  ["assets/guides/CIRC-Station-Week-Teacher-Guide.pdf","6311F6BAD5DD242AC90CF54D1E53A627F534824A260B2B92E8A0E644E8195542"],
   ["assets/guides/CIRC-Classroom-Toolkit.pdf","9AB09B9AE9EA94B71BCCE49C293F6DAA5A614DB7AC17498A41E95C132708ADD3"],
   ["assets/guides/ECTV-Interview-Edit-Handout.pdf","0CB2ADA32F19153C2F31FFF132144B6D585E4B60C9ABE48F7D2D4132B769D198"],
   ["assets/guides/CIRC-Teacher-Guide.pdf","8EC0260A61E85E26F8534C94A740786D6F276EF8DAFA54B7A456D7A33E30E251"],
@@ -857,6 +863,8 @@ export async function inspectLocalPaths(root = ROOT) {
 export function countUnsafeRuntimeLinks(text) {
   const links = text.match(/https?:\/\/[^\s"'`<>)]+/gi) ?? [];
   const reviewedStudentLinks = new Set([
+    "https://percycodesios.github.io/CyberGrader.io/game/mynecraft.html",
+    "https://learn.chompshop.com/learn-chompsaw",
     "https://www.youtube.com/watch?v=YoqiYSvwCs0",
     "https://www.youtube-nocookie.com/embed/YoqiYSvwCs0",
     "https://www.youtube.com/watch?v=eJC75rducTo",
@@ -1024,20 +1032,26 @@ async function privacySentinelGate(context) {
   return resultFromViolations(tokensChecked, violations);
 }
 
-async function publicRuntimePolicyGate(context) {
-  let violations = 0;
-  let checked = 0;
+export function countPublicRuntimePolicyViolations(text) {
+  // The reviewed classroom MYnecraft URL is a retained compatibility route,
+  // not a link to the legacy grading application. Permit that exact URL only.
+  const policyText = String(text).replace(/https:\/\/percycodesios\.github\.io\/CyberGrader\.io\/game\/mynecraft\.html(?=$|[\s"'`<>)])/g, "");
   const policyPatterns = [
     /CyberGrader/i,
     /\b(?:classCode|joinCode|studentAlias|studentAccount|studentRoster)\b/i,
     /\b(?:students|studentAccounts|classCodes)\s*\//i,
     /district[^\n]{0,40}(?:logo|mark)|(?:logo|mark)[^\n]{0,40}district/i
   ];
+  return policyPatterns.reduce((count, pattern) => count + Number(pattern.test(policyText)), 0) + countUnsafeRuntimeLinks(String(text));
+}
+
+async function publicRuntimePolicyGate(context) {
+  let violations = 0;
+  let checked = 0;
   for (const entry of context.textEntries) {
     if (!isPublicRuntimePath(entry.relativePath)) continue;
     checked += 1;
-    for (const pattern of policyPatterns) violations += Number(pattern.test(entry.text));
-    violations += countUnsafeRuntimeLinks(entry.text);
+    violations += countPublicRuntimePolicyViolations(entry.text);
   }
   return resultFromViolations(checked, violations);
 }

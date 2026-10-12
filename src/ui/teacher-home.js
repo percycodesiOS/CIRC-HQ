@@ -1,7 +1,7 @@
 // Teacher side first screen: next obligation, this class's lesson, the timer,
 // later obligations, and plain links. Everything else stays in More tools.
 import { PLAYBOOKS, buildStudentLink, getPlaybook, listMeetings, meetingTitle } from "../model/playbooks.js";
-import { createBuilder } from "./playbook-view.js";
+import { buildCurrentWeekEntry, buildStationGuideLinks, createBuilder } from "./playbook-view.js";
 
 function clock(minutes) {
   if (!Number.isInteger(minutes)) return "";
@@ -106,6 +106,7 @@ export function buildTeacherHome(input, actions = {}, { documentRef } = {}) {
         ]),
         h("p", { className: "th-quiet", text: "You can still open both playbooks and run any lesson right now." })
       ]),
+      buildCurrentWeekEntry(input.weekLesson, { audience: "teacher", documentRef, onOpenLesson: actions.openSupplementalLesson, onStart: actions.startWeekLesson }),
       quickLinks(h, actions)
     ]);
   }
@@ -144,7 +145,7 @@ export function buildTeacherHome(input, actions = {}, { documentRef } = {}) {
     input.duty ? h("p", { className: "th-duty", text: `${input.duty.label} in ${input.duty.minutes} minutes: ${input.duty.assignment}, ${input.duty.location}` }) : null
   ]);
 
-  const classCard = buildClassCard(h, input.classCard, actions);
+  const classCard = buildClassCard(h, input.classCard, actions, documentRef);
 
   const runner = input.runner;
   const timerCard = h("section", { className: "th-card th-timer", attributes: { "aria-labelledby": "th-timer-title" } }, [
@@ -184,6 +185,7 @@ export function buildTeacherHome(input, actions = {}, { documentRef } = {}) {
 
   return h("section", { className: "th-home", attributes: { "aria-label": "Teacher home" } }, [
     h("div", { className: "th-grid" }, [nextCard, classCard, timerCard, laterCard]),
+    !input.classCard?.resolved?.supplementalId ? buildCurrentWeekEntry(input.weekLesson, { audience: "teacher", documentRef, onOpenLesson: actions.openSupplementalLesson, onStart: actions.startWeekLesson }) : null,
     quickLinks(h, actions)
   ]);
 }
@@ -198,7 +200,7 @@ function quickLinks(h, actions) {
 }
 
 // classCard: { label, when, place: {playbook, meeting, grade, option}, resolved, canSave, message }
-function buildClassCard(h, classCard, actions) {
+function buildClassCard(h, classCard, actions, documentRef) {
   if (!classCard) {
     return h("section", { className: "th-card th-class", attributes: { "aria-labelledby": "th-class-title" } }, [
       h("p", { className: "eyebrow", text: "This class" }),
@@ -207,6 +209,7 @@ function buildClassCard(h, classCard, actions) {
     ]);
   }
   const { place, resolved } = classCard;
+  const isStationWeek = resolved?.supplementalId === "circ-station-rotation";
   const playbookSelect = h("select", { attributes: { id: "th-class-playbook" } }, PLAYBOOKS.map(item => h("option", { text: `${item.name} (${item.year})`, attributes: { value: item.id } })));
   playbookSelect.value = place.playbook;
   const meetingSelect = h("select", { attributes: { id: "th-class-meeting" } }, listMeetings(place.playbook).map(meeting => h("option", {
@@ -220,17 +223,17 @@ function buildClassCard(h, classCard, actions) {
     h("option", { text: "Grade 6", attributes: { value: "6" } })
   ]);
   gradeSelect.value = place.grade ? String(place.grade) : "";
-  const change = patch => actions.onPlaceChange?.({ ...place, ...patch });
+  const change = patch => { if (!isStationWeek) actions.onPlaceChange?.({ ...place, ...patch }); };
   playbookSelect.addEventListener("change", () => change({ playbook: playbookSelect.value, meeting: getPlaybook(playbookSelect.value).nextMeeting, option: null }));
   meetingSelect.addEventListener("change", () => change({ meeting: Number(meetingSelect.value), option: null }));
   gradeSelect.addEventListener("change", () => change({ grade: gradeSelect.value ? Number(gradeSelect.value) : null }));
   const lesson = resolved?.lesson;
-  const studentHref = buildStudentLink({ playbook: place.playbook, meeting: place.meeting, grade: place.grade, option: place.option });
+  const studentHref = buildStudentLink(isStationWeek ? { lesson: resolved.supplementalId, grade: place.grade } : { playbook: place.playbook, meeting: place.meeting, grade: place.grade, option: place.option });
   const lastMeeting = listMeetings(place.playbook).length;
   return h("section", { className: "th-card th-class", attributes: { "aria-labelledby": "th-class-title" } }, [
     h("p", { className: "eyebrow", text: `${classCard.when} | This class` }),
     h("h2", { text: classCard.label, attributes: { id: "th-class-title" } }),
-    h("div", { className: "th-class-pickers" }, [
+    isStationWeek ? h("p", { className: "pb-callout", text: `October 12-16: build stations. ${getPlaybook(place.playbook).name} meeting ${place.meeting} ${place.saved ? "stays saved" : "is held as the suggested starting point"} for the next school visit. The remaining lessons move forward by one visit; finishing stations does not mark that annual lesson done.` }) : h("div", { className: "th-class-pickers" }, [
       h("label", { text: "Playbook", attributes: { for: "th-class-playbook" } }), playbookSelect,
       h("label", { text: "Meeting", attributes: { for: "th-class-meeting" } }), meetingSelect,
       h("label", { text: "Grade", attributes: { for: "th-class-grade" } }), gradeSelect
@@ -247,8 +250,9 @@ function buildClassCard(h, classCard, actions) {
     h("div", { className: "th-actions" }, [
       lesson ? h("button", { className: "primary-action", text: "Start lesson", attributes: { type: "button" }, onClick: actions.onStartClassLesson }) : null,
       h("a", { className: "secondary-action", text: "Student page", attributes: { href: studentHref, target: "_blank", rel: "noopener" } }),
-      place.meeting < lastMeeting ? h("button", { className: "secondary-action", text: `Done. Next time: meeting ${place.meeting + 1}`, attributes: { type: "button" }, onClick: () => change({ meeting: place.meeting + 1, option: null }) }) : null
+      !isStationWeek && place.meeting < lastMeeting ? h("button", { className: "secondary-action", text: `Done. Next time: meeting ${place.meeting + 1}`, attributes: { type: "button" }, onClick: () => change({ meeting: place.meeting + 1, option: null }) }) : null
     ]),
-    h("p", { className: "th-quiet", text: classCard.message || (place.saved ? "Saved on this browser for this class." : "Suggested starting point. Change it to save this class's place on this browser.") })
+    isStationWeek ? buildStationGuideLinks({ audience: "teacher", documentRef }) : null,
+    h("p", { className: "th-quiet", text: classCard.message || (isStationWeek ? "Keep a private note of tool turns still owed. The timer does not record individual completion." : place.saved ? "Saved on this browser for this class." : "Suggested starting point. Change it to save this class's place on this browser.") })
   ]);
 }

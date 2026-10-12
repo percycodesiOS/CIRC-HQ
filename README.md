@@ -238,6 +238,16 @@ node scripts/dev-server.mjs
 
 The development server binds only to `127.0.0.1` and exposes the reviewed public runtime allowlist. It does not intentionally expose tests, internal documentation, Firebase rules, package metadata, the locked legacy classroom snapshot, or private schedule files.
 
+## October 12-16 station week
+
+This week is one unnumbered class contact: begin with MYnecraft, then call groups of four to the teacher's ChompSaw demonstration while other groups continue their assigned project. Each child has a brief supported turn, or a documented alternate/follow-up. The EC model, Eddie's cave model, bird-nest model, and E/C letters remain parallel choices; this is not a five-station carousel.
+
+The current-week teacher start and student directions use `circ-station-rotation`. The permanent student address is `student.html?lesson=circ-station-rotation`. Completing this contact does not advance or reset saved annual progress. The next class contact resumes the previously held meeting. Existing numeric A/B links retain their exact meaning.
+
+Printable resources are [the six-page student packet](assets/guides/CIRC-Station-Week-Student-Packet.pdf) and [the three-page teacher guide and rotation tracker](assets/guides/CIRC-Station-Week-Teacher-Guide.pdf). Both contain blank student fields only. Keep completed trackers in the school's private records.
+
+A permanent retained-lesson bank keeps the station lesson, Outdoor Microclimate Map, Reflect and reset, and Catch up and finish available for next-year planning. It does not silently add contacts to the full Playbook B. Private pacing records preserve the one-contact shift, school closures, and conditional year-end overflow; actual class progress takes precedence.
+
 ## Verify a public candidate
 
 ```powershell

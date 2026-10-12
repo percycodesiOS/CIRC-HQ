@@ -3,14 +3,15 @@
 // page state lives in the link itself (student.html?playbook=a&meeting=12&grade=5),
 // so a bookmark or reload shows the same lesson. This is a separate screen,
 // not a login or a security boundary.
-import { PLAYBOOKS, buildStudentLink, getPlaybook, listMeetings, parseStudentLink, resolveMeeting } from "./model/playbooks.js";
-import { buildLessonCard, buildPlaybookBrowser, createBuilder } from "./ui/playbook-view.js";
+import { PLAYBOOKS, buildStudentLink, currentWeekLesson, getPlaybook, listMeetings, parseStudentLink, resolveMeeting, resolveSupplementalLesson } from "./model/playbooks.js";
+import { buildCurrentWeekEntry, buildLessonCard, buildPlaybookBrowser, buildSupplementalLibrary, createBuilder } from "./ui/playbook-view.js";
 
 export function renderStudentPage(root, {
   location = globalThis.location,
   history = globalThis.history,
   documentRef = globalThis.document,
-  scrollTo = globalThis.scrollTo
+  scrollTo = globalThis.scrollTo,
+  now = () => new Date()
 } = {}) {
   const h = createBuilder(documentRef);
   let browseId = null;
@@ -81,8 +82,8 @@ export function renderStudentPage(root, {
     const link = current();
     if (browseId === null) browseId = link.playbook ?? PLAYBOOKS[0].id;
     let today;
-    if (link.playbook && link.meeting) {
-      const resolved = resolveMeeting(link.playbook, link.meeting, { grade: link.grade, option: link.option });
+    if (link.lesson || (link.playbook && link.meeting)) {
+      const resolved = link.lesson ? resolveSupplementalLesson(link.lesson) : resolveMeeting(link.playbook, link.meeting, { grade: link.grade, option: link.option });
       today = h("div", { className: "student-today" }, [
         resolved.meeting.paths.both || link.grade ? gradeSwitch(link) : null,
         buildLessonCard(resolved, {
@@ -112,7 +113,9 @@ export function renderStudentPage(root, {
         onOpenMeeting: (playbookId, number) => go({ playbook: playbookId, meeting: number, grade: link.grade })
       })
     ]);
-    root.replaceChildren(today, browse);
+    const week = currentWeekLesson(now());
+    const currentEntry = week && link.lesson !== week.supplementalId ? buildCurrentWeekEntry(week, { documentRef, onOpenLesson: lesson => go({ lesson, grade: link.grade }) }) : null;
+    root.replaceChildren(...[currentEntry, today, browse, buildSupplementalLibrary({ documentRef })].filter(Boolean));
     if (focus) {
       scrollTo?.(0, 0);
       root.querySelector?.("#pb-lesson-title, #student-welcome-title")?.focus?.({ preventScroll: true });
