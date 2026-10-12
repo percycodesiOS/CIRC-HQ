@@ -5739,3 +5739,38 @@ a.secondary-action {
 .pb-practice-table th,
 .pb-practice-table td { padding: 6px 8px; border: 1px solid var(--border); text-align: left; }
 .pb-practice-table thead th { background: var(--soft-blue); }
+
+/* Teacher home class card: materials, safety and pacing before Start (October 2026). */
+.th-lesson-grid { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); margin-top: 6px; }
+.th-lesson-box { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: #fbfdfe; }
+.th-lesson-box h4 { margin: 0; }
+.th-lesson-box ul { margin: 0; padding-left: 18px; font-size: 0.95rem; }
+.th-lesson-box p { margin: 0; font-size: 0.95rem; }
+.th-lesson-safety { border-color: var(--warning-border); background: var(--warning); color: #3d2e05; }
+.th-lesson-safety h4 { color: #6b3a00; }
+.th-pacing { display: grid; gap: 6px; margin-top: 6px; }
+.th-pacing h4 { margin: 0; }
+.th-pacing-steps { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.th-pacing-steps li {
+  min-width: 0;
+  padding: 7px 8px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--soft-blue);
+  color: var(--blue-dark);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.th-pacing-steps li.is-exit { background: var(--circ-success-soft); color: #23401a; }
+.th-pacing-steps li.is-cleanup,
+.th-pacing-steps li.is-transition { background: #edf0f4; color: var(--secondary); }
+.th-pacing-steps li.is-safety { background: var(--warning); color: #6b3a00; }
+@media (min-width: 700px) {
+  .th-lesson-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  .th-pacing-steps { flex-wrap: wrap; }
+  .th-pacing-steps li { flex: 1 1 45% !important; white-space: normal; }
+}

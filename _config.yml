@@ -5,6 +5,7 @@ exclude:
   - BUILDLOG.md
   - README.md
   - assets/icons/LICENSE-phosphor.txt
+  - assets/fonts/LICENSE-OFL.txt
   - classroom-legacy.html
   - design-qa.md
   - docs

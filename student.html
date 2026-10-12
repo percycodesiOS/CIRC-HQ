@@ -3,11 +3,12 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#175fb5">
     <meta name="description" content="Today's CIRC activity for grades 5 and 6: goal, steps, what to turn in and a next challenge.">
     <title>CIRC HQ | Student side</title>
     <link rel="icon" type="image/png" href="assets/icons/sv-interlock.png">
     <link rel="stylesheet" href="app.css">
+    <link rel="stylesheet" href="student.css">
   </head>
   <body class="student-side">
     <a class="skip-link" href="#student-main">Skip to today's activity</a>
@@ -21,8 +22,9 @@
           </div>
         </div>
         <nav class="student-nav" aria-label="Student navigation">
-          <a href="#student-main">Today</a>
-          <a href="#browse">Browse playbooks</a>
+          <a href="student.html">Today</a>
+          <a href="#browse">All lessons</a>
+          <a href="resources.html">Handouts</a>
         </nav>
       </div>
     </header>
@@ -30,12 +32,13 @@
       <section class="loading-card" aria-live="polite">
         <p class="eyebrow">Student side</p>
         <h1>Opening today's activity</h1>
-        <noscript><p>This page needs JavaScript to show the lesson steps. Ask your teacher for the paper copy.</p></noscript>
+        <noscript><p>This page needs JavaScript to show the lesson steps. Ask your teacher for the paper copy, or open the handouts page.</p></noscript>
       </section>
     </main>
     <footer class="student-footer">
+      <nav aria-label="More for students"><a href="arcade.html">Arcade</a> | <a href="fid.html">FID activities (snow day)</a> | <a href="ectv.html">Morning show (ECTV)</a></nav>
       <p>This page shows lessons only. It does not load any teacher schedule, class list or saved work.</p>
-      <p><a href="index.html">Teacher side</a></p>
+      <p><a href="resources.html">Handouts and guides</a> | <a href="index.html">Teacher side</a></p>
     </footer>
     <script type="module" src="src/student.js"></script>
   </body>

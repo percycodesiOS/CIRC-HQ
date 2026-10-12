@@ -5,11 +5,14 @@
   "scripts": {
     "test": "node --test",
     "verify": "node scripts/verify-public.mjs",
+    "build:handouts": "node scripts/build-handouts.mjs",
+    "build:response-sheets": "node scripts/build-response-sheets.mjs",
     "test:rules": "firebase emulators:exec --project demo-circ-hq-rules --only firestore \"node --test tests/firestore-rules.test.mjs\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "5.0.2",
     "firebase": "12.18.0",
-    "firebase-tools": "15.28.2"
+    "firebase-tools": "15.28.2",
+    "playwright-core": "^1.56.1"
   }
 }
