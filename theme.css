@@ -240,3 +240,61 @@ img.welcome-maker { display: none !important; }
 .runner-now-grid { grid-template-columns: minmax(0, 1fr) !important; }
 .runner-teacher-help { max-width: none; }
 .runner-student-directions li::marker { color: var(--blue-dark); font-weight: 800; }
+
+/* Teacher home: quiet cream surfaces, navy hierarchy and teal actions. */
+.th-home { --th-teal: #176a62; --th-navy: #163246; --th-cream: #f7f5ed; gap: 24px; }
+.th-welcome { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 12px 0 4px; }
+.th-welcome h2 { margin: 5px 0 8px; color: var(--th-navy); font-size: clamp(1.8rem, 3vw, 2.7rem); letter-spacing: -.04em; }
+.th-welcome p { margin: 0; max-width: 65ch; }
+.th-home .eyebrow { color: var(--th-teal); letter-spacing: .12em; font-size: .72rem; }
+.th-day-badge { flex-shrink: 0; padding: 12px 18px; border-radius: 12px; background: #e5efe9; color: #164f45; font-weight: 800; }
+.th-home .th-card { border: 1px solid #d7ddd8; border-radius: 18px; background: #fffef9; box-shadow: 0 5px 20px rgba(22,50,70,.04); padding: clamp(18px, 2.5vw, 30px); gap: 14px; }
+.th-home .th-class { border-top: 5px solid var(--th-teal); }
+.th-home .th-class > h2 { font-size: 1.15rem; color: #526765; font-weight: 700; }
+.th-class-handoff { padding: 16px; border-left: 4px solid #176a62; background: #edf3e7; border-radius: 0 10px 10px 0; display: grid; gap: 9px; }
+.th-home .th-lesson > h3 { font-size: clamp(1.6rem, 2.7vw, 2.35rem); line-height: 1.16; letter-spacing: -.035em; color: var(--th-navy); }
+.th-home .th-lesson > p { font-size: 1.08rem; max-width: 75ch; }
+.th-lesson-columns { display: grid; gap: 24px; margin: 16px 0; }
+.th-lesson-columns > div { min-width: 0; }
+.th-home .th-card h4 { color: var(--th-teal); margin-bottom: 10px; }
+.th-home .plain-list { line-height: 1.55; }
+.th-lesson-steps { list-style: decimal-leading-zero; padding-left: 28px; margin: 0; }
+.th-lesson-steps li { padding: 7px 0 7px 4px; border-bottom: 1px solid #e0e5df; }
+.th-lesson-steps li::marker { color: var(--th-teal); font-weight: 800; }
+.th-lesson-steps span { float: right; font-variant-numeric: tabular-nums; color: #546966; padding-left: 12px; }
+.th-finish-check { padding: 14px; margin-top: 14px !important; background: #eef3e7; border-radius: 10px; color: #224d3f; font-weight: 700; line-height: 1.5; }
+.th-home .primary-action { background: var(--th-teal); border-color: var(--th-teal); color: white; box-shadow: none; border-radius: 10px; }
+.th-home .primary-action:hover { background: #11534d; }
+.th-home .secondary-action { background: #fffef9; color: var(--th-navy); border: 1px solid #aebfba; border-radius: 10px; box-shadow: none; }
+.th-home button:focus-visible, .th-home a:focus-visible, .th-home summary:focus-visible, .th-home input:focus-visible, .th-home select:focus-visible, .th-home textarea:focus-visible { outline: 3px solid #176a62; outline-offset: 3px; }
+.th-home button:disabled { opacity: .55; cursor: not-allowed; }
+.th-following-lesson { background: var(--th-cream); border: 1px solid #dae2d9; padding: 16px; border-radius: 12px; }
+.th-home summary { cursor: pointer; font-weight: 750; color: var(--th-navy); line-height: 1.5; }
+.th-home details[open] > summary { margin-bottom: 12px; }
+.th-home .th-next, .th-home .th-timer, .th-home .th-later { border-top: 1px solid #d7ddd8; }
+.th-section-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+.th-journal-layout { display: grid; gap: 28px; }
+.th-journal-form { display: grid; gap: 9px; align-content: start; }
+.th-journal-form label { font-size: .88rem; font-weight: 750; color: var(--th-navy); margin-top: 5px; }
+.th-journal-form input, .th-journal-form select, .th-journal-form textarea { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; padding: 11px 12px; border: 1px solid #aebfba; border-radius: 9px; font: inherit; color: var(--th-navy); background: white; }
+.th-journal-form textarea { resize: vertical; }
+.th-journal-form .primary-action { justify-self: start; margin-top: 8px; }
+.th-visit-list { padding: 0; list-style: none; display: grid; gap: 14px; }
+.th-visit-list > li { border: 1px solid #d7e2dc; border-left: 4px solid var(--th-teal); background: #f5f7f0; border-radius: 10px; padding: 16px; display: grid; gap: 10px; }
+.th-home .th-visit-meta { font-size: .8rem; font-weight: 750; color: #49615c; }
+.th-home .th-visit-list h4 { font-size: 1rem; text-transform: none; letter-spacing: 0; margin: 0; color: var(--th-navy); }
+.th-note-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.th-next-note { font-weight: 700; color: #24584d; }
+.th-import-record { margin-top: 20px; }
+.th-import-record input { display: block; max-width: 100%; margin-top: 10px; }
+@media (min-width: 900px) {
+  .th-home .th-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .th-home .th-class { grid-column: 1 / -1; }
+  .th-lesson-columns, .th-journal-layout { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .th-welcome { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .th-home .th-actions { align-items: stretch; }
+  .th-home .th-actions > * { flex: 1 1 100%; text-align: center; }
+  .th-lesson-steps { font-size: .93rem; }
+}

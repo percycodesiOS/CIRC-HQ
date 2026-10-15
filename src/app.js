@@ -86,7 +86,7 @@ import { buildTodayViewModel } from "./ui/view-model.js";
 import { buildWeekModel } from "./model/week.js";
 import { runnerStepIconFile } from "./ui/step-icons.js";
 import { buildStudentLink, currentWeekLesson, getPlaybook, parseStudentLink, playbookPlaceLabel, resolveClassLesson, resolveMeeting, resolveSupplementalLesson } from "./model/playbooks.js";
-import { classPlace, loadClassProgress, saveClassPlace } from "./model/class-progress.js";
+import { appendClassJournal, classPlace, exportClassJournal, importClassJournal, loadClassJournal, loadClassProgress, saveClassPlace } from "./model/class-progress.js";
 import {
   clearDatedUpdates,
   datedUpdatesForDate,
@@ -2123,6 +2123,9 @@ export function renderApp(root, services = {}) {
   let datedStatus = "";
   let classPlaceMessage = "";
   const memoryClassPlaces = new Map();
+  let journalSelectedClass = "";
+  let journalMessage = "";
+  const journalDrafts = new Map();
   // Which class visit started the current runner. Memory only: after a reload a
   // class-card start asks before replacing an unfinished lesson.
   let runnerVisitKey = null;
@@ -2238,6 +2241,9 @@ export function renderApp(root, services = {}) {
         visitKey: classVisitKey(event, currentTime),
         place,
         resolved: resolveClassLesson(place, localDateKey(currentTime)),
+        lastVisit: loadClassJournal(privateStorage, runnerOwnerKey()).book.entries
+          .filter(item => item.classKey === classKey && item.date <= localDateKey(currentTime))
+          .sort((a, b) => b.date.localeCompare(a.date) || b.recordedAt.localeCompare(a.recordedAt))[0] ?? null,
         message: classPlaceMessage
       };
     }
@@ -2257,6 +2263,7 @@ export function renderApp(root, services = {}) {
       cycleDay: model.cycle?.day ?? null,
       duty: model.alerts?.duty ?? null,
       classCard,
+      journal: teachingRecordContext(classCard, currentTime),
       runner: runner ? {
         title: runner.title,
         stepLabel: runnerStep?.label ?? "",
@@ -2264,6 +2271,33 @@ export function renderApp(root, services = {}) {
         totalSeconds: runner.timer.totalRemainingSeconds,
         status: runner.timer.status
       } : null
+    };
+  }
+
+  function teachingRecordContext(classCard, currentTime) {
+    const teacher = state.plan?.teachers?.find(item => item.id === selectedTeacherId);
+    const loaded = loadClassJournal(privateStorage, runnerOwnerKey());
+    const classes = [...new Map(Object.values(teacher?.days ?? {}).flat().filter(item => item.type === "teach").map(item => {
+      const key = String(item.classId || item.label || item.title || "").trim().slice(0, 80);
+      return [key, { key, label: String(item.label || item.title || key).slice(0, 160), fromSchedule: true }];
+    })).values()].filter(item => item.key);
+    // A new school-year schedule must not make last year's imported visits
+    // disappear. Historical classes are selectable only in this private record.
+    for (const entry of loaded.book.entries) {
+      if (!classes.some(item => item.key === entry.classKey)) classes.push({ key: entry.classKey, label: entry.classLabel, fromSchedule: false });
+    }
+    if (!classes.length) return null;
+    const selected = classes.find(item => item.key === journalSelectedClass) ?? classes.find(item => item.key === classCard?.classKey) ?? classes[0];
+    const draftKey = `${runnerOwnerKey()}|${selected.key}`;
+    const progress = loadClassProgress(privateStorage, runnerOwnerKey());
+    const place = classPlace(progress.book, selected.key, selected.label);
+    const suggested = resolveClassLesson(place, localDateKey(currentTime));
+    const draft = journalDrafts.get(draftKey) ?? { date: localDateKey(currentTime), lessonTitle: suggested?.lesson?.title || "", status: "continued", note: "", nextVisit: "" };
+    return {
+      classes, selectedClassKey: selected.key, selectedClassLabel: selected.label, draftKey, draft,
+      entries: loaded.book.entries.filter(item => item.classKey === selected.key).sort((a, b) => b.date.localeCompare(a.date) || b.recordedAt.localeCompare(a.recordedAt)),
+      canSave: !previewOnly && !["invalid", "unavailable"].includes(loaded.status),
+      message: journalMessage || (["invalid", "unavailable"].includes(loaded.status) ? "Saved teaching notes could not be read. They were left untouched." : "")
     };
   }
 
@@ -2337,6 +2371,54 @@ export function renderApp(root, services = {}) {
 
   function teacherHomeActions(home) {
     return {
+      onJournalClassChange: (key) => { journalSelectedClass = key; journalMessage = ""; render(); },
+      onJournalDraft: (field, value) => {
+        if (!home.journal || !["date", "lessonTitle", "status", "note", "nextVisit"].includes(field)) return;
+        const draft = journalDrafts.get(home.journal.draftKey) ?? home.journal.draft;
+        journalDrafts.set(home.journal.draftKey, { ...draft, [field]: value });
+      },
+      onJournalSave: () => {
+        if (!home.journal?.canSave) return;
+        const draft = journalDrafts.get(home.journal.draftKey) ?? home.journal.draft;
+        if (!draft.note.trim() || !draft.lessonTitle.trim()) {
+          journalMessage = "Enter the activity and what this class actually did before saving.";
+          render(); return;
+        }
+        if (draft.status !== "planned" && draft.date > localDateKey(now())) {
+          journalMessage = "A future visit can be marked Planned only. Check the date before recording it as taught.";
+          render(); return;
+        }
+        try {
+          appendClassJournal(privateStorage, runnerOwnerKey(), { ...draft, classKey: home.journal.selectedClassKey, classLabel: home.journal.selectedClassLabel }, { now: now() });
+          journalDrafts.delete(home.journal.draftKey);
+          journalMessage = "Class note saved and read back on this browser. The lesson position is unchanged.";
+        } catch (error) { journalMessage = error.message; }
+        render();
+      },
+      onJournalExport: () => {
+        try {
+          if (previewOnly) throw new Error("Open your saved workspace to download its teaching record.");
+          const text = exportClassJournal(privateStorage, runnerOwnerKey());
+          const filename = `circ-teaching-record-${localDateKey(now())}.json`;
+          if (typeof services.downloadText === "function") services.downloadText(filename, text, "application/json");
+          else {
+            const href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+            const link = element("a", { attributes: { href, download: filename } });
+            link.click(); URL.revokeObjectURL(href);
+          }
+          journalMessage = "Teaching-record download prepared. Keep it in your private school files for next year.";
+        } catch (error) { journalMessage = error.message; }
+        render();
+      },
+      onJournalImport: (file) => {
+        if (previewOnly) { journalMessage = "Open your saved workspace before importing a teaching record."; render(); return; }
+        const owner = runnerOwnerKey();
+        Promise.resolve().then(() => (services.readFileText ?? (value => value.text()))(file)).then(text => {
+          if (runnerOwnerKey() !== owner) throw new Error("The selected workspace changed. Choose the file again.");
+          const book = importClassJournal(privateStorage, owner, text);
+          journalMessage = `Teaching record merged and verified: ${book.entries.length} saved visits. No lesson positions changed.`;
+        }).catch(error => { journalMessage = error.message; }).finally(() => { if (!appDestroyed) render(); });
+      },
       openSchedule: () => openSchedule(),
       openSchedulePage: () => openSchedule(),
       openScheduleImport: () => openSetup(),

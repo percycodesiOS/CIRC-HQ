@@ -1,3 +1,10 @@
+# October 15, 2026 - CIRC teacher home and private teaching record
+
+- Put the current class lesson first in a cream, navy and teal teacher home. Show preparation, materials, timed student steps, finish check, next lesson and the previous visit's next step together; retain existing schedule, timer and playbook controls.
+- Added a separate local teaching record for all scheduled teaching classes, with actual visit dates, explicit taught/continuing/planned status, what changed and next-visit preparation. No old conversations, class completion or student outcomes are invented or imported.
+- Added a private JSON download and validated merge import for reuse next year. Existing class positions, student links, school schedule data and normal backup format remain unchanged. Notes are not synced; users must keep the separate teaching-record download.
+- Targeted teacher-home tests cover save/reopen, class isolation, route preservation, duplicate import, conflict refusal and unreadable data. Existing 16-gate public verification passed; production publication and actual browser acceptance are separate coordinator steps.
+
 # September 30, 2026 - WIN source correction
 
 - Withdrew the four unsupported WIN pages from the public Classroom Toolkit. The same download now contains four regular CIRC pages: the two-visit circuit game, Canva quick start and NeuroArt check. The circuit game is regular CIRC, not WIN.
