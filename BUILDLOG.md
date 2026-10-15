@@ -1,5 +1,7 @@
 # October 15, 2026 - CIRC teacher home and private teaching record
 
+- Live private-plan acceptance found two remaining weekly-view presentation mismatches: removed the teacher-name subtitle and matched support/prep fills to the corrected schedule card (blue #D5EBF5 and green #DFF0BF). Private teacher identity, plan schema and schedule data remain intact.
+
 - Put the current class lesson first in a cream, navy and teal teacher home. Show preparation, materials, timed student steps, finish check, next lesson and the previous visit's next step together; retain existing schedule, timer and playbook controls.
 - Added a separate local teaching record for all scheduled teaching classes, with actual visit dates, explicit taught/continuing/planned status, what changed and next-visit preparation. No old conversations, class completion or student outcomes are invented or imported.
 - Added a private JSON download and validated merge import for reuse next year. Existing class positions, student links, school schedule data and normal backup format remain unchanged. Notes are not synced; users must keep the separate teaching-record download.

@@ -5195,9 +5195,9 @@ button:disabled {
 .week-block-title { overflow-wrap: break-word; color: var(--heading); font-weight: 700; }
 
 .week-block[data-type="teach"] { border-left-color: var(--blue-dark); background: var(--pale-blue); }
-.week-block[data-type="prep"] { border-left-color: #3f8f5b; background: #eef8f0; }
+.week-block[data-type="prep"] { border-left-color: #3f8f5b; background: #DFF0BF; }
 .week-block[data-type="lunch"] { border-left-color: #c9694f; background: #fdf1ed; }
-.week-block[data-type="support"] { border-left-color: #c99a2e; background: var(--warning); }
+.week-block[data-type="support"] { border-left-color: #397892; background: #D5EBF5; }
 .week-block[data-type="duty"] { border-left-color: var(--heading); }
 .week-block[data-type="special"] { border-left-color: #7a55b5; background: #f4effb; }
 

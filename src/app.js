@@ -1572,7 +1572,7 @@ function weekRoute(week, actions) {
       element("p", {
         className: "date-line",
         text: week.status === "ready"
-          ? [week.teacherName, week.rangeLabel].filter(Boolean).join(" | ")
+          ? week.rangeLabel
           : "Your next school days in one place"
       })
     ]),
