@@ -332,7 +332,7 @@ function welcomeRoute(actions) {
       className: "welcome-maker",
       attributes: {
         src: "assets/tech-terrarium-maker-scene.jpg",
-        alt: "Mr. Macek, CIRC grades 5-6. Illustration inspired by our computer-case terrarium, with rock caves, colorful maker creatures, and circuits.",
+        alt: "CIRC grades 5-6. Illustration inspired by our computer-case terrarium, with rock caves, colorful maker creatures, and circuits.",
         width: "1942",
         height: "809"
       }
@@ -597,7 +597,7 @@ function projectArtwork(project, className) {
         className: `${className} terrarium-maker-scene`,
         attributes: {
           src: "assets/tech-terrarium-maker-scene.jpg",
-          alt: "Illustration inspired by our computer-case terrarium, with rock caves, colorful maker creatures, and circuits. Mr. Macek, CIRC grades 5-6.",
+          alt: "Illustration inspired by our computer-case terrarium, with rock caves, colorful maker creatures, and circuits. CIRC grades 5-6.",
           width: "1942",
           height: "809"
         }

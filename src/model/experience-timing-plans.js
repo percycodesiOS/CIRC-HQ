@@ -288,7 +288,7 @@ function replicaParallelJobs() {
 }
 
 function deviceSetupVariant() {
-  // Kenny's actual routine, in his order. Trackpad comes FIRST because the very
+  // The established classroom routine, in its actual order. Trackpad comes FIRST because the very
   // next step needs a right-click, and a student who cannot right-click is stuck
   // at step two. Times are estimates until the first real run.
   return {

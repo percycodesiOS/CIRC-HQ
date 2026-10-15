@@ -83,7 +83,7 @@ export function saveCrewSignup(storage, owner, { date, role, side, member, repla
   const next = loaded.book;
   const slots = next.dates[date] ?? {};
   const slot = `${role}:${side}`;
-  if (slots[slot] && !replaceExisting) throw new TypeError("That place is taken. Choose an open place or have Kenny remove the old assignment first.");
+  if (slots[slot] && !replaceExisting) throw new TypeError("That place is taken. Choose an open place or have the teacher remove the old assignment first.");
   next.dates[date] = { ...slots, [slot]: person(member) };
   const admitted = validate(next);
   const raw = JSON.stringify(admitted);
