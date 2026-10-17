@@ -204,6 +204,10 @@ test("the dated student entry opens stations while annual bookmarks keep their l
   const booked = renderStudent("?playbook=a&meeting=3", "2026-10-12T12:00:00Z");
   const heading = findAll(booked.root, node => node.getAttribute("id") === "pb-lesson-title")[0];
   assert.match(textOf(heading), /jingle/i);
+  assert.doesNotMatch(textOf(booked.root), /This week's CIRC lesson/, "an explicit lesson link is not preceded by a competing weekly task");
+  const otherLessons = findAll(booked.root, node => node.getAttribute("id") === "browse")[0];
+  assert.equal(otherLessons.tagName, "details");
+  assert.equal(otherLessons.getAttribute("open"), null, "other lessons stay collapsed until requested");
   const after = renderStudent("", "2026-10-19T12:00:00Z");
   assert.doesNotMatch(textOf(after.root), /This week's CIRC lesson/);
   assert.match(textOf(after.root), /Retained for next year/);

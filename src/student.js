@@ -86,6 +86,12 @@ export function renderStudentPage(root, {
       const resolved = link.lesson ? resolveSupplementalLesson(link.lesson) : resolveMeeting(link.playbook, link.meeting, { grade: link.grade, option: link.option });
       today = h("div", { className: "student-today" }, [
         resolved.meeting.paths.both || link.grade ? gradeSwitch(link) : null,
+        resolved.lesson ? h("section", { className: "pb-callout", attributes: { "aria-label": "How to do today's task" } }, [
+          h("h2", { text: "Start here" }),
+          h("p", {}, [h("strong", { text: `${resolved.lesson.steps[0].label}: ` }), h("span", { text: resolved.lesson.steps[0].directions[0] })]),
+          h("p", { text: "Follow the numbered steps below with your class. Show the work listed under What to turn in before starting an optional challenge." }),
+          h("p", { text: "This page gives directions; it does not save or collect your work." })
+        ]) : null,
         buildLessonCard(resolved, {
           audience: "student",
           grade: link.grade,
@@ -102,7 +108,8 @@ export function renderStudentPage(root, {
     } else {
       today = picker(link);
     }
-    const browse = h("section", { className: "student-browse", attributes: { id: "browse", "aria-labelledby": "student-browse-title" } }, [
+    const browse = h("details", { className: "student-browse", attributes: { id: "browse" } }, [
+      h("summary", { text: "Other lessons - open only when your teacher asks" }),
       h("h2", { text: "Browse the playbooks", attributes: { id: "student-browse-title" } }),
       h("p", { text: "Playbook A is this year. Playbook B is next year. Tap a meeting to see its steps." }),
       buildPlaybookBrowser(browseId, {
@@ -111,11 +118,13 @@ export function renderStudentPage(root, {
         documentRef,
         onSwitchPlaybook: id => { browseId = id; render(); },
         onOpenMeeting: (playbookId, number) => go({ playbook: playbookId, meeting: number, grade: link.grade })
-      })
+      }),
+      buildSupplementalLibrary({ documentRef })
     ]);
     const week = currentWeekLesson(now());
-    const currentEntry = week && link.lesson !== week.supplementalId ? buildCurrentWeekEntry(week, { documentRef, onOpenLesson: lesson => go({ lesson, grade: link.grade }) }) : null;
-    root.replaceChildren(...[currentEntry, today, browse, buildSupplementalLibrary({ documentRef })].filter(Boolean));
+    const hasSelectedLesson = Boolean(link.lesson || (link.playbook && link.meeting));
+    const currentEntry = week && !hasSelectedLesson ? buildCurrentWeekEntry(week, { documentRef, onOpenLesson: lesson => go({ lesson, grade: link.grade }) }) : null;
+    root.replaceChildren(...[currentEntry, today, browse].filter(Boolean));
     if (focus) {
       scrollTo?.(0, 0);
       root.querySelector?.("#pb-lesson-title, #student-welcome-title")?.focus?.({ preventScroll: true });

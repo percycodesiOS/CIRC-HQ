@@ -185,7 +185,7 @@ export function buildTeacherHome(input, actions = {}, { documentRef } = {}) {
 
   return h("section", { className: "th-home", attributes: { "aria-label": "Teacher home" } }, [
     h("header", { className: "th-welcome" }, [
-      h("div", {}, [h("p", { className: "eyebrow", text: "CIRC HQ / Teacher workspace" }), h("h2", { text: "Ready for the next class." }), h("p", { text: "Open the lesson, set out the materials, and keep a useful note for the next visit." })]),
+      h("div", {}, [h("p", { className: "eyebrow", text: "CIRC HQ / Teacher workspace" }), h("h2", { text: "Ready for the next class." }), h("p", { text: "1. Prepare the lesson. 2. Teach the steps. 3. Check the work. 4. Save where this class starts next time." })]),
       h("span", { className: "th-day-badge", text: input.cycleDay ? `Cycle Day ${input.cycleDay}` : "Your teaching day" })
     ]),
     h("div", { className: "th-grid" }, [classCard, nextCard, timerCard, laterCard]),
@@ -211,7 +211,8 @@ function buildTeachingRecord(h, journal, actions) {
   return h("section", { className: "th-card th-journal", attributes: { "aria-labelledby": "th-journal-title" } }, [
     h("div", { className: "th-section-heading" }, [h("div", {}, [h("p", { className: "eyebrow", text: "Keep it for next time" }), h("h2", { text: "Teaching record", attributes: { id: "th-journal-title" } })]),
       h("button", { className: "secondary-action", text: "Download teaching record", attributes: { type: "button" }, onClick: actions.onJournalExport })]),
-    h("p", { className: "th-quiet", text: "Private to this browser. Record what actually happened, what changed, and where to start next time. Download a copy to keep it for next year; these notes are separate from the regular app backup." }),
+    h("p", { className: "th-quiet", text: "Choose the class and actual visit date. Select Taught / completed only after checking the work; use Started / still working when the class needs more time, or Planned only before teaching. Write what happened and one next step, then choose Save class note." }),
+    h("p", { className: "th-quiet", text: "Private to this browser. Keep individual student grades in your school gradebook, not in this class note. Download a copy to keep it for next year; these notes are separate from the regular app backup." }),
     h("div", { className: "th-journal-layout" }, [
       h("div", { className: "th-journal-form" }, [
         h("label", { text: "Class", attributes: { for: "th-journal-class" } }), classes,
@@ -298,20 +299,40 @@ function buildClassCard(h, classCard, actions, documentRef) {
       ? h("div", { className: "th-lesson" }, [
           h("h3", { text: lesson.title }),
           h("p", { text: lesson.goal }),
+          h("div", { className: "th-actions" }, [
+            h("button", { className: "primary-action", text: "Start lesson", attributes: { type: "button" }, onClick: actions.onStartClassLesson }),
+            h("a", { className: "secondary-action", text: "Student page", attributes: { href: studentHref, target: "_blank", rel: "noopener" } })
+          ]),
+          h("p", { className: "th-quiet", text: "Start lesson opens the teaching controls and timer. Open Student page to show or share this exact lesson. Tell students the goal above and read the first step together; you decide when the class moves on." }),
           h("div", { className: "th-lesson-columns" }, [
-            h("div", {}, [h("h4", { text: "Quick prep / Before students arrive" }), h("ul", { className: "plain-list" }, lesson.prep.map(item => h("li", { text: item }))),
+            h("div", {}, [h("h4", { text: "1. Quick prep / Before students arrive" }), h("ul", { className: "plain-list" }, lesson.prep.map(item => h("li", { text: item }))),
               h("details", {}, [h("summary", { text: "Materials and setup" }), h("ul", { className: "plain-list" }, (lesson.materials ?? []).map(item => h("li", { text: item }))), lesson.prepRequired ? h("p", { text: lesson.prepRequired }) : null])]),
-            h("div", {}, [h("h4", { text: `Student steps / ${lesson.minutes} minutes` }), h("ol", { className: "th-lesson-steps" }, (lesson.steps ?? []).map(step => h("li", {}, [h("strong", { text: step.label }), h("span", { text: `${step.minutes} min` })]))),
+            h("div", {}, [h("h4", { text: `2. Student steps / ${lesson.minutes} minutes` }), h("ol", { className: "th-lesson-steps" }, (lesson.steps ?? []).map(step => h("li", {}, [h("strong", { text: step.label }), h("span", { text: `${step.minutes} min` })]))),
               h("p", { className: "th-finish-check", text: `Finished when: ${lesson.success || lesson.turnIn}` })])
           ]),
+          h("details", { className: "th-teaching-directions" }, [
+            h("summary", { text: "Open the step-by-step teacher directions" }),
+            h("ol", { className: "plain-list" }, (lesson.steps ?? []).map(step => h("li", {}, [
+              h("h4", { text: `${step.label} / ${step.minutes} min` }),
+              h("p", {}, [h("strong", { text: "Students do: " }), h("span", { text: (step.directions ?? []).join(" ") })]),
+              step.teacherDirections?.length ? h("p", {}, [h("strong", { text: "Teacher says / does: " }), h("span", { text: step.teacherDirections.join(" ") })]) : null
+            ])))
+          ]),
+          h("section", { className: "pb-callout", attributes: { "aria-label": "Check the student work" } }, [
+            h("h4", { text: "3. Check the work before moving on" }),
+            h("p", {}, [h("strong", { text: "Ask students to show: " }), h("span", { text: lesson.turnIn })]),
+            h("p", {}, [h("strong", { text: "Look for: " }), h("span", { text: lesson.success || lesson.turnIn })]),
+            h("p", { text: "Look at the actual work or demonstration. If something is missing, name one change for the student to make and check again. If a grade is required, use the assigned school rubric and record it in your school gradebook." })
+          ]),
+          h("p", { className: "th-quiet" }, [h("strong", { text: "4. Save the next step. " }), h("span", { text: "In Teaching record below, choose the correct class and date, record what was completed or still needs work, and write where to begin next visit. Save class note keeps this lesson in place." })]),
           resolved.meeting.kind !== "lesson" ? h("p", { className: "th-quiet", text: "Flex time: catch up first. Change the lesson in the playbook if this class is on track." }) : null
         ])
       : h("p", { className: "th-quiet", text: "Grades 5 and 6 split at this meeting. Choose the grade to see the lesson." }),
     h("div", { className: "th-actions" }, [
-      lesson ? h("button", { className: "primary-action", text: "Start lesson", attributes: { type: "button" }, onClick: actions.onStartClassLesson }) : null,
-      h("a", { className: "secondary-action", text: "Student page", attributes: { href: studentHref, target: "_blank", rel: "noopener" } }),
+      !lesson ? h("a", { className: "secondary-action", text: "Student page", attributes: { href: studentHref, target: "_blank", rel: "noopener" } }) : null,
       !isStationWeek && place.meeting < lastMeeting ? h("button", { className: "secondary-action", text: `Done. Next time: meeting ${place.meeting + 1}`, attributes: { type: "button" }, onClick: () => change({ meeting: place.meeting + 1, option: null }) }) : null
     ]),
+    !isStationWeek && place.meeting < lastMeeting ? h("p", { className: "th-quiet", text: "Use Done. Next time only when this class is ready to leave this lesson. It changes the saved lesson; it does not save a teaching note or a student grade." }) : null,
     isStationWeek ? buildStationGuideLinks({ audience: "teacher", documentRef }) : null,
     next ? h("details", { className: "th-following-lesson" }, [h("summary", { text: `Following lesson: ${next.lesson?.title || meetingTitle(next.meeting)}` }),
       h("p", { text: isStationWeek ? "Resume this class's saved annual lesson after the station week. Finish any unfinished work first." : "This is the next planned lesson, not a record of completion." }),
