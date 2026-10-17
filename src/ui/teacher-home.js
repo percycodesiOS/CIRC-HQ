@@ -1,7 +1,7 @@
 // Teacher side first screen: next obligation, this class's lesson, the timer,
 // later obligations, and plain links. Everything else stays in More tools.
 import { PLAYBOOKS, buildStudentLink, getPlaybook, listMeetings, meetingTitle, resolveMeeting } from "../model/playbooks.js";
-import { buildCurrentWeekEntry, buildStationGuideLinks, createBuilder } from "./playbook-view.js";
+import { buildCurrentWeekEntry, buildLessonSteps, buildStationGuideLinks, createBuilder } from "./playbook-view.js";
 
 function clock(minutes) {
   if (!Number.isInteger(minutes)) return "";
@@ -304,25 +304,37 @@ function buildClassCard(h, classCard, actions, documentRef) {
             h("a", { className: "secondary-action", text: "Student page", attributes: { href: studentHref, target: "_blank", rel: "noopener" } })
           ]),
           h("p", { className: "th-quiet", text: "Start lesson opens the teaching controls and timer. Open Student page to show or share this exact lesson. Tell students the goal above and read the first step together; you decide when the class moves on." }),
-          h("div", { className: "th-lesson-columns" }, [
+          h("div", { className: "th-lesson-prep" }, [
             h("div", {}, [h("h4", { text: "1. Quick prep / Before students arrive" }), h("ul", { className: "plain-list" }, lesson.prep.map(item => h("li", { text: item }))),
-              h("details", {}, [h("summary", { text: "Materials and setup" }), h("ul", { className: "plain-list" }, (lesson.materials ?? []).map(item => h("li", { text: item }))), lesson.prepRequired ? h("p", { text: lesson.prepRequired }) : null])]),
-            h("div", {}, [h("h4", { text: `2. Student steps / ${lesson.minutes} minutes` }), h("ol", { className: "th-lesson-steps" }, (lesson.steps ?? []).map(step => h("li", {}, [h("strong", { text: step.label }), h("span", { text: `${step.minutes} min` })]))),
-              h("p", { className: "th-finish-check", text: `Finished when: ${lesson.success || lesson.turnIn}` })])
+              h("h4", { text: "Materials and setup" }), h("ul", { className: "plain-list" }, (lesson.materials ?? []).map(item => h("li", { text: item }))), lesson.prepRequired ? h("p", { text: lesson.prepRequired }) : null])
           ]),
-          h("details", { className: "th-teaching-directions" }, [
-            h("summary", { text: "Open the step-by-step teacher directions" }),
-            h("ol", { className: "plain-list" }, (lesson.steps ?? []).map(step => h("li", {}, [
-              h("h4", { text: `${step.label} / ${step.minutes} min` }),
-              h("p", {}, [h("strong", { text: "Students do: " }), h("span", { text: (step.directions ?? []).join(" ") })]),
-              step.teacherDirections?.length ? h("p", {}, [h("strong", { text: "Teacher says / does: " }), h("span", { text: step.teacherDirections.join(" ") })]) : null
+          h("section", { className: "pb-callout pb-safety" }, [h("h4", { text: "Safety before you start" }), h("p", { text: lesson.safety })]),
+          lesson.resources?.length ? h("section", { className: "pb-callout pb-resources" }, [
+            h("h4", { text: "Lesson resources" }),
+            h("ul", { className: "plain-list" }, lesson.resources.map(resource => h("li", {}, [
+              h("a", { text: resource.label, attributes: { href: resource.url, target: "_blank", rel: "noopener noreferrer" } }),
+              h("p", { text: resource.description })
             ])))
+          ]) : null,
+          lesson.teacherNotes?.length ? h("details", { className: "pb-teacher-notes", attributes: { open: true } }, [
+            h("summary", { text: "Teacher preparation and examples" }),
+            h("ul", { className: "plain-list" }, lesson.teacherNotes.map(item => h("li", { text: item })))
+          ]) : null,
+          h("section", { className: "th-teaching-directions" }, [
+            h("h4", { text: `2. Follow these steps together / ${lesson.minutes} minutes` }),
+            h("p", { text: "Read one numbered step with the class. The Student page uses the same words in the same order. The Teacher: say and do notes tell you what to show or check at each step." }),
+            buildLessonSteps(lesson, { audience: "teacher", documentRef })
           ]),
           h("section", { className: "pb-callout", attributes: { "aria-label": "Check the student work" } }, [
             h("h4", { text: "3. Check the work before moving on" }),
             h("p", {}, [h("strong", { text: "Ask students to show: " }), h("span", { text: lesson.turnIn })]),
             h("p", {}, [h("strong", { text: "Look for: " }), h("span", { text: lesson.success || lesson.turnIn })]),
-            h("p", { text: "Look at the actual work or demonstration. If something is missing, name one change for the student to make and check again. If a grade is required, use the assigned school rubric and record it in your school gradebook." })
+            h("ol", { className: "plain-list" }, [
+              "Ask each student to show or explain the work listed above.",
+              "Compare it with the Look for check. If a part is missing, say one change to make. Let the student fix it. Check that part again.",
+              "Give feedback on the work and explanation. The timer does not decide whether the work is finished.",
+              "If your school requires a grade, use its assigned rubric and school gradebook. CIRC HQ does not set points or save student grades."
+            ].map(item => h("li", { text: item })))
           ]),
           h("p", { className: "th-quiet" }, [h("strong", { text: "4. Save the next step. " }), h("span", { text: "In Teaching record below, choose the correct class and date, record what was completed or still needs work, and write where to begin next visit. Save class note keeps this lesson in place." })]),
           resolved.meeting.kind !== "lesson" ? h("p", { className: "th-quiet", text: "Flex time: catch up first. Change the lesson in the playbook if this class is on track." }) : null

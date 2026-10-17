@@ -344,7 +344,7 @@ export function lessonTitleForRef(ref) {
 }
 
 export const STATION_GUIDES = freeze([
-  { label: "Open MYnecraft", url: "https://percycodesios.github.io/CyberGrader.io/game/mynecraft.html", description: "Start with the classroom game. Keep your existing world and save as your teacher directs." },
+  { label: "Open MYnecraft", url: "https://percycodesios.github.io/CyberGrader.io/game/mynecraft.html", description: "Keep your existing world. Choose Creative, then the PLAY AS button. Follow the block-building and save steps below." },
   { label: "Station week student packet (PDF)", url: "assets/guides/CIRC-Station-Week-Student-Packet.pdf", description: "Project steps, a group check and a short reflection." },
   { label: "Station week teacher guide (PDF)", url: "assets/guides/CIRC-Station-Week-Teacher-Guide.pdf", description: "Setup, called-group timing and checks for the teacher.", teacherOnly: true }
 ]);

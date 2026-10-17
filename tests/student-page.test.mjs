@@ -7,7 +7,8 @@ import { fileURLToPath } from "node:url";
 import { renderStudentPage } from "../src/student.js";
 import { studentRedirectTarget } from "../src/app.js";
 import { buildTeacherHome, buildTeacherAgenda } from "../src/ui/teacher-home.js";
-import { resolveMeeting } from "../src/model/playbooks.js";
+import { PLAYBOOKS, SUPPLEMENTAL_LESSONS, listMeetings, resolveClassLesson, resolveMeeting, resolveSupplementalLesson } from "../src/model/playbooks.js";
+import { buildLessonCard } from "../src/ui/playbook-view.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -38,6 +39,36 @@ class Node {
 const documentRef = { createElement: tag => new Node(tag) };
 const textOf = node => [node.textContent, ...node.children.map(textOf)].filter(Boolean).join(" ");
 const findAll = (node, predicate, found = []) => { if (predicate(node)) found.push(node); node.children.forEach(child => findAll(child, predicate, found)); return found; };
+
+test("every teacher lesson has the exact student directions in order, with visible teacher actions", () => {
+  const resolved = PLAYBOOKS.flatMap(playbook => listMeetings(playbook.id).flatMap(meeting => [5, 6].map(grade => resolveMeeting(playbook.id, meeting.number, { grade }))));
+  resolved.push(...SUPPLEMENTAL_LESSONS.map(item => resolveSupplementalLesson(item.id)));
+  const unique = new Map(resolved.filter(item => item?.lesson).map(item => [item.lesson.ref, item]));
+  assert.ok(unique.size > 50, "audit both full-year routes, not just a sample screen");
+  for (const [ref, item] of unique) {
+    const student = buildLessonCard(item, { audience: "student", documentRef });
+    const teacher = buildLessonCard(item, { audience: "teacher", documentRef });
+    const directions = node => findAll(node, child => child.className === "pb-step-directions").map(step => step.children.map(textOf));
+    assert.deepEqual(directions(teacher), directions(student), ref);
+    const teacherActions = findAll(teacher, node => node.className === "pb-teacher-step");
+    assert.ok(teacherActions.every(node => node.tagName === "section"), `${ref}: teacher actions are visible without opening another control`);
+    assert.equal(findAll(student, node => node.className === "pb-teacher-step").length, 0, `${ref}: teacher actions do not leak onto the student page`);
+    const teacherPrep = findAll(teacher, node => node.className === "pb-teacher-notes");
+    assert.ok(teacherPrep.every(node => node.getAttribute("open") !== null), `${ref}: preparation and examples are open by default`);
+  }
+});
+
+test("the retained station activity has executable game steps and does not replace next week's saved lesson", () => {
+  const station = textOf(buildLessonCard(resolveSupplementalLesson("circ-station-rotation"), { audience: "student", documentRef }));
+  for (const text of ["Creative", "Auto or Keyboard and mouse", "On touch screens", "PLAY AS", "top or side of a nearby block", "Right-click", "On a touch screen, tap PLACE", "press Save", "Save, download or load a world", "Download Save", ".json", "Do not choose Reset World or Load World"]) {
+    assert.ok(station.includes(text), text);
+  }
+  assert.doesNotMatch(station, /Aim at empty ground/);
+  const held = { playbook: "a", meeting: 3, grade: 5, option: null };
+  assert.equal(resolveClassLesson(held, "2026-10-16").supplementalId, "circ-station-rotation");
+  assert.equal(resolveClassLesson(held, "2026-10-19").lesson.ref, resolveMeeting("a", 3, { grade: 5 }).lesson.ref);
+  assert.equal(held.meeting, 3, "looking at the date does not advance saved class progress");
+});
 
 async function importGraph(entry) {
   const pending = [entry];

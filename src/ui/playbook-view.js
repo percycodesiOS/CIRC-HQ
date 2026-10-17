@@ -55,7 +55,11 @@ function stageBar(h, lesson) {
     })));
 }
 
-function stepCards(h, lesson, audience) {
+// Keep the wording and order identical on the teacher home, lesson plan and
+// student page. Teacher actions sit beside the shared directions, not behind
+// another guide or a collapsed control.
+export function buildLessonSteps(lesson, { audience = "student", documentRef } = {}) {
+  const h = createBuilder(documentRef);
   let elapsed = 0;
   return h("ol", { className: "pb-steps" }, lesson.steps.map((step, index) => {
     const start = elapsed;
@@ -67,9 +71,9 @@ function stepCards(h, lesson, audience) {
         h("h4", { text: step.label }),
         h("span", { className: "pb-step-time", text: `${step.minutes} min`, attributes: { title: `Minutes ${start} to ${elapsed}` } })
       ]),
-      list(h, step.directions, "pb-step-directions"),
+      list(h, step.directions, "pb-step-directions", true),
       audience === "teacher" && step.teacherDirections.length
-        ? h("details", { className: "pb-teacher-step" }, [h("summary", { text: "Teacher moves" }), list(h, step.teacherDirections)])
+        ? h("section", { className: "pb-teacher-step" }, [h("h5", { text: "Teacher: say and do" }), list(h, step.teacherDirections, "plain-list", true)])
         : null
     ]);
   }));
@@ -181,9 +185,14 @@ export function buildLessonCard(resolved, { audience = "student", grade = null, 
         h("p", { text: resource.description })
       ])))
     ]) : null,
+    audience === "teacher" && lesson.teacherNotes.length ? h("details", { className: "pb-teacher-notes", attributes: { open: true } }, [
+      h("summary", { text: "Teacher preparation and examples" }),
+      list(h, lesson.teacherNotes)
+    ]) : null,
     h("section", { className: "pb-steps-section" }, [
       h("h3", { text: `Steps | ${lesson.minutes} minutes` }),
-      stepCards(h, lesson, audience)
+      audience === "teacher" ? h("p", { text: "Read one numbered step with the class. The student page has these same directions in this same order. Use the Teacher: say and do notes at each step. Check the work before you move on." }) : null,
+      buildLessonSteps(lesson, { audience, documentRef })
     ]),
     h("div", { className: "pb-finish-grid" }, [
       callout(h, "pb-turnin", "What to turn in", lesson.turnIn),
@@ -192,16 +201,22 @@ export function buildLessonCard(resolved, { audience = "student", grade = null, 
       callout(h, "pb-fallback", "Another way to do it", lesson.fallback)
     ]),
     paperPathSection(h, lesson.paperPath),
+    audience === "teacher" ? h("section", { className: "pb-callout pb-work-check" }, [
+      h("h3", { text: "Check each student's work" }),
+      list(h, [
+        `Ask the student to show or explain this: ${lesson.turnIn}`,
+        `Compare the work with this lesson's finish check: ${lesson.success || lesson.turnIn}`,
+        "If a part is missing, tell the student one change to make. Let the student fix it. Check that part again.",
+        "Give feedback on the work and explanation. Finishing the timer does not mean the work is done.",
+        "If your school requires a grade, use its assigned rubric and school gradebook. This page does not set points or save student grades."
+      ], "plain-list", true)
+    ]) : null,
     adaptations(h, lesson, audience, grade),
     callout(h, "pb-safety", "Stay safe", lesson.safety),
     audience === "teacher" ? callout(h, "pb-cleanup", "Cleanup", lesson.cleanup) : null,
     audience === "teacher" ? h("section", { className: "pb-callout pb-fourcs" }, [
       h("h3", { text: "Four Cs" }),
       h("p", { text: lesson.fourCs.map(id => FOUR_CS.find(item => item.id === id)?.label).filter(Boolean).join(", ") })
-    ]) : null,
-    audience === "teacher" && lesson.teacherNotes.length ? h("details", { className: "pb-teacher-notes" }, [
-      h("summary", { text: "Teacher notes" }),
-      list(h, lesson.teacherNotes)
     ]) : null
   ]);
 }

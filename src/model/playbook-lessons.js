@@ -81,12 +81,15 @@ export const PLAYBOOK_LESSONS = freeze([
     fastFinish: "Check one part's fit, finish or readability with a partner. Improve or explain one choice, then leave a clear next step in the coded tray. Continue a teacher-approved MYnecraft task if directed; do not start I Spy or add unapproved model features.",
     steps: [
       ["explore", "Start in MYnecraft", "ready", 3, [
-        "Open MYnecraft and try one new feature your teacher points out.",
-        "Show a partner what it does. Keep your existing world and a downloaded backup.",
-        "Find your group of four. Work on MYnecraft or your approved project until called."
+        "Open MYnecraft. Keep your saved world. Choose Creative. On computers, use Auto or Keyboard and mouse controls.",
+        "On touch screens, use Auto or Touch controls. Press PLAY AS. Pick a block from the bar.",
+        "Point at the top or side of a nearby block. Right-click to add your block.",
+        "On a touch screen, tap PLACE. Show your partner your added block.",
+        "Keep working on your assigned build until called. Do not choose Reset World or Load World."
       ], [
-        "Name one current feature and show the three-minute goal. Do not reset or replace students' existing worlds.",
-        "Confirm group numbers and each group's project job. The final group may have fewer than four children."
+        "Before class, open the game on a school device. Demonstrate these same steps and check that placing one block works. Keep the existing world; do not reset or load over it. Computers use Auto or Keyboard and mouse controls. Touch-screen PLACE needs a touch screen, not a mouse click. Point at an existing nearby block face, then place the new block against it.",
+        "Demonstrate movement: W, A, S and D or arrow keys; drag to look. On touch screens, use the movement stick and drag to look. Show Menu to pause and Save to keep the current build.",
+        "Confirm group numbers and one clear project job for each group. The final group may have fewer than four children. The cardboard model, cave, nest and letters are physical projects. MYnecraft is the block-building task, not a working saw, circuit, animal habitat or physics test."
       ]],
       ...Array.from({ length: 7 }, (_, index) => [
         `group-${index + 1}`, `Group ${index + 1} at the tool`, "work", 4, [
@@ -102,10 +105,13 @@ export const PLAYBOOK_LESSONS = freeze([
         ]
       ]),
       ["save-reset", "Save and reset", "cleanup", 3, [
-        "Save your MYnecraft work and keep a downloaded backup where directed.",
+        "In MYnecraft, press Save. Use the same device and browser next time.",
+        "Press Menu. Open Save, download or load a world. Press Download Save.",
+        "Find the .json file in Downloads. Show your teacher before closing the game.",
         "Put your project in its coded tray. Return tools and clear scraps.",
         "Leave drying work where directed."
       ], [
+        "Watch each MYnecraft user press Save and find the downloaded .json file. If saving fails, keep the game open and use Download Save. A download on this device is not an upload to Teams or a copy on another device. Keep backups in the approved school location.",
         "Secure the saw using its manual, count tools and check stored or drying work. Inspect contributions before any permanent placement."
       ]],
       ["handoff", "Share the next step", "exit", 1, [
