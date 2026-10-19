@@ -119,7 +119,8 @@ export function renderStudentPage(root, {
         onSwitchPlaybook: id => { browseId = id; render(); },
         onOpenMeeting: (playbookId, number) => go({ playbook: playbookId, meeting: number, grade: link.grade })
       }),
-      buildSupplementalLibrary({ documentRef })
+      buildSupplementalLibrary({ documentRef }),
+      h("a", { className: "secondary-action", text: "Connect the dots: Ethernet lab", attributes: { href: "network-lab.html" } })
     ]);
     const week = currentWeekLesson(now());
     const hasSelectedLesson = Boolean(link.lesson || (link.playbook && link.meeting));

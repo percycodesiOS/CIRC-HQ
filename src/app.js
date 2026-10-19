@@ -1317,6 +1317,17 @@ function playbookGuides() {
   ]);
 }
 
+function networkLabEntry() {
+  return element("section", { className: "pb-guides", attributes: { "aria-labelledby": "network-lab-title" } }, [
+    element("h2", { text: "Connect the dots: Ethernet lab", attributes: { id: "network-lab-title" } }),
+    element("p", { text: "Seven tables build, inspect and test practice cables over two class visits. Includes a visual T568B card, rotating jobs, teacher preparation and a printable check-in tracker. Choose it when materials are ready; this does not advance the annual playbook." }),
+    element("div", { className: "classroom-year-downloads" }, [
+      element("a", { className: "secondary-action", text: "Open networking lesson", attributes: { href: "network-lab.html" } }),
+      element("a", { className: "secondary-action", text: "Offline copy: download + print", attributes: { href: "assets/guides/CIRC-Network-Lab.pdf", download: "CIRC-Network-Lab.pdf" } })
+    ])
+  ]);
+}
+
 function projectsRoute(actions) {
   const view = actions.playbookView;
   const resolved = view.lesson ? resolveSupplementalLesson(view.lesson) : resolveMeeting(view.playbookId, view.meeting, { grade: view.grade, option: view.option });
@@ -1372,6 +1383,7 @@ function projectsRoute(actions) {
       element("div", { className: "pb-teacher-browser" }, [browser])
     ]),
     buildSupplementalLibrary({ audience: "teacher", documentRef: document, onOpenLesson: openSupplemental }),
+    networkLabEntry(),
     playbookGuides(),
     element("details", { className: "pb-more" }, [
       element("summary", { text: "More: all 36 experiences, morning announcements, FID and replica lessons" }),

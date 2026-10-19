@@ -11,6 +11,10 @@ const LEGACY_NORMALIZED_SHA256 =
   "6E7FF5AA3B15A57A44F0D3351C6C6A5A3B3D14813E9B5616AF3D138C5E41B69F";
 const EXPECTED_ROOT_GITIGNORE = "/.superpowers/\n/.worktrees/\n/.firebase/\n/.firebaserc\n/firebase-debug.log\n/firestore-debug.log\n/ui-debug.log\n/node_modules/\n";
 const ALLOWED_UNTRACKED = new Set([
+  "network-lab.html",
+  "network-lab.css",
+  "assets/guides/CIRC-Network-Lab.pdf",
+  "tests/network-lab.test.mjs",
   ".gitattributes",
   "walkthrough.html",
   "fid.css",
@@ -147,6 +151,7 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "assets/ectv/roles/role-weather.svg",
   "assets/guides/CIRC-Classroom-Cards.pdf",
   "assets/guides/CIRC-Classroom-Toolkit.pdf",
+  "assets/guides/CIRC-Network-Lab.pdf",
   "assets/guides/CIRC-Station-Week-Student-Packet.pdf",
   "assets/guides/CIRC-Station-Week-Teacher-Guide.pdf",
   "assets/guides/CIRC-Teacher-Guide.pdf",
@@ -188,6 +193,8 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "firebase-config.js",
   "index.html",
   "mission-control.html",
+  "network-lab.css",
+  "network-lab.html",
   "src/app.js",
   "src/ectv-scripts.js",
   "src/model/access.js",
@@ -294,6 +301,7 @@ const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "tests/experience-timing-plans.test.mjs",
   "tests/lesson-guide.test.mjs",
   "tests/local-store.test.mjs",
+  "tests/network-lab.test.mjs",
   "tests/public-shell.test.mjs",
   "tests/release-final-fixes.test.mjs",
   "tests/project-catalog.test.mjs",
@@ -366,6 +374,7 @@ const TEXT_EXTENSIONS = new Set([
   ".txt"
 ]);
 const REVIEWED_BINARY_ASSETS = new Map([
+  ["assets/guides/CIRC-Network-Lab.pdf","5EE7B3B14080C66814C5F53C3E492877EE2C51A715DAA79C9B99E41BAE70BD53"],
   ["assets/guides/CIRC-Station-Week-Student-Packet.pdf","694D5594A8A59586892E879C6C461DEEC5F086A31DA5BF5C1226233935A418EF"],
   ["assets/guides/CIRC-Station-Week-Teacher-Guide.pdf","6311F6BAD5DD242AC90CF54D1E53A627F534824A260B2B92E8A0E644E8195542"],
   ["assets/guides/CIRC-Classroom-Toolkit.pdf","9AB09B9AE9EA94B71BCCE49C293F6DAA5A614DB7AC17498A41E95C132708ADD3"],
@@ -891,7 +900,10 @@ export function countUnsafeRuntimeLinks(text) {
     "https://radar.weather.gov/station/KPBZ/standard",
     "https://support.apple.com/en-us/102242",
     "https://support.apple.com/en-us/102353",
-    "https://support.apple.com/en-us/102371"
+    "https://support.apple.com/en-us/102371",
+    "https://www.cisco.com/site/us/en/learn/topics/small-business/network-switch-vs-router.html",
+    "https://www.trendnet.com/support/faqs/?ToDo=view&catId=967&questId=399",
+    "https://www.truecable.com/blogs/cable-academy/t568a-vs-t568b"
   ]);
   let unsafe = 0;
   for (const link of links) {

@@ -47,6 +47,10 @@ Finish the shared cardboard school before work on the Tech Terrarium using the e
 
 Teacher reference sources checked October 2: [ChompSaw operating instructions](https://learn.chompshop.com/learn-chompsaw), [ChompShop material limits](https://chompshop.com/pages/faq), [Adafruit's low-tech circuit game](https://learn.adafruit.com/low-tech-operation-game), and [an active buzzer with a 3-5 V operating rating](https://www.adafruit.com/product/1536). The classroom sequences are original adaptations. Purchasing and inventory details remain in the private master materials sheet, not in student directions.
 
+## Ethernet networking lab
+
+Playbooks and the student page's other-lessons list link to `network-lab.html`, a two-visit networking lesson for seven tables. Its four-page offline PDF has two student pages and two teacher pages: local network vs internet, switch/router/device roles, a numbered T568B diagram, pass-through cable assembly, standalone wire-map testing, rotating jobs, preparation, troubleshooting and a blank check-in tracker. It does not change the annual route or read or save student work. Teachers verify the actual cable/connector/tool combination and pilot a cable before class. Practice cables stay disconnected from school network equipment. A basic continuity tester does not certify speed or detect every split-pair fault. Purchasing stays in the private supplies list.
+
 ## Dated updates
 
 Appointments, meetings and assignment changes outside the five-day schedule load from a small private file on **Schedule > Dated updates**. The file states the date range that was actually checked, and each item has a date, times, title, optional place, source and verified time. The home screen shows source freshness, marks checks older than a week as stale, shows conflicts and drops past dates. A day outside the checked range is "not checked", and an empty checked day is never called proof of no events. CIRC HQ cannot read Outlook, email or any school account by itself. See [the import contract](docs/DATED-UPDATES-IMPORT.md).
