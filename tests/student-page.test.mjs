@@ -25,9 +25,13 @@ class Node {
   append(...children) { this.children.push(...children.filter(Boolean)); }
   replaceChildren(...children) { this.children = children.filter(Boolean); }
   setAttribute(name, value) { this.attributes.set(name, String(value)); }
+  removeAttribute(name) { this.attributes.delete(name); }
   getAttribute(name) { return this.attributes.get(name) ?? null; }
   addEventListener(name, listener) { this.listeners.set(name, listener); }
-  click() { this.listeners.get("click")?.({ currentTarget: this }); }
+  click() { this.listeners.get("click")?.({ currentTarget: this, preventDefault() {} }); }
+  input(value) { this.value = value; this.listeners.get("input")?.({ currentTarget: this }); }
+  change(value) { this.value = value; this.listeners.get("change")?.({ currentTarget: this }); }
+  submit() { this.listeners.get("submit")?.({ currentTarget: this, preventDefault() {} }); }
   querySelector(selector) {
     const ids = selector.split(",").map(part => part.trim().replace(/^#/, ""));
     if (ids.includes(this.getAttribute("id"))) return this;
@@ -36,7 +40,7 @@ class Node {
   }
   focus() { this.focused = true; }
 }
-const documentRef = { createElement: tag => new Node(tag) };
+const documentRef = { createElement: tag => new Node(tag), createElementNS: (_ns, tag) => new Node(tag) };
 const textOf = node => [node.textContent, ...node.children.map(textOf)].filter(Boolean).join(" ");
 const findAll = (node, predicate, found = []) => { if (predicate(node)) found.push(node); node.children.forEach(child => findAll(child, predicate, found)); return found; };
 
@@ -105,7 +109,7 @@ function renderStudent(search, date = "2026-09-29T12:00:00Z") {
   const location = { search };
   const pushed = [];
   const history = { pushState: (_state, _title, url) => { pushed.push(url); location.search = url.startsWith("?") ? url : ""; } };
-  const page = withTrappedStorage(() => renderStudentPage(root, { location, history, documentRef, scrollTo: () => {}, now: () => new Date(date) }));
+  const page = withTrappedStorage(() => renderStudentPage(root, { location, history, documentRef, scrollTo: () => {}, print: null, now: () => new Date(date) }));
   return { root, location, pushed, page };
 }
 
@@ -120,33 +124,49 @@ test("the student page imports no storage, schedule, cloud or teacher record mod
   const html = await readFile(path.join(ROOT, "student.html"), "utf8");
   assert.deepEqual([...html.matchAll(/<script[^>]*src="([^"]+)"/g)].map(match => match[1]), ["src/student.js"]);
   assert.doesNotMatch(html, /app\.js|firebase/);
+  assert.match(html, /<link rel="stylesheet" href="student\.css">/);
+  assert.equal(html.match(/https?:\/\/[^\s"'<>]+/gi), null, "the student page makes no third-party request");
+  const css = await readFile(path.join(ROOT, "student.css"), "utf8");
+  assert.equal(css.match(/https?:\/\/[^\s"'<>)]+/gi), null, "student.css loads fonts from this site only");
+  assert.match(css, /url\("assets\/fonts\/fredoka-latin\.woff2"\)/);
+  assert.match(css, /url\("assets\/fonts\/nunito-sans-latin\.woff2"\)/);
+  for (const link of ["arcade.html", "fid.html", "ectv.html", "resources.html"]) assert.match(html, new RegExp(`href="${link}"`), `students can reach ${link}`);
 });
 
-test("a bookmarked student link shows today's activity, steps, turn-in and next challenge without storage", () => {
+test("a bookmarked student link shows the goal, done-when check, steps, turn-in, help and next challenge without storage", () => {
   const first = renderStudent("?playbook=a&meeting=10&grade=5");
   const text = textOf(first.root);
   assert.match(text, /KidWind 1: Make the wind do work/);
   assert.equal(findAll(first.root, node => node.getAttribute("id") === "pb-lesson-title")[0].tagName, "h1", "the lesson title is the page heading");
   assert.match(text, /Goal:/);
+  assert.ok(text.indexOf("You are done when") < text.indexOf("Steps | 35 minutes"), "the done-when check is visible before the steps");
+  assert.match(text, /You will use/);
   assert.match(text, /What to turn in/);
   assert.match(text, /Next challenge \(optional\)/);
   assert.match(text, /Another way to do it/);
-  assert.doesNotMatch(text, /Grade 5 goal/, "KidWind is grade 5 only, so there is no separate grade goal");
-  const shared = textOf(renderStudent("?playbook=a&meeting=6&grade=6").root);
-  assert.match(shared, /Paper Bridge/);
-  assert.match(shared, /Grade 6 goal Record loads in a table/);
-  assert.doesNotMatch(shared, /Grade 5 goal/);
+  assert.match(text, /Stuck\? Try this order/);
+  assert.match(text, /Stay safe/);
+  assert.doesNotMatch(text, /Grade 5 target/, "KidWind is grade 5 only, so there is no separate grade target");
   assert.equal(findAll(first.root, node => /\bpb-step\b/.test(node.className) && node.tagName === "li").length, 7);
+  assert.equal(findAll(first.root, node => /pb-timebar/.test(node.className)).length, 1, "a time bar shows the shape of the lesson");
   assert.match(text, /No-fan paper path Use these paper steps instead when your teacher chooses the no-fan path\./);
   assert.match(text, /Practice data created for this lesson\. These are not student measurements or evidence about a real blade design\./);
   assert.equal(findAll(first.root, node => node.tagName === "table").length, 1);
   assert.match(text, /centimeters lifted/i);
   assert.doesNotMatch(text, /clip|pinwheel/i);
-  for (const teacherOnly of [/Teacher moves/, /Before class/, /Teacher notes/, /Support and stretch/, /Start this lesson/, /Four Cs/, /Preparation required/]) {
+  const hrefs = findAll(first.root, node => node.tagName === "a").map(node => node.getAttribute("href"));
+  assert.ok(hrefs.includes("assets/handouts/CIRC-KidWind-1-Student.pdf"), "the lesson links its own printable handout");
+  for (const teacherOnly of [/Teacher moves/, /Before class/, /Teacher notes/, /Support and stretch/, /Start this lesson/, /Four Cs/, /Preparation required/, /Lesson PDF/, /Cleanup/]) {
     assert.doesNotMatch(text, teacherOnly);
   }
   const reload = renderStudent("?playbook=a&meeting=10&grade=5");
   assert.equal(textOf(reload.root), text, "a reload shows the same lesson");
+
+  const shared = textOf(renderStudent("?playbook=a&meeting=6&grade=6").root);
+  assert.match(shared, /Paper Bridge/);
+  assert.match(shared, /Grade 6 target Record loads in a table/);
+  assert.match(shared, /Grade 5 does: Record the most load held with tally marks/);
+  assert.doesNotMatch(shared, /Grade 5 target/);
 });
 
 test("a split meeting asks for the grade and a flex meeting defaults to catch up", () => {
@@ -160,20 +180,66 @@ test("a split meeting asks for the grade and a flex meeting defaults to catch up
   assert.match(textOf(flex.root), /Catch up and finish/);
 });
 
-test("the student page starts with a gentle picker and lets students browse both playbooks", () => {
+test("the student home leads with this year's next meeting and one tap per grade", () => {
   const { root, pushed } = renderStudent("");
   const text = textOf(root);
-  assert.match(text, /Find today's activity/);
-  assert.match(text, /Browse the playbooks/);
-  assert.match(text, /Playbook A/);
-  assert.match(text, /Playbook B/);
+  assert.match(text, /What are we doing today\?/);
+  assert.match(text, /Meeting 3 of 32/);
+  assert.match(text, /Logo to jingle: Give your brand a sound/);
+  assert.match(text, /Tap your grade to open the steps/);
+  const grade5 = findAll(root, node => node.tagName === "a" && /student-grade-button/.test(node.className) && textOf(node) === "Grade 5")[0];
+  assert.equal(grade5.getAttribute("href"), "student.html?playbook=a&meeting=3&grade=5", "a real link works without the script and in a new tab");
+  withTrappedStorage(() => grade5.click());
+  assert.equal(pushed.at(-1), "?playbook=a&meeting=3&grade=5");
+  assert.match(textOf(root), /Grade 5 target One short slogan and a simple repeated beat/);
+  assert.match(textOf(root), /Links and examples/);
+  assert.doesNotMatch(textOf(root), /Suno|AI Jingle Maker/, "teacher-only links stay off the student page");
+});
+
+test("a different meeting number from the board opens that meeting and a bad number explains the range", () => {
+  const { root, pushed } = renderStudent("");
+  const form = findAll(root, node => node.tagName === "form")[0];
+  const [playbookSelect] = findAll(form, node => node.tagName === "select");
+  const [meetingInput] = findAll(form, node => node.tagName === "input");
+  assert.equal(meetingInput.getAttribute("max"), "32");
+  withTrappedStorage(() => playbookSelect.change("b"));
+  assert.equal(meetingInput.getAttribute("max"), "36");
+  meetingInput.value = "99";
+  withTrappedStorage(() => form.submit());
+  assert.equal(pushed.length, 0);
+  assert.match(textOf(root), /Pick a meeting number from 1 to 36/);
+  meetingInput.value = "1";
+  withTrappedStorage(() => form.submit());
+  assert.equal(pushed.at(-1), "?playbook=b&meeting=1");
+  assert.match(textOf(root), /Welcome to CIRC/);
+});
+
+test("the finder searches and filters both playbooks without leaving the page or touching storage", () => {
+  const { root, pushed } = renderStudent("");
+  assert.match(textOf(root), /Find any lesson/);
+  assert.match(textOf(root), /32 meetings in Playbook A/);
+  const button = label => findAll(root, node => node.tagName === "button" && textOf(node) === label)[0];
+  withTrappedStorage(() => button("Grade 5").click());
+  assert.equal(button("Grade 5").getAttribute("aria-pressed"), "true");
+  assert.match(textOf(root), /Grade 5 path shown/);
+  assert.match(textOf(root), /10 KidWind 1: Make the wind do work Grade 6 does Tank 3/);
+  const search = findAll(root, node => node.tagName === "input" && node.getAttribute("type") === "search")[0];
+  withTrappedStorage(() => search.input("kidwind"));
+  assert.match(textOf(root), /\d of 32 meetings/);
+  assert.match(textOf(root), /KidWind 1: Make the wind do work/);
+  assert.doesNotMatch(textOf(root), /Paper Bridge/);
+  withTrappedStorage(() => search.input("zzzz"));
+  assert.match(textOf(root), /No lesson matches that/);
+  withTrappedStorage(() => search.input(""));
   const tabB = findAll(root, node => node.tagName === "button" && /Playbook B/.test(textOf(node)) && /pb-tab/.test(node.className))[0];
   withTrappedStorage(() => tabB.click());
+  assert.match(textOf(root), /36 meetings in Playbook B/);
   assert.match(textOf(root), /Welcome to CIRC/);
   const meetingOne = findAll(root, node => node.tagName === "button" && node.getAttribute("aria-label")?.startsWith("Meeting 1:"))[0];
   withTrappedStorage(() => meetingOne.click());
-  assert.equal(pushed.at(-1), "?playbook=b&meeting=1");
+  assert.equal(pushed.at(-1), "?playbook=b&meeting=1&grade=5");
   assert.match(textOf(root), /Welcome to CIRC/);
+  assert.match(textOf(root), /Other lessons - open only when your teacher asks/, "the finder stays available under the lesson");
 });
 
 test("the index redirect sends student links to the student page before any teacher state is read", async () => {
@@ -204,7 +270,13 @@ test("the teacher's student link never carries the private class label", () => {
   }, {}, { documentRef });
   const links = findAll(home, node => node.tagName === "a").map(node => node.getAttribute("href"));
   assert.ok(links.includes("student.html?playbook=a&meeting=4&grade=5"));
+  assert.ok(links.includes("assets/handouts/CIRC-Cardboard-Joins-and-Careful-Cutting-Student.pdf"), "the class card links the lesson's own handout");
+  assert.ok(links.includes("resources.html"));
   assert.ok(links.every(href => !/PRIVATE/.test(href)));
+  const text = textOf(home);
+  assert.match(text, /Materials/);
+  assert.match(text, /Safety/);
+  assert.match(text, /Pacing: 35 minutes, you press Next/);
 });
 
 test("station directions are stable, storage-free and student-safe after the special week", () => {

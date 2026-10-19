@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { getPublicStaticManifest } from "./dev-server.mjs";
+import { HANDOUT_ASSETS, HANDOUT_FILES } from "./handout-manifest.mjs";
 
 const ROOT = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const LEGACY_NORMALIZED_SHA256 =
@@ -238,8 +239,15 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "src/ui/view-model.js",
   "student.html",
   "theme.css",
-  "walkthrough.html"
-]);
+  "walkthrough.html",
+  "resources.html",
+  "student.css",
+  "src/model/lesson-finder.js",
+  "src/resources.js",
+  "assets/fonts/fredoka-latin.woff2",
+  "assets/fonts/nunito-sans-latin.woff2",
+  ...HANDOUT_FILES
+].sort());
 const REVIEWED_CANDIDATE_MANIFEST = new Set([
   ".gitattributes",
   "_config.yml",
@@ -321,7 +329,17 @@ const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "tests/playbooks.test.mjs",
   "tests/student-page.test.mjs",
   "tests/dated-updates.test.mjs",
-  "tests/teacher-home.test.mjs"
+  "tests/teacher-home.test.mjs",
+  "scripts/build-handouts.mjs",
+  "scripts/build-response-sheets.mjs",
+  "scripts/handout-manifest.mjs",
+  "scripts/handout-template.mjs",
+  "tests/handouts.test.mjs",
+  "tests/lesson-finder.test.mjs",
+  "tests/resources-page.test.mjs",
+  "docs/REDESIGN-2026-10-11-GRADES-5-6.md",
+  "docs/TEAMS-READINESS.md",
+  "assets/fonts/LICENSE-OFL.txt"
 ]);
 const EXPECTED_FIREBASE_EXAMPLE = `export const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
@@ -366,6 +384,9 @@ const TEXT_EXTENSIONS = new Set([
   ".txt"
 ]);
 const REVIEWED_BINARY_ASSETS = new Map([
+  ...HANDOUT_ASSETS,
+  ["assets/fonts/fredoka-latin.woff2", "99D6C78E043710D4F83ED90716779798B7B04EB690F73E0AD0E8F32D1F0E98C2"],
+  ["assets/fonts/nunito-sans-latin.woff2", "C9746AD68C8A1A94E9D8981AE5093FD4DF05B6809E8B5AFECD08DF1A3BDB7E62"],
   ["assets/guides/CIRC-Station-Week-Student-Packet.pdf","694D5594A8A59586892E879C6C461DEEC5F086A31DA5BF5C1226233935A418EF"],
   ["assets/guides/CIRC-Station-Week-Teacher-Guide.pdf","6311F6BAD5DD242AC90CF54D1E53A627F534824A260B2B92E8A0E644E8195542"],
   ["assets/guides/CIRC-Classroom-Toolkit.pdf","9AB09B9AE9EA94B71BCCE49C293F6DAA5A614DB7AC17498A41E95C132708ADD3"],
@@ -919,6 +940,8 @@ export function countUnsafeRuntimeLinks(text) {
 
 function isPublicRuntimePath(relativePath) {
   return relativePath === "app.css" ||
+    relativePath === "student.css" ||
+    relativePath === "resources.html" ||
     relativePath === "arcade.html" ||
     relativePath === "ectv-live.html" ||
     relativePath === "ectv-scripts.html" ||

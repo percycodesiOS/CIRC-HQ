@@ -1,6 +1,7 @@
 // Teacher side first screen: next obligation, this class's lesson, the timer,
 // later obligations, and plain links. Everything else stays in More tools.
 import { PLAYBOOKS, buildStudentLink, getPlaybook, listMeetings, meetingTitle, resolveMeeting } from "../model/playbooks.js";
+import { handoutForRef } from "../model/lesson-finder.js";
 import { buildCurrentWeekEntry, buildLessonSteps, buildStationGuideLinks, createBuilder } from "./playbook-view.js";
 
 function clock(minutes) {
@@ -244,6 +245,7 @@ function quickLinks(h, actions) {
   return h("nav", { className: "th-links", attributes: { "aria-label": "Teacher shortcuts" } }, [
     link("Schedule", actions.openSchedulePage),
     ...PLAYBOOKS.map(item => link(`${item.name} (${item.year})`, () => actions.openPlaybook?.(item.id))),
+    h("a", { className: "secondary-action th-link", text: "Handouts and guides", attributes: { href: "resources.html", target: "_blank", rel: "noopener" } }),
     h("a", { className: "secondary-action th-link", text: "Student side", attributes: { href: "student.html", target: "_blank", rel: "noopener" } })
   ]);
 }
@@ -277,11 +279,21 @@ function buildClassCard(h, classCard, actions, documentRef) {
   meetingSelect.addEventListener("change", () => change({ meeting: Number(meetingSelect.value), option: null }));
   gradeSelect.addEventListener("change", () => change({ grade: gradeSelect.value ? Number(gradeSelect.value) : null }));
   const lesson = resolved?.lesson;
+  const handout = lesson ? handoutForRef(lesson.ref) : null;
   const studentHref = buildStudentLink(isStationWeek ? { lesson: resolved.supplementalId, grade: place.grade } : { playbook: place.playbook, meeting: place.meeting, grade: place.grade, option: place.option });
   const lastMeeting = listMeetings(place.playbook).length;
   const nextNumber = isStationWeek ? place.meeting : place.meeting + 1;
   const nextOption = isStationWeek ? place.option : null;
   const next = resolveMeeting(place.playbook, nextNumber, { grade: place.grade, option: nextOption });
+  // The shape of the lesson at a glance. The runner still owns the clocks.
+  const pacing = lesson ? h("section", { className: "th-pacing", attributes: { "aria-label": "Pacing" } }, [
+    h("p", { className: "th-pacing-title", text: `Pacing: ${lesson.minutes} minutes, you press Next` }),
+    h("ol", { className: "th-pacing-steps" }, lesson.steps.map((step, index) => {
+      const item = h("li", { className: `is-${step.kind}`, text: `${index + 1}. ${step.label}, ${step.minutes} min` });
+      item.style?.setProperty?.("flex", `${step.minutes} ${step.minutes} 0`);
+      return item;
+    }))
+  ]) : null;
   return h("section", { className: "th-card th-class", attributes: { "aria-labelledby": "th-class-title" } }, [
     h("p", { className: "eyebrow", text: `${classCard.when} | This class` }),
     h("h2", { text: classCard.label, attributes: { id: "th-class-title" } }),
@@ -301,7 +313,8 @@ function buildClassCard(h, classCard, actions, documentRef) {
           h("p", { text: lesson.goal }),
           h("div", { className: "th-actions" }, [
             h("button", { className: "primary-action", text: "Start lesson", attributes: { type: "button" }, onClick: actions.onStartClassLesson }),
-            h("a", { className: "secondary-action", text: "Student page", attributes: { href: studentHref, target: "_blank", rel: "noopener" } })
+            h("a", { className: "secondary-action", text: "Student page", attributes: { href: studentHref, target: "_blank", rel: "noopener" } }),
+            handout ? h("a", { className: "secondary-action", text: "Lesson PDF", attributes: { href: handout.files.pdf, target: "_blank", rel: "noopener" } }) : null
           ]),
           h("p", { className: "th-quiet", text: "Start lesson opens the teaching controls and timer. Open Student page to show or share this exact lesson. Tell students the goal above and read the first step together; you decide when the class moves on." }),
           h("div", { className: "th-lesson-prep" }, [
@@ -323,6 +336,7 @@ function buildClassCard(h, classCard, actions, documentRef) {
           h("section", { className: "th-teaching-directions" }, [
             h("h4", { text: `2. Follow these steps together / ${lesson.minutes} minutes` }),
             h("p", { text: "Read one numbered step with the class. The Student page uses the same words in the same order. The Teacher: say and do notes tell you what to show or check at each step." }),
+            pacing,
             buildLessonSteps(lesson, { audience: "teacher", documentRef })
           ]),
           h("section", { className: "pb-callout", attributes: { "aria-label": "Check the student work" } }, [

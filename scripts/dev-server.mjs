@@ -4,12 +4,16 @@ import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { HANDOUT_FILES } from "./handout-manifest.mjs";
+
 export const DEV_SERVER_HOST = "127.0.0.1";
 export const DEFAULT_PORT = 4273;
 
 const CONTENT_TYPES = new Map([
   [".css", "text/css; charset=utf-8"],
   [".pdf", "application/pdf"],
+  [".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+  [".woff2", "font/woff2"],
   [".html", "text/html; charset=utf-8"],
   [".js", "text/javascript; charset=utf-8"],
   [".svg", "image/svg+xml; charset=utf-8"],
@@ -126,7 +130,14 @@ const PUBLIC_STATIC_FILES = new Set([
   "src/ui/view-model.js",
   "student.html",
   "theme.css",
-  "walkthrough.html"
+  "walkthrough.html",
+  "resources.html",
+  "student.css",
+  "src/model/lesson-finder.js",
+  "src/resources.js",
+  "assets/fonts/fredoka-latin.woff2",
+  "assets/fonts/nunito-sans-latin.woff2",
+  ...HANDOUT_FILES
 ]);
 
 export function getPublicStaticManifest() {

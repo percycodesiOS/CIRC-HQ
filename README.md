@@ -15,7 +15,8 @@ The intended release URL is not called live until an authorized push, matching G
 
 The same address has two doors. They change the screen, not who can see what. Neither is a login or a security boundary.
 
-- **Student side** is the separate page `student.html`. It shows today's activity: the goal, picture-led steps with minutes, what to turn in, when you are done, an optional next challenge and another way to do it. Students can browse both playbooks. The link carries curriculum identifiers only, for example `student.html?playbook=a&meeting=12&grade=5`, so a bookmark or reload shows the same lesson. The page and everything it imports never read browser storage, a schedule, a class list or cloud data. Opening `index.html#student` or `index.html?view=student` goes straight to the student page before any saved teacher information is read.
+- **Student side** is the separate page `student.html`. It opens on this year's next meeting with one button per grade, then a small form for a different meeting number from the board, then a finder that searches both playbooks and filters by grade and paper-only lessons. A Start here box shows the first step. Each lesson then shows the goal, the done-when check near the top, the grade's own target, what you will use, the safety note, student links, a time bar and numbered steps with minutes, what to turn in, a next challenge, another way to do it, a short stuck-then-try list and a download of that lesson's own PDF. Other lessons stay collapsed until the teacher asks for one. The link carries curriculum identifiers only, for example `student.html?playbook=a&meeting=12&grade=5`, so a bookmark or reload shows the same lesson. The page and everything it imports never read browser storage, a schedule, a class list or cloud data. Opening `index.html#student` or `index.html?view=student` goes straight to the student page before any saved teacher information is read.
+- **Handouts and guides** is the separate page `resources.html`. It lists one small student PDF and one Word response sheet per unique lesson, with search and filters by grade, playbook and format, beside the reviewed guides and teacher references with their dates. Like the student page it imports no storage, schedule or cloud module.
 - **Teacher side** opens on a simple home: the next obligation with time and place, this class's lesson with quick prep and a **Start lesson** button, the running timer, later obligations, and links to Schedule, Playbook A, Playbook B and the student side. Weather, Board, the week view, Tech Terrarium and the full timeline sit in a collapsed **More tools** section. Each class's place in a playbook is saved on this browser only, keyed by the teacher's own class label. It is never synced and never put in a student link.
 
 Without a saved schedule, the teacher side asks once: **Set up my schedule** or load a private schedule file. Both playbooks and every lesson still work without one.
@@ -46,6 +47,21 @@ The five-page Classroom Toolkit contains Circuit Rescue, an Operation-style batt
 Finish the shared cardboard school before work on the Tech Terrarium using the existing **Day 5: Build the Cardboard School** choice, repeated for every class across all five cycle days. The historical button label and runner ID are preserved. Its seven steps total 3 + 6 + 3 + 15 + 3 + 3 + 2 = 35 minutes. For a class of 27, use six separate teams; only a called child approaches the teacher-supervised ChompSaw. A 15-minute station cannot promise 27 beginner turns, so a private class record carries remaining turns to the next contact. The ChompSaw station uses paper/cardboard only, 3 mm or thinner; any plexiglass panel or reclaimed PC-casing door requires separate adult preparation after actual material, dimensions, edges and attachment are inspected. Pilot the cutting pace and check the physical fit before class.
 
 Teacher reference sources checked October 2: [ChompSaw operating instructions](https://learn.chompshop.com/learn-chompsaw), [ChompShop material limits](https://chompshop.com/pages/faq), [Adafruit's low-tech circuit game](https://learn.adafruit.com/low-tech-operation-game), and [an active buzzer with a 3-5 V operating rating](https://www.adafruit.com/product/1536). The classroom sequences are original adaptations. Purchasing and inventory details remain in the private master materials sheet, not in student directions.
+
+## Lesson handouts and response sheets
+
+Every unique lesson in Playbooks A and B (74 in October 2026) has two generated files under `assets/handouts/`, named from the lesson: `CIRC-Logo-to-Jingle-Student.pdf` and `CIRC-Logo-to-Jingle-Response.docx`. The PDF is the student view of the on-screen lesson: goal, done-when check, materials, numbered steps with minutes, what to turn in, another way to do it, next challenge, safety, grade targets, student links and the no-fan paper path where one exists. It is tagged, bookmarked from its headings, real text, letter size with page numbers, and carries no teacher moves, preparation notes, teacher-only links, schedule or class information. The Word file is an editable response sheet for Teams assignments where students type.
+
+Both are built from the live lesson data, never edited by hand:
+
+```powershell
+npm run build:response-sheets
+npm run build:handouts
+```
+
+`build:handouts` needs the `playwright-core` dev dependency and a Chromium-based browser. Set `CIRC_CHROME` to a browser executable, or `CIRC_CHROME_CHANNEL=chrome` or `msedge` to use the installed browser. Nothing is downloaded. The script replaces Chromium's two timestamp strings with a fixed value, so a rebuild from unchanged lesson data on the same machine is byte-identical and the asset locks in `scripts/handout-manifest.mjs` still match. A different machine embeds different system fonts and produces different bytes: rebuild, run `node scripts/build-handouts.mjs --manifest`, and review that diff like any other public change. `CIRC_HANDOUT_WEB_FONTS=1` uses the site's Google Fonts instead of system fonts; the files roughly double in size.
+
+The September 30 and October references, including the two build-station PDFs, stay unchanged and are labeled on the handouts page. Teacher-only assessment guidance, exemplar reasoning and answer keys are kept outside the public checkout.
 
 ## Dated updates
 

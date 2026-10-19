@@ -10,6 +10,7 @@ import { pathToFileURL } from "node:url";
 
 import * as access from "../src/model/access.js";
 import * as devServer from "../scripts/dev-server.mjs";
+import { HANDOUT_FILES } from "../scripts/handout-manifest.mjs";
 import { createClassroomProjection, createInitialState } from "../src/model/state.js";
 import { validateTeacherPlan } from "../src/model/teacher-plan.js";
 import { assertCloudDomainShape } from "../src/storage/cloud-domains.js";
@@ -468,8 +469,17 @@ test("public server manifest is an exact reviewed allowlist", () => {
     "src/ui/view-model.js",
     "student.html",
     "theme.css",
-    "walkthrough.html"
-  ]);
+    "walkthrough.html",
+    "resources.html",
+    "student.css",
+    "src/model/lesson-finder.js",
+    "src/resources.js",
+    "assets/fonts/fredoka-latin.woff2",
+    "assets/fonts/nunito-sans-latin.woff2",
+    ...HANDOUT_FILES
+  ].sort());
+  assert.equal(HANDOUT_FILES.length, 148, "74 lessons, one PDF and one response sheet each");
+  assert.ok(HANDOUT_FILES.every(file => /^assets\/handouts\/CIRC-[A-Za-z0-9-]+-(?:Student\.pdf|Response\.docx)$/.test(file)));
 });
 
 test("the reviewed public Firebase config has a closed lock and narrow credential exception", async (context) => {
@@ -553,13 +563,14 @@ test("public verifier has a recursive-safe sanitized gate contract", () => {
 
 test("reviewed visual assets are exact and opaque files fail closed", async (context) => {
   assert.equal(typeof verifier.inspectAssetLocks, "function");
-  assert.deepEqual(await verifier.inspectAssetLocks(ROOT), { ok: true, count: 15 });
+  const lockedAssets = 15 + 2 + HANDOUT_FILES.length;
+  assert.deepEqual(await verifier.inspectAssetLocks(ROOT), { ok: true, count: lockedAssets });
 
   const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-asset-lock-"));
   context.after(() => rm(repository, { recursive: true, force: true }));
   await mkdir(path.join(repository, "assets"), { recursive: true });
   await writeFile(path.join(repository, "assets", "circ-hq-maker.webp"), "TAMPERED");
-  assert.deepEqual(await verifier.inspectAssetLocks(repository), { ok: false, count: 15 });
+  assert.deepEqual(await verifier.inspectAssetLocks(repository), { ok: false, count: lockedAssets });
 
   const counts = verifier.classifyCandidatePaths([
     "assets/circ-hq-maker.webp",
