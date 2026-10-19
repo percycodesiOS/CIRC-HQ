@@ -480,7 +480,8 @@ export function validateExperienceRunner(runner, { teacherKey } = {}) {
   if (!validText(runner.title)) pushUnique(errors, "runner-title-invalid");
 
   const steps = runner.steps;
-  if (!Array.isArray(steps) || steps.length < 7 || steps.length > 9) {
+  const maxSteps = runner.projectNumber === 2 && runner.modeId === "circ-station-rotation" ? 10 : 9;
+  if (!Array.isArray(steps) || steps.length < 7 || steps.length > maxSteps) {
     pushUnique(errors, "runner-step-count-invalid");
   }
   const expectedPrefix = validProject

@@ -3,16 +3,17 @@
 // page state lives in the link itself (student.html?playbook=a&meeting=12&grade=5),
 // so a bookmark or reload shows the same lesson. This is a separate screen,
 // not a login or a security boundary.
-import { PLAYBOOKS, STRANDS, buildStudentLink, getMeeting, getPlaybook, listMeetings, meetingTitle, parseStudentLink, resolveMeeting } from "./model/playbooks.js";
+import { PLAYBOOKS, STRANDS, buildStudentLink, currentWeekLesson, getMeeting, getPlaybook, listMeetings, meetingTitle, parseStudentLink, resolveMeeting, resolveSupplementalLesson } from "./model/playbooks.js";
 import { findMeetings, handoutForRef } from "./model/lesson-finder.js";
-import { buildIcon, buildLessonCard, buildPlaybookBrowser, createBuilder } from "./ui/playbook-view.js";
+import { buildCurrentWeekEntry, buildIcon, buildLessonCard, buildPlaybookBrowser, buildSupplementalLibrary, createBuilder } from "./ui/playbook-view.js";
 
 export function renderStudentPage(root, {
   location = globalThis.location,
   history = globalThis.history,
   documentRef = globalThis.document,
   scrollTo = globalThis.scrollTo,
-  print = globalThis.print
+  print = globalThis.print,
+  now = () => new Date()
 } = {}) {
   const h = createBuilder(documentRef);
   // Finder state stays in memory only. It is never written anywhere.
@@ -118,7 +119,7 @@ export function renderStudentPage(root, {
 
   // Search and filters over one playbook. Re-renders only the list so the
   // search box keeps focus while a student types.
-  function finderSection(link) {
+  function finderSection(link, { id = "browse" } = {}) {
     if (finder.playbook === null) finder.playbook = link.playbook ?? PLAYBOOKS[0].id;
     if (finder.grade === null && link.grade) finder.grade = link.grade;
     const input = h("input", { attributes: { type: "search", id: "student-search", placeholder: "Search: Tinkercad, KidWind, paper", autocomplete: "off" } });
@@ -161,7 +162,7 @@ export function renderStudentPage(root, {
     }
     input.addEventListener("input", () => { finder.query = input.value; refresh(); });
     refresh();
-    return h("section", { className: "student-finder", attributes: { id: "browse", "aria-labelledby": "student-browse-title" } }, [
+    return h("section", { className: "student-finder", attributes: { ...(id ? { id } : {}), "aria-labelledby": "student-browse-title" } }, [
       h("h2", { text: "Find any lesson", attributes: { id: "student-browse-title" } }),
       h("p", { className: "th-quiet", text: "Playbook A is this year. Playbook B is next year. Tap a meeting to see its steps." }),
       search,
@@ -182,7 +183,7 @@ export function renderStudentPage(root, {
       })),
       h("button", {
         className: "button-link",
-        text: "Pick a different meeting",
+        text: link.lesson ? "Pick a different lesson" : "Pick a different meeting",
         attributes: { type: "button" },
         onClick: () => go({ playbook: link.playbook, grade: link.grade })
       })
@@ -191,9 +192,10 @@ export function renderStudentPage(root, {
 
   function render({ focus = false } = {}) {
     const link = current();
+    const hasSelectedLesson = Boolean(link.lesson || (link.playbook && link.meeting));
     let page;
-    if (link.playbook && link.meeting) {
-      const resolved = resolveMeeting(link.playbook, link.meeting, { grade: link.grade, option: link.option });
+    if (hasSelectedLesson) {
+      const resolved = link.lesson ? resolveSupplementalLesson(link.lesson) : resolveMeeting(link.playbook, link.meeting, { grade: link.grade, option: link.option });
       const handout = resolved.lesson ? handoutForRef(resolved.lesson.ref) : null;
       const card = buildLessonCard(resolved, {
         audience: "student",
@@ -212,15 +214,32 @@ export function renderStudentPage(root, {
       page = h("div", { className: "student-page" }, [
         h("div", { className: "student-today" }, [
           resolved.meeting.paths.both || link.grade ? gradeSwitch(link) : null,
+          resolved.lesson ? h("section", { className: "pb-callout student-start-here", attributes: { "aria-label": "How to do today's task" } }, [
+            h("h2", { text: "Start here" }),
+            h("p", {}, [h("strong", { text: `${resolved.lesson.steps[0].label}: ` }), h("span", { text: resolved.lesson.steps[0].directions[0] })]),
+            h("p", { text: "Follow the numbered steps below with your class. Show the work listed under What to turn in before starting an optional challenge." }),
+            h("p", { text: "This page gives directions; it does not save or collect your work." })
+          ]) : null,
           card
         ]),
-        h("details", { className: "student-more-lessons" }, [
-          h("summary", { text: "Find a different lesson" }),
-          finderSection(link)
+        // Other lessons stay collapsed so a student stays on today's task
+        // unless the teacher asks for a different one.
+        h("details", { className: "student-more-lessons", attributes: { id: "browse" } }, [
+          h("summary", { text: "Other lessons - open only when your teacher asks" }),
+          finderSection(link, { id: null }),
+          buildSupplementalLibrary({ documentRef })
         ])
       ]);
     } else {
-      page = h("div", { className: "student-page" }, [todayHero(), numberForm(link), finderSection(link)]);
+      const week = currentWeekLesson(now());
+      const currentEntry = week ? buildCurrentWeekEntry(week, { documentRef, onOpenLesson: lesson => go({ lesson, grade: link.grade }) }) : null;
+      page = h("div", { className: "student-page" }, [
+        currentEntry,
+        todayHero(),
+        numberForm(link),
+        finderSection(link, { id: "browse" }),
+        buildSupplementalLibrary({ documentRef })
+      ].filter(Boolean));
     }
     root.replaceChildren(page);
     if (focus) {

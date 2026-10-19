@@ -80,6 +80,7 @@ const KIDWIND_FALLBACK = "No-fan paper path: follow the paper steps and the labe
 const KIDWIND_READY = "Build and pilot one working station, choose and record the load, and time one trial before teaching. Nothing here confirms that preparation is done.";
 
 const LESSON_META = freeze({
+  "year:circ-station-rotation": meta("DEC", "TROM", "ask plan build test improve", [CART, "Assign groups of four (the last group may be smaller) and one shared project task per group", "Set up the teacher-supervised ChompSaw station; call one group at a time while other groups keep working", "Prepare the student packet, approved thin cardboard and shared project trays"], "Save your MYnecraft work as directed. Leave your shared project part in its tray and explain one thing you checked or improved.", "Use paper planning, teacher-precut cardboard and a partner explanation if a device or cutting turn is unavailable.", ["Choose one manageable project part and describe one check.", "Explain how your part fits the shared model and revise it after a test."], { prepRequired: "Teacher checks the actual tool, materials, safety setup and group timing before class. The seven short demo windows are a plan, not proof every child has completed a turn; record any turns still owed." }),
   "year:circ-neuro": meta("DL", "RM", "build improve", ["Finished for this year. Reuse only for a class that missed it."], "Artwork in the class tray, or the Paint file saved where the teacher showed.", "Paper and markers with the same line rules.", ["Four to six lines, large spaces, round every sharp corner.", "Vary line widths and explain one color choice."]),
   "year:circ-canva-template": meta("D", "RMT", "plan build improve", [CART, "Two or three real logos ready to show very small", "Board checklist posted", "Paper and pencils out for the fallback"], "Share with your CIRC teacher's school account. It is turned in when your teacher can open it. Keep public and link sharing unchanged.", "Paper and pencil sketch with the same steps. Move it to Canva next visit.", ["Pick one interest. Change the colors, icon and font.", "Explain why the slogan and icon match. Fix the weakest part at stamp size."]),
   "year:circ-logo-jingle": meta("D", "RMOT", "plan build test improve", [CART, "First logos ready; NeuroArt and Logo 1 are finished", "Open a teacher-operated jingle generator and test playback; prepare approved Canva audio as backup", "Model a six-word slogan becoming a short jingle"], "Share with your CIRC teacher's school account. It is turned in when your teacher can open it. Keep public and link sharing unchanged. Include the first logo, slogan, sound plan and available audio. A live performance counts.", "Paper and pencil: show the first logo, write a slogan and perform it over a clapped beat. A partner may speak, or show the words.", ["One short slogan and a simple repeated beat.", "Explain how the tempo and mood match your logo, and revise after listener feedback."]),
@@ -342,6 +343,12 @@ export function lessonTitleForRef(ref) {
   return getReplicaLessonChoice(id)?.title ?? "";
 }
 
+export const STATION_GUIDES = freeze([
+  { label: "Open MYnecraft", url: "https://percycodesios.github.io/CyberGrader.io/game/mynecraft.html", description: "Keep your existing world. Choose Creative, then the PLAY AS button. Follow the block-building and save steps below." },
+  { label: "Station week student packet (PDF)", url: "assets/guides/CIRC-Station-Week-Student-Packet.pdf", description: "Project steps, a group check and a short reflection." },
+  { label: "Station week teacher guide (PDF)", url: "assets/guides/CIRC-Station-Week-Teacher-Guide.pdf", description: "Setup, called-group timing and checks for the teacher.", teacherOnly: true }
+]);
+
 // One normalized lesson shape for both the student page and the teacher view.
 export function getLessonForRef(ref) {
   const [type, id] = String(ref).split(":");
@@ -373,12 +380,12 @@ export function getLessonForRef(ref) {
     const exit = steps.filter(step => step.kind === "exit").flatMap(step => step.directions);
     base = {
       title: source.title,
-      resources: (source.resources ?? []).map(resource => ({ ...resource })),
+      resources: [...(source.resources ?? []), ...(id === "circ-station-rotation" ? STATION_GUIDES : [])].map(resource => ({ ...resource })),
       goal: source.objective,
       materials: [...source.materials],
       safety: source.safety,
       steps,
-      success: exit.join(" "),
+      success: id === "circ-station-rotation" ? "Your group can show its saved work or project part, explain one check and leave a clear next step. Tell your teacher if your individual tool turn is still owed." : exit.join(" "),
       cleanup: steps.filter(step => step.kind === "cleanup").flatMap(step => step.directions),
       extension: source.fastFinish,
       teacherNotes: [...source.teacherContext].filter(line => !/^(Grade 5|Grade 6|More support):/.test(line)),
@@ -442,6 +449,42 @@ export function strandCoverage(playbookId, path = "g5") {
   return counts;
 }
 
+// Standalone curriculum stays outside the numbered routes, so saved class
+// places and old student bookmarks keep their original meaning.
+export const SUPPLEMENTAL_LESSONS = freeze([
+  { id: "circ-station-rotation", ref: "year:circ-station-rotation", label: "Build stations", note: "Groups work on shared projects. Only the called group visits the teacher's ChompSaw demo." },
+  { id: "outdoor-microclimate-map", ref: "catalog:6", label: "Retained for next year", note: "Playbook A's late-year flex choice. Keep it available if this class runs out of visits." },
+  { id: "reflect-reset", ref: "year:reflect-reset", label: "Retained for next year", note: "A full reflection lesson remains available. Still reflect and clean up in the final visit this year." },
+  { id: "catch-up", ref: "year:catch-up", label: "Retained for next year", note: "Reusable catch-up lesson. A buffer is optional capacity, not an extra guaranteed visit." }
+]);
+
+export function resolveSupplementalLesson(id) {
+  const item = SUPPLEMENTAL_LESSONS.find(lesson => lesson.id === id);
+  if (!item) return null;
+  return {
+    supplementalId: item.id,
+    playbook: { id: null, name: "CIRC lesson library", year: "", status: item.label },
+    meeting: { number: null, label: item.label, kind: "lesson", paths: { both: item.ref }, note: item.note },
+    path: "both", choices: [], lesson: getLessonForRef(item.ref)
+  };
+}
+
+export function currentWeekLesson(date = new Date()) {
+  let key = date;
+  if (date instanceof Date) {
+    if (!Number.isFinite(date.getTime())) return null;
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
+    const part = type => parts.find(item => item.type === type)?.value;
+    key = `${part("year")}-${part("month")}-${part("day")}`;
+  }
+  return typeof key === "string" && /^\d{4}-\d{2}-\d{2}$/.test(key) && key >= "2026-10-12" && key <= "2026-10-16"
+    ? resolveSupplementalLesson("circ-station-rotation") : null;
+}
+
+export function resolveClassLesson(place, date) {
+  return currentWeekLesson(date) ?? resolveMeeting(place.playbook, place.meeting, { grade: place.grade, option: place.option });
+}
+
 // Student links carry curriculum identifiers only. Never a class, teacher, date or time.
 const LINK_KEYS = new Set(["playbook", "meeting", "grade", "option"]);
 export function parseStudentLink(fragment) {
@@ -452,6 +495,8 @@ export function parseStudentLink(fragment) {
   const grade = Number(params.get("grade"));
   const option = params.get("option");
   const result = { playbook: null, meeting: null, grade: null, option: null };
+  const lesson = params.get("lesson");
+  if (SUPPLEMENTAL_LESSONS.some(item => item.id === lesson)) return { ...result, lesson, grade: grade === 5 || grade === 6 ? grade : null };
   if (!getPlaybook(playbook)) return result;
   result.playbook = playbook;
   if (Number.isInteger(meeting) && getMeeting(playbook, meeting)) result.meeting = meeting;
@@ -460,8 +505,13 @@ export function parseStudentLink(fragment) {
   return result;
 }
 
-export function buildStudentLink({ playbook, meeting = null, grade = null, option = null } = {}, base = "student.html") {
-  const parsed = parseStudentLink(new URLSearchParams(Object.entries({ playbook, meeting, grade, option }).filter(([, value]) => value !== null && value !== undefined)).toString());
+export function buildStudentLink({ playbook, meeting = null, grade = null, option = null, lesson = null } = {}, base = "student.html") {
+  const parsed = parseStudentLink(new URLSearchParams(Object.entries({ playbook, meeting, grade, option, lesson }).filter(([, value]) => value !== null && value !== undefined)).toString());
+  if (parsed.lesson) {
+    const params = new URLSearchParams({ lesson: parsed.lesson });
+    if (parsed.grade !== null) params.set("grade", String(parsed.grade));
+    return `${base}?${params.toString()}`;
+  }
   if (!parsed.playbook) return base;
   const params = new URLSearchParams();
   for (const key of LINK_KEYS) if (parsed[key] !== null) params.set(key, String(parsed[key]));

@@ -7,7 +7,8 @@ import { fileURLToPath } from "node:url";
 import { renderStudentPage } from "../src/student.js";
 import { studentRedirectTarget } from "../src/app.js";
 import { buildTeacherHome, buildTeacherAgenda } from "../src/ui/teacher-home.js";
-import { resolveMeeting } from "../src/model/playbooks.js";
+import { PLAYBOOKS, SUPPLEMENTAL_LESSONS, listMeetings, resolveClassLesson, resolveMeeting, resolveSupplementalLesson } from "../src/model/playbooks.js";
+import { buildLessonCard } from "../src/ui/playbook-view.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -43,6 +44,36 @@ const documentRef = { createElement: tag => new Node(tag), createElementNS: (_ns
 const textOf = node => [node.textContent, ...node.children.map(textOf)].filter(Boolean).join(" ");
 const findAll = (node, predicate, found = []) => { if (predicate(node)) found.push(node); node.children.forEach(child => findAll(child, predicate, found)); return found; };
 
+test("every teacher lesson has the exact student directions in order, with visible teacher actions", () => {
+  const resolved = PLAYBOOKS.flatMap(playbook => listMeetings(playbook.id).flatMap(meeting => [5, 6].map(grade => resolveMeeting(playbook.id, meeting.number, { grade }))));
+  resolved.push(...SUPPLEMENTAL_LESSONS.map(item => resolveSupplementalLesson(item.id)));
+  const unique = new Map(resolved.filter(item => item?.lesson).map(item => [item.lesson.ref, item]));
+  assert.ok(unique.size > 50, "audit both full-year routes, not just a sample screen");
+  for (const [ref, item] of unique) {
+    const student = buildLessonCard(item, { audience: "student", documentRef });
+    const teacher = buildLessonCard(item, { audience: "teacher", documentRef });
+    const directions = node => findAll(node, child => child.className === "pb-step-directions").map(step => step.children.map(textOf));
+    assert.deepEqual(directions(teacher), directions(student), ref);
+    const teacherActions = findAll(teacher, node => node.className === "pb-teacher-step");
+    assert.ok(teacherActions.every(node => node.tagName === "section"), `${ref}: teacher actions are visible without opening another control`);
+    assert.equal(findAll(student, node => node.className === "pb-teacher-step").length, 0, `${ref}: teacher actions do not leak onto the student page`);
+    const teacherPrep = findAll(teacher, node => node.className === "pb-teacher-notes");
+    assert.ok(teacherPrep.every(node => node.getAttribute("open") !== null), `${ref}: preparation and examples are open by default`);
+  }
+});
+
+test("the retained station activity has executable game steps and does not replace next week's saved lesson", () => {
+  const station = textOf(buildLessonCard(resolveSupplementalLesson("circ-station-rotation"), { audience: "student", documentRef }));
+  for (const text of ["Creative", "Auto or Keyboard and mouse", "On touch screens", "PLAY AS", "top or side of a nearby block", "Right-click", "On a touch screen, tap PLACE", "press Save", "Save, download or load a world", "Download Save", ".json", "Do not choose Reset World or Load World"]) {
+    assert.ok(station.includes(text), text);
+  }
+  assert.doesNotMatch(station, /Aim at empty ground/);
+  const held = { playbook: "a", meeting: 3, grade: 5, option: null };
+  assert.equal(resolveClassLesson(held, "2026-10-16").supplementalId, "circ-station-rotation");
+  assert.equal(resolveClassLesson(held, "2026-10-19").lesson.ref, resolveMeeting("a", 3, { grade: 5 }).lesson.ref);
+  assert.equal(held.meeting, 3, "looking at the date does not advance saved class progress");
+});
+
 async function importGraph(entry) {
   const pending = [entry];
   const seen = new Set();
@@ -73,12 +104,12 @@ function withTrappedStorage(callback) {
   }
 }
 
-function renderStudent(search) {
+function renderStudent(search, date = "2026-09-29T12:00:00Z") {
   const root = new Node("main");
   const location = { search };
   const pushed = [];
   const history = { pushState: (_state, _title, url) => { pushed.push(url); location.search = url.startsWith("?") ? url : ""; } };
-  const page = withTrappedStorage(() => renderStudentPage(root, { location, history, documentRef, scrollTo: () => {}, print: null }));
+  const page = withTrappedStorage(() => renderStudentPage(root, { location, history, documentRef, scrollTo: () => {}, print: null, now: () => new Date(date) }));
   return { root, location, pushed, page };
 }
 
@@ -208,7 +239,7 @@ test("the finder searches and filters both playbooks without leaving the page or
   withTrappedStorage(() => meetingOne.click());
   assert.equal(pushed.at(-1), "?playbook=b&meeting=1&grade=5");
   assert.match(textOf(root), /Welcome to CIRC/);
-  assert.match(textOf(root), /Find a different lesson/, "the finder stays available under the lesson");
+  assert.match(textOf(root), /Other lessons - open only when your teacher asks/, "the finder stays available under the lesson");
 });
 
 test("the index redirect sends student links to the student page before any teacher state is read", async () => {
@@ -246,4 +277,41 @@ test("the teacher's student link never carries the private class label", () => {
   assert.match(text, /Materials/);
   assert.match(text, /Safety/);
   assert.match(text, /Pacing: 35 minutes, you press Next/);
+});
+
+test("station directions are stable, storage-free and student-safe after the special week", () => {
+  const screen = renderStudent("?lesson=circ-station-rotation&grade=6&class=PRIVATE", "2026-10-19T12:00:00Z");
+  const text = textOf(screen.root);
+  assert.match(text, /CIRC build stations: explore, make, improve/);
+  assert.match(text, /Groups work|MYnecraft/);
+  assert.match(text, /You are done when Your group can show/);
+  assert.match(text, /Retained for next year/);
+  assert.doesNotMatch(text, /PRIVATE|Teacher notes|Station week teacher guide|Meeting null/);
+  const links = findAll(screen.root, node => node.tagName === "a").map(node => node.getAttribute("href"));
+  assert.ok(links.includes("assets/guides/CIRC-Station-Week-Student-Packet.pdf"));
+  assert.ok(links.includes("https://percycodesios.github.io/CyberGrader.io/game/mynecraft.html"));
+  assert.ok(!links.includes("assets/guides/CIRC-Station-Week-Teacher-Guide.pdf"));
+  const grade = findAll(screen.root, node => node.tagName === "button" && textOf(node) === "Grade 5")[0];
+  withTrappedStorage(() => grade.click());
+  assert.equal(screen.pushed.at(-1), "?lesson=circ-station-rotation&grade=5");
+  assert.equal(studentRedirectTarget({ search: "?view=student&lesson=circ-station-rotation&teacher=PRIVATE", hash: "" }), "student.html?lesson=circ-station-rotation");
+});
+
+test("the dated student entry opens stations while annual bookmarks keep their lesson", () => {
+  const fresh = renderStudent("", "2026-10-12T12:00:00Z");
+  assert.match(textOf(fresh.root), /October 12-16 \| This week's CIRC lesson/);
+  const open = findAll(fresh.root, node => node.tagName === "button" && textOf(node) === "Open this week's lesson")[0];
+  withTrappedStorage(() => open.click());
+  assert.equal(fresh.pushed.at(-1), "?lesson=circ-station-rotation");
+  assert.match(textOf(fresh.root), /CIRC build stations: explore, make, improve/);
+  const booked = renderStudent("?playbook=a&meeting=3", "2026-10-12T12:00:00Z");
+  const heading = findAll(booked.root, node => node.getAttribute("id") === "pb-lesson-title")[0];
+  assert.match(textOf(heading), /jingle/i);
+  assert.doesNotMatch(textOf(booked.root), /This week's CIRC lesson/, "an explicit lesson link is not preceded by a competing weekly task");
+  const otherLessons = findAll(booked.root, node => node.getAttribute("id") === "browse")[0];
+  assert.equal(otherLessons.tagName, "details");
+  assert.equal(otherLessons.getAttribute("open"), null, "other lessons stay collapsed until requested");
+  const after = renderStudent("", "2026-10-19T12:00:00Z");
+  assert.doesNotMatch(textOf(after.root), /This week's CIRC lesson/);
+  assert.match(textOf(after.root), /Retained for next year/);
 });

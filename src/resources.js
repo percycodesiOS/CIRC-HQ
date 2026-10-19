@@ -37,6 +37,24 @@ export const GUIDES = Object.freeze([
     note: "Landscape deck, one large step per page, with bookmarks. Project it from the bookmark you need. It is not meant to be printed. Its meeting 3 also shows the older second-logo lesson."
   },
   {
+    title: "Build stations: student packet",
+    file: "assets/guides/CIRC-Station-Week-Student-Packet.pdf",
+    pages: 6,
+    audience: "Student",
+    status: "current",
+    statusLabel: "Current",
+    note: "Project steps, a group check and a short reflection for the build-station lesson. Keep one at each table."
+  },
+  {
+    title: "Build stations: teacher guide",
+    file: "assets/guides/CIRC-Station-Week-Teacher-Guide.pdf",
+    pages: 3,
+    audience: "Teacher",
+    status: "current",
+    statusLabel: "Current",
+    note: "Setup, called-group timing and checks for the build-station lesson."
+  },
+  {
     title: "ECTV interview and edit handout",
     file: "assets/guides/ECTV-Interview-Edit-Handout.pdf",
     pages: 4,

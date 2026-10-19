@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { renderApp } from "../src/app.js";
-import { CLASS_PROGRESS_STORAGE_KEY, classPlace, guessGrade, loadClassProgress, saveClassPlace } from "../src/model/class-progress.js";
+import { CLASS_JOURNAL_STORAGE_KEY, CLASS_PROGRESS_STORAGE_KEY, appendClassJournal, classPlace, exportClassJournal, guessGrade, importClassJournal, loadClassJournal, loadClassProgress, saveClassPlace } from "../src/model/class-progress.js";
 import { DATED_UPDATES_STORAGE_KEY } from "../src/model/dated-updates.js";
 import { buildTeacherAgenda, buildTeacherHome, stateMessage } from "../src/ui/teacher-home.js";
 
@@ -276,6 +276,110 @@ test("during class the immediate next obligation stays visible with its countdow
   } finally { app.destroy(); }
 });
 
+test("teaching records survive reopen, remain separate from class position and merge without duplicates", () => {
+  const storage = memoryStorage();
+  const owner = "teacher-alpha";
+  saveClassPlace(storage, owner, "class-one", { playbook: "a", meeting: 14, grade: 6, option: null });
+  const before = storage.getItem(`${CLASS_PROGRESS_STORAGE_KEY}:${owner}`);
+  appendClassJournal(storage, owner, { classKey: "class-one", classLabel: "Class one", date: "2026-10-14", lessonTitle: "Build stations", status: "continued", note: "Finished two joins. Three tool turns still owed.", nextVisit: "Call the remaining group first." }, { now: new Date("2026-10-15T01:00:00Z") });
+  appendClassJournal(storage, owner, { classKey: "class-two", classLabel: "Class two", date: "2026-10-16", lessonTitle: "Jingle", status: "planned", note: "Bring back the first logos.", nextVisit: "Test playback." });
+  const loaded = loadClassJournal(storage, owner);
+  assert.equal(loaded.status, "saved");
+  assert.equal(loaded.book.entries.length, 2);
+  assert.equal(loaded.book.entries[0].status, "continued");
+  assert.equal(storage.getItem(`${CLASS_PROGRESS_STORAGE_KEY}:${owner}`), before, "logging never advances the annual route");
+  const file = exportClassJournal(storage, owner);
+  const secondDevice = memoryStorage();
+  importClassJournal(secondDevice, owner, file);
+  importClassJournal(secondDevice, owner, file);
+  assert.deepEqual(loadClassJournal(secondDevice, owner).book, loaded.book);
+  assert.equal(loadClassJournal(secondDevice, "another-owner").book.entries.length, 0, "records stay in their owner scope");
+  const conflict = JSON.parse(file);
+  conflict.entries[0].note = "Conflicting replacement";
+  assert.throws(() => importClassJournal(secondDevice, owner, JSON.stringify(conflict)), /conflicts/);
+  assert.deepEqual(loadClassJournal(secondDevice, owner).book, loaded.book, "conflicting import leaves original untouched");
+});
+
+test("unreadable teaching records cannot be overwritten, exported as empty, or falsely called saved", () => {
+  const storage = memoryStorage();
+  const key = `${CLASS_JOURNAL_STORAGE_KEY}:teacher-alpha`;
+  storage.setItem(key, "unreadable original");
+  const entry = { classKey: "class-one", classLabel: "Class one", date: "2026-10-14", lessonTitle: "Build", status: "taught", note: "Finished the joint.", nextVisit: "" };
+  assert.throws(() => appendClassJournal(storage, "teacher-alpha", entry), /left untouched/);
+  assert.throws(() => exportClassJournal(storage, "teacher-alpha"), /no empty replacement/);
+  assert.equal(storage.getItem(key), "unreadable original");
+  const clean = memoryStorage();
+  assert.throws(() => appendClassJournal(clean, "teacher-alpha", { ...entry, date: "2026-02-30" }), /not a readable/);
+  assert.equal(clean.map.size, 0);
+  assert.throws(() => appendClassJournal({ getItem: () => null, setItem: () => {} }, "teacher-alpha", entry), /could not be verified/);
+});
+
+test("a near-capacity valid teaching record can import its own export", () => {
+  const storage = memoryStorage();
+  const book = { version: 1, scope: "local-only", entries: Array.from({ length: 820 }, (_, index) => ({ id: `visit-${index}`, classKey: "class-one", classLabel: "Class one", date: "2026-10-14", lessonTitle: "Build stations", status: "continued", note: "n".repeat(3000), nextVisit: "s".repeat(1500), recordedAt: "2026-10-15T01:00:00.000Z" })) };
+  const raw = JSON.stringify(book);
+  assert.ok(raw.length > 3800000 && raw.length < 4000000);
+  storage.setItem(`${CLASS_JOURNAL_STORAGE_KEY}:teacher-alpha`, raw);
+  const exported = exportClassJournal(storage, "teacher-alpha");
+  assert.equal(exported.length, raw.length);
+  const restored = memoryStorage();
+  importClassJournal(restored, "teacher-alpha", exported);
+  assert.equal(loadClassJournal(restored, "teacher-alpha").book.entries.length, 820);
+});
+
+test("station-week following lesson preserves the class's held flex option", async () => {
+  const storage = memoryStorage();
+  saveClassPlace(storage, "teacher:teacher-alpha", "class-one", { playbook: "a", meeting: 9, grade: 6, option: "on-track" });
+  const app = await renderToday(storage, "2026-10-14T09:10:00-04:00");
+  try {
+    assert.match(textOf(app.root), /Following lesson: Plan a small casting without pouring/);
+    const link = findAll(app.root, node => node.tagName === "a" && textOf(node) === "Preview following lesson")[0];
+    assert.equal(link.getAttribute("href"), "student.html?playbook=a&meeting=9&grade=6&option=on-track");
+  } finally { app.controller.destroy(); }
+});
+
+test("previous-year class records remain selectable without adding classes to the current schedule", async () => {
+  const storage = memoryStorage();
+  appendClassJournal(storage, "teacher:teacher-alpha", { classKey: "previous-year-class", classLabel: "Previous class", date: "2026-05-18", lessonTitle: "Bridge test", status: "taught", note: "Use wider testing supports next year.", nextVisit: "Keep the measuring template." });
+  const app = await renderToday(storage);
+  try {
+    const picker = findAll(app.root, node => node.getAttribute("id") === "th-journal-class")[0];
+    assert.match(textOf(picker), /Previous class \(saved record\)/);
+    picker.change("previous-year-class");
+    assert.match(textOf(app.root), /Use wider testing supports next year/);
+    const current = findAll(app.root, node => /\bth-class\b/.test(node.className))[0];
+    assert.match(textOf(current), /PRIVATE_CLASS_ONE/);
+    assert.doesNotMatch(textOf(current), /Previous class/);
+  } finally { app.controller.destroy(); }
+});
+
+test("teacher home saves actual class notes, reopens them, and does not turn suggestions into teaching history", async () => {
+  const storage = memoryStorage();
+  let app = await renderToday(storage);
+  try {
+    assert.match(textOf(app.root), /Earlier conversations and paper records have not been imported/);
+    const input = (id, value) => {
+      const node = findAll(app.root, item => item.getAttribute("id") === id)[0];
+      node.value = value; node.listeners.get("input")?.();
+    };
+    input("th-journal-note", "Students tested one saved logo and revised the slogan.");
+    input("th-journal-nextVisit", "Finish playback before starting cardboard.");
+    input("th-journal-status", "continued");
+    buttonByText(app.root, "Save class note").click();
+    assert.match(textOf(app.root), /Class note saved and read back/);
+    assert.equal(loadClassProgress(storage, "teacher:teacher-alpha").status, "empty");
+    assert.match(textOf(app.root), /Finish playback before starting cardboard/);
+  } finally { app.controller.destroy(); }
+  app = await renderToday(storage);
+  try {
+    assert.match(textOf(app.root), /Students tested one saved logo/);
+    assert.ok(findAll(app.root, node => node.tagName === "a" && textOf(node) === "Preview following lesson")[0]);
+    const picker = findAll(app.root, node => node.getAttribute("id") === "th-journal-class")[0];
+    picker.change("class-two");
+    assert.match(textOf(app.root), /No visits recorded here yet/);
+  } finally { app.controller.destroy(); }
+});
+
 test("after the last block, the next obligation looks ahead through the saved calendar and skips no-school days", async () => {
   const app = await mountApp({ time: "2026-09-29T15:00:00-04:00", noSchool: ["2026-09-30"] });
   try {
@@ -344,6 +448,27 @@ test("the minute refresh keeps a focused Schedule field and open sections in pla
     const reopened = findAll(app.root, node => node.tagName === "details" && /today-plan-ahead/.test(node.className))[0];
     assert.notEqual(reopened, planAhead, "Today did re-render for the new minute");
     assert.equal(reopened.getAttribute("open"), "", "the expanded section stays open");
+  } finally { app.destroy(); }
+});
+
+test("unfinished teaching notes survive navigation and minute refresh without moving to another class", async () => {
+  const app = await mountApp({ time: "2026-09-29T09:34:00-04:00" });
+  try {
+    const note = findAll(app.root, node => node.getAttribute("id") === "th-journal-note")[0];
+    note.value = "Keep the two untested models for the next visit.";
+    note.listeners.get("input")();
+    app.fakeDocument.activeElement = note;
+    app.setTime("2026-09-29T09:35:05-04:00");
+    app.tick();
+    assert.equal(findAll(app.root, node => node === note).length, 1);
+    app.fakeDocument.activeElement = null;
+    app.controller.navigate("projects");
+    app.controller.navigate("today");
+    assert.equal(findAll(app.root, node => node.getAttribute("id") === "th-journal-note")[0].value, note.value);
+    findAll(app.root, node => node.getAttribute("id") === "th-journal-class")[0].change("class-two");
+    assert.equal(findAll(app.root, node => node.getAttribute("id") === "th-journal-note")[0].value, "");
+    findAll(app.root, node => node.getAttribute("id") === "th-journal-class")[0].change("class-one");
+    assert.equal(findAll(app.root, node => node.getAttribute("id") === "th-journal-note")[0].value, note.value);
   } finally { app.destroy(); }
 });
 
@@ -468,4 +593,35 @@ test("a replacement confirmation after a class ends or changes preserves the sav
       assert.ok(findAll(app.root, node => node.getAttribute("aria-label") === "Teacher home").length);
     } finally { app.destroy(); }
   }
+});
+
+test("station week starts the special lesson without advancing saved annual progress, then resumes it", async () => {
+  const storage = memoryStorage();
+  saveClassPlace(storage, "teacher:teacher-alpha", "class-one", { playbook: "a", meeting: 14, grade: 6 });
+  const key = `${CLASS_PROGRESS_STORAGE_KEY}:${encodeURIComponent("teacher:teacher-alpha")}`;
+  const held = storage.getItem(key);
+  const app = await mountApp({ time: "2026-10-12T09:00:00-04:00", storage });
+  try {
+    const text = textOf(app.root);
+    assert.match(text, /CIRC build stations: explore, make, improve/);
+    assert.match(text, /Playbook A meeting 14 stays saved/);
+    assert.doesNotMatch(text, /Done\. Next time: meeting/);
+    assert.equal(findAll(app.root, node => node.getAttribute("id") === "th-class-meeting").length, 0);
+    const link = findAll(app.root, node => node.tagName === "a" && textOf(node) === "Student page")[0];
+    assert.equal(link.getAttribute("href"), "student.html?lesson=circ-station-rotation&grade=6");
+    buttonByText(app.root, "Start lesson").click();
+    assert.equal(app.savedRunner().modeId, "circ-station-rotation");
+    buttonByText(app.root, "Start class").click();
+    app.setTime("2026-10-12T09:36:00-04:00");
+    app.tick();
+    assert.match(textOf(app.root), /Lesson complete|This lesson is finished/);
+    assert.equal(storage.getItem(key), held, "finishing the timer cannot complete the held annual lesson");
+    app.setTime("2026-10-19T09:00:00-04:00");
+    app.controller.navigate("today");
+    assert.doesNotMatch(textOf(findAll(app.root, node => /\bth-class\b/.test(node.className))[0]), /build stations/);
+    assert.ok(buttonByText(app.root, "Done. Next time: meeting 15"));
+    const annualLink = findAll(app.root, node => node.tagName === "a" && textOf(node) === "Student page")[0];
+    assert.equal(annualLink.getAttribute("href"), "student.html?playbook=a&meeting=14&grade=6");
+    assert.equal(storage.getItem(key), held);
+  } finally { app.destroy(); }
 });

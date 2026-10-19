@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
+import vm from "node:vm";
 
 import { normalizedTextSha256 } from "../scripts/verify-public.mjs";
 
@@ -13,6 +14,61 @@ const LEGACY_SHA256 =
 async function readPublicSource(relativePath) {
   return readFile(path.join(ROOT, relativePath), "utf8");
 }
+
+async function bootEctvScript(hash = "", today = "2026-10-16") {
+  const makeElement = (extra = {}) => ({
+    listeners: {},
+    addEventListener(type, handler) { this.listeners[type] = handler; },
+    ...extra
+  });
+  const days = [16, 19, 20].map(number => makeElement({
+    id: `script-oct-${number}`,
+    dataset: { date: `2026-10-${number}` },
+    open: false,
+    querySelector: () => ({ textContent: `October ${number}` })
+  }));
+  const status = { textContent: "" };
+  const jump = makeElement({ hidden: true });
+  const window = makeElement({ location: { hash } });
+  vm.runInNewContext(await readPublicSource("src/ectv-scripts.js"), {
+    window,
+    document: {
+      querySelectorAll: () => days,
+      getElementById: id => id === "today-jump" ? jump : status
+    },
+    Intl: { DateTimeFormat: function () { return { format: () => today }; } },
+    Date
+  });
+  return { days, status, jump, window, openIds: () => days.filter(day => day.open).map(day => day.id) };
+}
+
+test("ECTV respects a dated deep link while keeping today's jump and accordion usable", async () => {
+  const page = await bootEctvScript("#script-oct-19");
+  assert.deepEqual(page.openIds(), ["script-oct-19"]);
+  assert.equal(page.jump.hidden, false);
+  assert.equal(page.jump.href, "#script-oct-16");
+  page.jump.listeners.click();
+  assert.deepEqual(page.openIds(), ["script-oct-16"]);
+  page.window.location.hash = "#script-oct-20";
+  page.window.listeners.hashchange();
+  assert.deepEqual(page.openIds(), ["script-oct-20"]);
+  page.days[1].open = true;
+  page.days[1].listeners.toggle();
+  assert.deepEqual(page.openIds(), ["script-oct-19"]);
+});
+
+test("ECTV defaults to today for absent or unknown anchors and supports requested dates off-school", async () => {
+  for (const hash of ["", "#ectv-reading-script", "#script-oct-99", "#%invalid"]) {
+    const page = await bootEctvScript(hash);
+    assert.deepEqual(page.openIds(), ["script-oct-16"]);
+    assert.equal(page.status.textContent, "Today: October 16.");
+  }
+  const weekend = await bootEctvScript("#script-oct-19", "2026-10-18");
+  assert.deepEqual(weekend.openIds(), ["script-oct-19"]);
+  assert.equal(weekend.jump.hidden, true);
+  const noMatch = await bootEctvScript("", "2026-10-18");
+  assert.deepEqual(noMatch.openIds(), []);
+});
 
 async function listJavaScriptFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });

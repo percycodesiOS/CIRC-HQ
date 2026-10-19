@@ -6,6 +6,16 @@ October 11, 2026. Reviewed draft on the branch `claude/circ-hq-grades-5-6-redesi
 
 The student side now opens on this year's next meeting with one button per grade, every lesson reads in a child's order (goal, done-when check, grade target, materials, safety, timed steps, turn-in, next challenge, another way, a stuck-then-try list, links), and a search box with grade and playbook filters replaces the two jargon dropdowns. Every one of the 74 unique lessons has its own small tagged PDF and an editable Word response sheet, listed on a new handouts page with filters by grade, playbook and format, and linked from the lesson, the teacher's class card and the Playbooks page. The teacher's class card shows materials, safety and the pacing bar before Start, and the projected Student directions view gained a one-click way back to the teacher controls. Playbooks A and B, lesson IDs, the 35-minute structure, manual step control, both clocks, the new-class reset, recovery, backup and import, every storage key and every route are unchanged. All 16 public release gates still pass; new public files were added to the gates explicitly, none were loosened.
 
+## Update, October 19: merged with main
+
+Main gained fourteen commits after this branch started, including the build-station lesson, the retained-lesson library, numbered directions shared word for word between the teacher and student views, the teacher's work check and the private teaching record. They were merged into this branch rather than rebased, so the history stays readable. The redesign keeps its student layout and adds main's pieces in it:
+
+- Student lesson page: main's Start here box sits above the lesson card; other lessons stay inside a collapsed section titled "Other lessons - open only when your teacher asks", which now also lists the retained lessons. Station links such as `student.html?lesson=circ-station-rotation` open in the redesigned lesson view.
+- Student home: the dated This week's lesson entry appears above the hero only in the week CIRC HQ names; the retained-lesson list sits under the finder.
+- Teacher class card: main's numbered prepare, teach, check and save sections replace the redesign's separate Materials and Safety boxes, which said the same thing. The redesign keeps its pacing strip inside the steps section and the Lesson PDF button beside Start lesson and Student page.
+- Lesson view: main's open teacher notes, step intro and work check sit in the redesign's order; steps still show the time bar.
+- The two station-week PDFs are on the Handouts page. All 74 lesson PDFs were rebuilt and are byte-identical to the committed files, so no handout changed.
+
 ## Design rationale
 
 1. **The next action is the first thing on the screen.** A ten-year-old without a link saw a playbook dropdown, a meeting-number dropdown of bare numbers and two grade buttons. The data already knew which playbook is this year and which meeting is next, so the landing now says "What are we doing today?", names the lesson and its goal, and offers "Grade 5" and "Grade 6" as real links. A small form handles "the teacher wrote a different number on the board". The cue comes only from the static `nextMeeting` and `done` flags, never from the date, which keeps the "mark a class by its record, never by the date" rule.
@@ -145,7 +155,7 @@ Main is untouched. To discard the work, close the draft pull request and delete 
 - The "Open Board" button at the top of Today always says the board is not ready on the normal path (it needs a lesson guide reviewed for the board). Pre-existing; left alone because it sits in the Today heading many tests lock.
 - Keyboard shortcuts for the teacher runner (Space, N, P) would help at the projector; not added because they change runner behaviour, which this work was told to preserve.
 - ECTV's hero sits outside its `main` landmark; not changed because ECTV pages were out of scope.
-- The MYnecraft link in the arcade is still empty by design. Note for whoever fills it: the URL must also be added to the reviewed link list in `scripts/verify-public.mjs`, or the public-runtime-policy gate fails.
+- The MYnecraft link in the arcade is still empty by design. Main's verifier now permits the exact classroom MYnecraft compatibility URL, so filling it with that address passes the public-runtime-policy gate; any other address still needs adding to the reviewed list.
 - Reconciling the two September 30 PDFs needs their source documents, which are not in this repository.
 
 ## Assumptions and decisions made without asking
@@ -155,7 +165,7 @@ Main is untouched. To discard the work, close the draft pull request and delete 
 - PDFs use system fonts by default so the build needs no network and the files stay small; `CIRC_HANDOUT_WEB_FONTS=1` switches to the site's fonts at about twice the size.
 - The student pages self-host the two typefaces (latin subsets under the SIL Open Font License, license file included) rather than call Google Fonts, so a child's device makes no third-party request. The teacher page and the arcade still load Google Fonts as before.
 - The student-side token set deliberately differs a little from `theme.css` (darker link blue, warmer yellow) because the student pages needed higher contrast on cream; the teacher theme was not restyled.
-- The Command Center file was read at Revision 20 (October 9, 2026); nothing in it changed this work beyond the no-dash and no-fake-hype writing rules and the routine-publishing authorization, which this branch uses only to push a review branch and open a draft pull request.
+- The Command Center file was read at Revision 20 (October 9, 2026) and again at Revision 21 (October 13, 2026) for the merge; nothing in it changed this work beyond the no-dash and no-fake-hype writing rules and the routine-publishing authorization, which this branch uses only to push a review branch and open a draft pull request.
 
 
 ### Every item
@@ -165,6 +175,8 @@ Main is untouched. To discard the work, close the draft pull request and delete 
 | Classroom Toolkit | Circuit Rescue stages, logo-to-jingle companion, NeuroArt check | Teacher | October 2 (current) | Existing PDF, kept unchanged | assets/guides/CIRC-Classroom-Toolkit.pdf | 5 | https://percycodesios.github.io/CIRC-HQ/assets/guides/CIRC-Classroom-Toolkit.pdf (after publication) | Staff Files tab | current |
 | Full-year teacher guide | Playbooks A and B, all lessons | Teacher | September 30 | Existing PDF, kept unchanged | assets/guides/CIRC-Teacher-Guide.pdf | 158 | https://percycodesios.github.io/CIRC-HQ/assets/guides/CIRC-Teacher-Guide.pdf (after publication) | Staff Files tab (private channel) | needs reconciliation: meeting 3 prints the older second-logo lesson; intro describes the Toolkit contents incorrectly |
 | Classroom screen cards | Playbooks A and B, one step per page | Projection | September 30 | Existing PDF, kept unchanged | assets/guides/CIRC-Classroom-Cards.pdf | 731 | https://percycodesios.github.io/CIRC-HQ/assets/guides/CIRC-Classroom-Cards.pdf (after publication) | Do not upload; project from the site | needs reconciliation: meeting 3 as above |
+| Build stations: student packet | Grades 5 and 6, build-station lesson | Student | October 16 | Existing PDF from main, kept unchanged | assets/guides/CIRC-Station-Week-Student-Packet.pdf | 6 | https://percycodesios.github.io/CIRC-HQ/assets/guides/CIRC-Station-Week-Student-Packet.pdf | Assignment attachment, students cannot edit | current |
+| Build stations: teacher guide | Grades 5 and 6, build-station lesson | Teacher | October 16 | Existing PDF from main, kept unchanged | assets/guides/CIRC-Station-Week-Teacher-Guide.pdf | 3 | https://percycodesios.github.io/CIRC-HQ/assets/guides/CIRC-Station-Week-Teacher-Guide.pdf | Staff Files tab | current |
 | ECTV interview and edit handout | Grade 6 morning show | Student | Field Guide 01 | Existing PDF, kept unchanged | assets/guides/ECTV-Interview-Edit-Handout.pdf | 4 | https://percycodesios.github.io/CIRC-HQ/assets/guides/ECTV-Interview-Edit-Handout.pdf (after publication) | ECTV crew channel resource | current |
 | Neuro art and book checkout | Grades 5 and 6. A1 | Student | October 11, 2026 build from live lesson data | Generated by scripts/build-handouts.mjs | assets/handouts/CIRC-Neuro-Art-and-Book-Checkout-Student.pdf | 2 | resources.html | Assignment attachment, students cannot edit | current |
 | Neuro art and book checkout response sheet | Grades 5 and 6. A1 | Student | October 11, 2026 build from live lesson data | Generated by scripts/build-response-sheets.mjs | assets/handouts/CIRC-Neuro-Art-and-Book-Checkout-Response.docx | n/a (Word) | resources.html | Assignment attachment, students edit their own copy | current |

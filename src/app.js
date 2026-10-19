@@ -86,8 +86,8 @@ import { buildTodayPresentation, buildWelcomePresentation } from "./ui/today-ui.
 import { buildTodayViewModel } from "./ui/view-model.js";
 import { buildWeekModel } from "./model/week.js";
 import { runnerStepIconFile } from "./ui/step-icons.js";
-import { buildStudentLink, getPlaybook, parseStudentLink, playbookPlaceLabel, resolveMeeting } from "./model/playbooks.js";
-import { classPlace, loadClassProgress, saveClassPlace } from "./model/class-progress.js";
+import { buildStudentLink, currentWeekLesson, getPlaybook, parseStudentLink, playbookPlaceLabel, resolveClassLesson, resolveMeeting, resolveSupplementalLesson } from "./model/playbooks.js";
+import { appendClassJournal, classPlace, exportClassJournal, importClassJournal, loadClassJournal, loadClassProgress, saveClassPlace } from "./model/class-progress.js";
 import {
   clearDatedUpdates,
   datedUpdatesForDate,
@@ -95,7 +95,7 @@ import {
   previewDatedUpdatesText,
   saveDatedUpdates
 } from "./model/dated-updates.js";
-import { buildLessonCard, buildPlaybookBrowser } from "./ui/playbook-view.js";
+import { buildCurrentWeekEntry, buildLessonCard, buildPlaybookBrowser, buildSupplementalLibrary } from "./ui/playbook-view.js";
 import { buildTeacherAgenda, buildTeacherHome, formatSeconds } from "./ui/teacher-home.js";
 import { buildDatedUpdatesPanel } from "./ui/dated-updates-panel.js";
 
@@ -306,6 +306,7 @@ function welcomeEntranceCards(actions) {
 
 function welcomeRoute(actions) {
   const presentation = buildWelcomePresentation();
+  const weekLesson = currentWeekLesson(actions.localDate);
   const setup = element("button", {
     className: "primary-action welcome-primary",
     text: presentation.setupAction,
@@ -332,7 +333,7 @@ function welcomeRoute(actions) {
       className: "welcome-maker",
       attributes: {
         src: "assets/tech-terrarium-maker-scene.jpg",
-        alt: "Mr. Macek, CIRC grades 5-6. Illustration inspired by our computer-case terrarium, with rock caves, colorful maker creatures, and circuits.",
+        alt: "CIRC grades 5-6. Illustration inspired by our computer-case terrarium, with rock caves, colorful maker creatures, and circuits.",
         width: "1942",
         height: "809"
       }
@@ -348,6 +349,8 @@ function welcomeRoute(actions) {
       ]) : null,
       actions.welcomeEntrance === "teacher"
         ? element("div", { className: "welcome-teacher-actions" }, [
+            buildCurrentWeekEntry(weekLesson, { audience: "teacher", documentRef: document, onStart: actions.openPreview }),
+            weekLesson ? element("p", { text: "Start the station lesson without setting up a schedule. This preview stays on screen only; reloading resets its timers." }) : null,
             element("div", { className: "welcome-actions" }, [setup, sync, preview]),
             element("p", {}, [actionButton("Browse Playbooks A and B", "button-link", () => actions.navigate("projects"))]),
             element("p", {}, [element("a", { className: "button-link", text: "Complete first-use walkthrough", attributes: { href: "walkthrough.html", target: "_blank", rel: "noopener" } })]),
@@ -595,7 +598,7 @@ function projectArtwork(project, className) {
         className: `${className} terrarium-maker-scene`,
         attributes: {
           src: "assets/tech-terrarium-maker-scene.jpg",
-          alt: "Illustration inspired by our computer-case terrarium, with rock caves, colorful maker creatures, and circuits. Mr. Macek, CIRC grades 5-6.",
+          alt: "Illustration inspired by our computer-case terrarium, with rock caves, colorful maker creatures, and circuits. CIRC grades 5-6.",
           width: "1942",
           height: "809"
         }
@@ -1325,7 +1328,9 @@ function playbookGuides() {
 
 function projectsRoute(actions) {
   const view = actions.playbookView;
-  const resolved = resolveMeeting(view.playbookId, view.meeting, { grade: view.grade, option: view.option });
+  const resolved = view.lesson ? resolveSupplementalLesson(view.lesson) : resolveMeeting(view.playbookId, view.meeting, { grade: view.grade, option: view.option });
+  const openSupplemental = lesson => actions.setPlaybookView({ lesson }, { focusLesson: true });
+  const week = currentWeekLesson(actions.localDate);
   const lessonCard = resolved ? buildLessonCard(resolved, {
     audience: "teacher",
     documentRef: document,
@@ -1337,16 +1342,16 @@ function projectsRoute(actions) {
         resolved.lesson.runner.projectNumber,
         resolved.lesson.runner.modeId ? { modeId: resolved.lesson.runner.modeId } : {}
       ) : null,
-      studentHref: buildStudentLink({ playbook: view.playbookId, meeting: view.meeting, grade: view.grade, option: view.option }),
+      studentHref: buildStudentLink(view.lesson ? { lesson: view.lesson, grade: view.grade } : { playbook: view.playbookId, meeting: view.meeting, grade: view.grade, option: view.option }),
       handoutHref: resolved.lesson ? handoutForRef(resolved.lesson.ref)?.files.pdf ?? null : null
     }
   }) : null;
   const browser = buildPlaybookBrowser(view.playbookId, {
     audience: "teacher",
-    selected: view.meeting,
+    selected: view.lesson ? null : view.meeting,
     documentRef: document,
-    onSwitchPlaybook: (id) => actions.setPlaybookView({ playbookId: id, meeting: getPlaybook(id).nextMeeting, option: null }),
-    onOpenMeeting: (id, number) => actions.setPlaybookView({ playbookId: id, meeting: number, option: null }, { focusLesson: true })
+    onSwitchPlaybook: (id) => actions.setPlaybookView({ playbookId: id, meeting: getPlaybook(id).nextMeeting, option: null, lesson: null }),
+    onOpenMeeting: (id, number) => actions.setPlaybookView({ playbookId: id, meeting: number, option: null, lesson: null }, { focusLesson: true })
   });
   const cards = PROJECTS.map((project) => {
     const button = element("button", {
@@ -1371,10 +1376,12 @@ function projectsRoute(actions) {
         element("p", { className: "date-line", text: "Two full-year routes that alternate by school year. Pick a meeting to see the whole lesson." })
       ])
     ]),
+    buildCurrentWeekEntry(week, { audience: "teacher", documentRef: document, onOpenLesson: openSupplemental, onStart: week ? () => actions.openRunner(2, { modeId: week.supplementalId }) : null }),
     element("div", { className: "pb-teacher-layout" }, [
       element("div", { className: "pb-teacher-lesson" }, [lessonCard]),
       element("div", { className: "pb-teacher-browser" }, [browser])
     ]),
+    buildSupplementalLibrary({ audience: "teacher", documentRef: document, onOpenLesson: openSupplemental }),
     playbookGuides(),
     element("details", { className: "pb-more" }, [
       element("summary", { text: "More: all 36 experiences, morning announcements, FID and replica lessons" }),
@@ -1575,7 +1582,7 @@ function weekRoute(week, actions) {
       element("p", {
         className: "date-line",
         text: week.status === "ready"
-          ? [week.teacherName, week.rangeLabel].filter(Boolean).join(" | ")
+          ? week.rangeLabel
           : "Your next school days in one place"
       })
     ]),
@@ -2126,6 +2133,9 @@ export function renderApp(root, services = {}) {
   let datedStatus = "";
   let classPlaceMessage = "";
   const memoryClassPlaces = new Map();
+  let journalSelectedClass = "";
+  let journalMessage = "";
+  const journalDrafts = new Map();
   // Which class visit started the current runner. Memory only: after a reload a
   // class-card start asks before replacing an unfinished lesson.
   let runnerVisitKey = null;
@@ -2207,7 +2217,8 @@ export function renderApp(root, services = {}) {
   }
 
   function teacherHomeContext(model, currentTime = now()) {
-    if (!state.plan) return { hasPlan: false };
+    const weekLesson = currentWeekLesson(localDateKey(currentTime));
+    if (!state.plan) return { hasPlan: false, weekLesson };
     const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
     const loaded = loadDatedUpdates(privateStorage, { now: currentTime });
     const dated = datedUpdatesForDate(loaded.book, localDateKey(currentTime), {
@@ -2239,7 +2250,10 @@ export function renderApp(root, services = {}) {
         classKey,
         visitKey: classVisitKey(event, currentTime),
         place,
-        resolved: resolveMeeting(place.playbook, place.meeting, { grade: place.grade, option: place.option }),
+        resolved: resolveClassLesson(place, localDateKey(currentTime)),
+        lastVisit: loadClassJournal(privateStorage, runnerOwnerKey()).book.entries
+          .filter(item => item.classKey === classKey && item.date <= localDateKey(currentTime))
+          .sort((a, b) => b.date.localeCompare(a.date) || b.recordedAt.localeCompare(a.recordedAt))[0] ?? null,
         message: classPlaceMessage
       };
     }
@@ -2248,6 +2262,7 @@ export function renderApp(root, services = {}) {
     const runnerStep = runner ? runner.steps?.[runner.timer.currentStepIndex] : null;
     return {
       hasPlan: true,
+      weekLesson,
       planProblem: ["plan-required", "plan-unsupported", "teacher-unavailable"].includes(model.status)
         ? model.nextAction
         : "",
@@ -2258,6 +2273,7 @@ export function renderApp(root, services = {}) {
       cycleDay: model.cycle?.day ?? null,
       duty: model.alerts?.duty ?? null,
       classCard,
+      journal: teachingRecordContext(classCard, currentTime),
       runner: runner ? {
         title: runner.title,
         stepLabel: runnerStep?.label ?? "",
@@ -2265,6 +2281,33 @@ export function renderApp(root, services = {}) {
         totalSeconds: runner.timer.totalRemainingSeconds,
         status: runner.timer.status
       } : null
+    };
+  }
+
+  function teachingRecordContext(classCard, currentTime) {
+    const teacher = state.plan?.teachers?.find(item => item.id === selectedTeacherId);
+    const loaded = loadClassJournal(privateStorage, runnerOwnerKey());
+    const classes = [...new Map(Object.values(teacher?.days ?? {}).flat().filter(item => item.type === "teach").map(item => {
+      const key = String(item.classId || item.label || item.title || "").trim().slice(0, 80);
+      return [key, { key, label: String(item.label || item.title || key).slice(0, 160), fromSchedule: true }];
+    })).values()].filter(item => item.key);
+    // A new school-year schedule must not make last year's imported visits
+    // disappear. Historical classes are selectable only in this private record.
+    for (const entry of loaded.book.entries) {
+      if (!classes.some(item => item.key === entry.classKey)) classes.push({ key: entry.classKey, label: entry.classLabel, fromSchedule: false });
+    }
+    if (!classes.length) return null;
+    const selected = classes.find(item => item.key === journalSelectedClass) ?? classes.find(item => item.key === classCard?.classKey) ?? classes[0];
+    const draftKey = `${runnerOwnerKey()}|${selected.key}`;
+    const progress = loadClassProgress(privateStorage, runnerOwnerKey());
+    const place = classPlace(progress.book, selected.key, selected.label);
+    const suggested = resolveClassLesson(place, localDateKey(currentTime));
+    const draft = journalDrafts.get(draftKey) ?? { date: localDateKey(currentTime), lessonTitle: suggested?.lesson?.title || "", status: "continued", note: "", nextVisit: "" };
+    return {
+      classes, selectedClassKey: selected.key, selectedClassLabel: selected.label, draftKey, draft,
+      entries: loaded.book.entries.filter(item => item.classKey === selected.key).sort((a, b) => b.date.localeCompare(a.date) || b.recordedAt.localeCompare(a.recordedAt)),
+      canSave: !previewOnly && !["invalid", "unavailable"].includes(loaded.status),
+      message: journalMessage || (["invalid", "unavailable"].includes(loaded.status) ? "Saved teaching notes could not be read. They were left untouched." : "")
     };
   }
 
@@ -2338,6 +2381,54 @@ export function renderApp(root, services = {}) {
 
   function teacherHomeActions(home) {
     return {
+      onJournalClassChange: (key) => { journalSelectedClass = key; journalMessage = ""; render(); },
+      onJournalDraft: (field, value) => {
+        if (!home.journal || !["date", "lessonTitle", "status", "note", "nextVisit"].includes(field)) return;
+        const draft = journalDrafts.get(home.journal.draftKey) ?? home.journal.draft;
+        journalDrafts.set(home.journal.draftKey, { ...draft, [field]: value });
+      },
+      onJournalSave: () => {
+        if (!home.journal?.canSave) return;
+        const draft = journalDrafts.get(home.journal.draftKey) ?? home.journal.draft;
+        if (!draft.note.trim() || !draft.lessonTitle.trim()) {
+          journalMessage = "Enter the activity and what this class actually did before saving.";
+          render(); return;
+        }
+        if (draft.status !== "planned" && draft.date > localDateKey(now())) {
+          journalMessage = "A future visit can be marked Planned only. Check the date before recording it as taught.";
+          render(); return;
+        }
+        try {
+          appendClassJournal(privateStorage, runnerOwnerKey(), { ...draft, classKey: home.journal.selectedClassKey, classLabel: home.journal.selectedClassLabel }, { now: now() });
+          journalDrafts.delete(home.journal.draftKey);
+          journalMessage = "Class note saved and read back on this browser. The lesson position is unchanged.";
+        } catch (error) { journalMessage = error.message; }
+        render();
+      },
+      onJournalExport: () => {
+        try {
+          if (previewOnly) throw new Error("Open your saved workspace to download its teaching record.");
+          const text = exportClassJournal(privateStorage, runnerOwnerKey());
+          const filename = `circ-teaching-record-${localDateKey(now())}.json`;
+          if (typeof services.downloadText === "function") services.downloadText(filename, text, "application/json");
+          else {
+            const href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+            const link = element("a", { attributes: { href, download: filename } });
+            link.click(); URL.revokeObjectURL(href);
+          }
+          journalMessage = "Teaching-record download prepared. Keep it in your private school files for next year.";
+        } catch (error) { journalMessage = error.message; }
+        render();
+      },
+      onJournalImport: (file) => {
+        if (previewOnly) { journalMessage = "Open your saved workspace before importing a teaching record."; render(); return; }
+        const owner = runnerOwnerKey();
+        Promise.resolve().then(() => (services.readFileText ?? (value => value.text()))(file)).then(text => {
+          if (runnerOwnerKey() !== owner) throw new Error("The selected workspace changed. Choose the file again.");
+          const book = importClassJournal(privateStorage, owner, text);
+          journalMessage = `Teaching record merged and verified: ${book.entries.length} saved visits. No lesson positions changed.`;
+        }).catch(error => { journalMessage = error.message; }).finally(() => { if (!appDestroyed) render(); });
+      },
       openSchedule: () => openSchedule(),
       openSchedulePage: () => openSchedule(),
       openScheduleImport: () => openSetup(),
@@ -2346,8 +2437,17 @@ export function renderApp(root, services = {}) {
         openSchedule();
       },
       openPlaybook: (id) => {
-        playbookView = { ...playbookView, playbookId: id, meeting: getPlaybook(id).nextMeeting, option: null };
+        playbookView = { ...playbookView, playbookId: id, meeting: getPlaybook(id).nextMeeting, option: null, lesson: null };
         navigate("projects");
+      },
+      openSupplementalLesson: (lesson) => {
+        if (!resolveSupplementalLesson(lesson)) return;
+        playbookView = { ...playbookView, lesson };
+        navigate("projects");
+      },
+      startWeekLesson: () => {
+        const week = currentWeekLesson(localDateKey(now()));
+        if (week) openRunner(2, { modeId: week.supplementalId });
       },
       openRunner: () => {
         const runner = selectedRunner();
@@ -2356,7 +2456,7 @@ export function renderApp(root, services = {}) {
         navigate("experience-runner");
       },
       onPlaceChange: (place) => {
-        if (!home.classCard) return;
+        if (!home.classCard || currentWeekLesson(localDateKey(now()))) return;
         saveCurrentClassPlace(home.classCard, place);
         render();
       },
@@ -3498,7 +3598,7 @@ export function renderApp(root, services = {}) {
     configuredPreview = false;
     previewRunner = null;
     previewOnly = true;
-    const lesson = resolveMeeting("a", getPlaybook("a").nextMeeting).lesson;
+    const lesson = (currentWeekLesson(localDateKey(now())) ?? resolveMeeting("a", getPlaybook("a").nextMeeting)).lesson;
     openRunner(lesson.runner.projectNumber, { modeId: lesson.runner.modeId });
   }
 

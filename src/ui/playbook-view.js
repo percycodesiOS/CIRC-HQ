@@ -6,6 +6,9 @@ import {
   FOUR_CS,
   PLAYBOOKS,
   STRANDS,
+  STATION_GUIDES,
+  SUPPLEMENTAL_LESSONS,
+  buildStudentLink,
   getPlaybook,
   lessonTitleForRef,
   listMeetings,
@@ -103,7 +106,12 @@ function timeBar(h, lesson) {
   }));
 }
 
-function stepCards(h, lesson, audience, subHeading) {
+// Keep the wording and order identical on the teacher home, lesson plan and
+// student page. Teacher actions sit beside the shared directions, not behind
+// another guide or a collapsed control. subHeading is the level of the
+// section heading above the list, so step titles sit one level below it.
+export function buildLessonSteps(lesson, { audience = "student", documentRef, subHeading = "h3" } = {}) {
+  const h = createBuilder(documentRef);
   let elapsed = 0;
   const stepHeading = subHeading === "h2" ? "h3" : "h4";
   return h("ol", { className: "pb-steps" }, lesson.steps.map((step, index) => {
@@ -116,9 +124,9 @@ function stepCards(h, lesson, audience, subHeading) {
         h(stepHeading, { text: step.label }),
         h("span", { className: "pb-step-time", text: `${step.minutes} min`, attributes: { title: `Minutes ${start} to ${elapsed}` } })
       ]),
-      list(h, step.directions, "pb-step-directions"),
+      list(h, step.directions, "pb-step-directions", true),
       audience === "teacher" && step.teacherDirections.length
-        ? h("details", { className: "pb-teacher-step" }, [h("summary", { text: "Teacher moves" }), list(h, step.teacherDirections)])
+        ? h("section", { className: "pb-teacher-step" }, [h("h5", { text: "Teacher: say and do" }), list(h, step.teacherDirections, "plain-list", true)])
         : null
     ]);
   }));
@@ -215,7 +223,7 @@ export function buildLessonCard(resolved, { audience = "student", grade = null, 
   const sub = headingLevel === "h1" ? "h2" : "h3";
   const { playbook, meeting, lesson } = resolved;
   const season = audience === "student" ? studentSeason(meeting.season) : meeting.season;
-  const kicker = `${playbook.name} | Meeting ${meeting.number}${season ? " | " + season : ""}`;
+  const kicker = `${playbook.name} | ${meeting.number ? `Meeting ${meeting.number}` : meeting.label}${season ? " | " + season : ""}`;
   const pathNote = resolved.path && resolved.path !== "both" ? pathLabel(resolved.path) : "";
   if (!lesson) {
     return h("article", { className: "pb-lesson pb-lesson-choose", attributes: { "aria-labelledby": "pb-lesson-title" } }, [
@@ -275,10 +283,15 @@ export function buildLessonCard(resolved, { audience = "student", grade = null, 
       callout(h, "pb-materials", "Materials", lesson.materials, sub)
     ]) : callout(h, "pb-materials", "You will use", lesson.materials, sub),
     student ? callout(h, "pb-safety", "Stay safe", lesson.safety, sub) : null,
+    audience === "teacher" && lesson.teacherNotes.length ? h("details", { className: "pb-teacher-notes", attributes: { open: true } }, [
+      h("summary", { text: "Teacher preparation and examples" }),
+      list(h, lesson.teacherNotes)
+    ]) : null,
     h("section", { className: "pb-steps-section" }, [
       h(sub, { text: `Steps | ${lesson.minutes} minutes` }),
+      audience === "teacher" ? h("p", { text: "Read one numbered step with the class. The student page has these same directions in this same order. Use the Teacher: say and do notes at each step. Check the work before you move on." }) : null,
       timeBar(h, lesson),
-      stepCards(h, lesson, audience, sub)
+      buildLessonSteps(lesson, { audience, documentRef, subHeading: sub })
     ]),
     h("div", { className: "pb-finish-grid" }, [
       callout(h, "pb-turnin", "What to turn in", lesson.turnIn, sub),
@@ -288,6 +301,16 @@ export function buildLessonCard(resolved, { audience = "student", grade = null, 
       student ? helpCard(h, sub) : null
     ]),
     paperPathSection(h, lesson.paperPath, sub),
+    audience === "teacher" ? h("section", { className: "pb-callout pb-work-check" }, [
+      h(sub, { text: "Check each student's work" }),
+      list(h, [
+        `Ask the student to show or explain this: ${lesson.turnIn}`,
+        `Compare the work with this lesson's finish check: ${lesson.success || lesson.turnIn}`,
+        "If a part is missing, tell the student one change to make. Let the student fix it. Check that part again.",
+        "Give feedback on the work and explanation. Finishing the timer does not mean the work is done.",
+        "If your school requires a grade, use its assigned rubric and school gradebook. This page does not set points or save student grades."
+      ], "plain-list", true)
+    ]) : null,
     adaptations(h, lesson, audience, grade, sub),
     student ? null : callout(h, "pb-safety", "Stay safe", lesson.safety, sub),
     studentResources.length ? h("section", { className: "pb-callout pb-resources" }, [
@@ -301,10 +324,6 @@ export function buildLessonCard(resolved, { audience = "student", grade = null, 
     audience === "teacher" ? h("section", { className: "pb-callout pb-fourcs" }, [
       h(sub, { text: "Four Cs" }),
       h("p", { text: lesson.fourCs.map(id => FOUR_CS.find(item => item.id === id)?.label).filter(Boolean).join(", ") })
-    ]) : null,
-    audience === "teacher" && lesson.teacherNotes.length ? h("details", { className: "pb-teacher-notes" }, [
-      h("summary", { text: "Teacher notes" }),
-      list(h, lesson.teacherNotes)
     ]) : null,
     student ? studentTools(h, actions) : null
   ]);
@@ -368,3 +387,39 @@ export function buildPlaybookBrowser(playbookId, { audience = "student", selecte
 }
 
 export function totalMeetings(playbookId) { return listMeetings(playbookId).length; }
+
+export function buildStationGuideLinks({ audience = "student", documentRef } = {}) {
+  const h = createBuilder(documentRef);
+  return h("div", { className: "pb-actions" }, STATION_GUIDES.filter(item => audience === "teacher" || !item.teacherOnly).map(item =>
+    h("a", { className: "secondary-action", text: item.label, attributes: { href: item.url, target: "_blank", rel: "noopener" } })));
+}
+
+export function buildCurrentWeekEntry(resolved, { audience = "student", onOpenLesson, onStart, documentRef } = {}) {
+  if (!resolved?.supplementalId) return null;
+  const h = createBuilder(documentRef);
+  return h("section", { className: "pb-callout pb-current-week", attributes: { "aria-label": "This week's CIRC lesson" } }, [
+    h("p", { className: "eyebrow", text: "October 12-16 | This week's CIRC lesson" }),
+    h("h2", { text: resolved.lesson.title }),
+    h("p", { text: audience === "teacher" ? "Use build stations for this week's visit. Keep each class's annual lesson in place, then resume it at the next school visit. Later lessons move forward by one class visit." : "Start with MYnecraft and your group's project. Go to the ChompSaw demo only when your teacher calls your group." }),
+    h("div", { className: "pb-actions" }, [
+      onOpenLesson ? h("button", { className: "primary-action", text: "Open this week's lesson", attributes: { type: "button" }, onClick: () => onOpenLesson(resolved.supplementalId) }) : null,
+      audience === "teacher" && onStart ? h("button", { className: "secondary-action", text: "Start station lesson", attributes: { type: "button" }, onClick: onStart }) : null,
+      h("a", { className: "secondary-action", text: "Station student directions", attributes: { href: buildStudentLink({ lesson: resolved.supplementalId }) } })
+    ]),
+    buildStationGuideLinks({ audience, documentRef })
+  ]);
+}
+
+export function buildSupplementalLibrary({ audience = "student", onOpenLesson, documentRef } = {}) {
+  const h = createBuilder(documentRef);
+  return h("section", { className: "pb-callout pb-retained-library", attributes: { "aria-label": "Retained lesson library" } }, [
+    h("h2", { text: "Retained for next year" }),
+    h("p", { text: "These complete lessons stay available when a class runs out of visits. Playbook B is already a full route: these are choices for next-year planning, not extra scheduled meetings. Keep end-of-year cleanup in this year's final visit." }),
+    h("ul", { className: "plain-list" }, SUPPLEMENTAL_LESSONS.map(item => h("li", {}, [
+      audience === "teacher" && onOpenLesson
+        ? h("button", { className: "button-link", text: lessonTitleForRef(item.ref), attributes: { type: "button" }, onClick: () => onOpenLesson(item.id) })
+        : h("a", { text: lessonTitleForRef(item.ref), attributes: { href: buildStudentLink({ lesson: item.id }) } }),
+      h("p", { text: item.note })
+    ])))
+  ]);
+}

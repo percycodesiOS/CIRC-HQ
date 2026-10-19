@@ -39,6 +39,8 @@ const PUBLIC_STATIC_FILES = new Set([
   "assets/ectv/roles/role-weather.svg",
   "assets/guides/CIRC-Classroom-Cards.pdf",
   "assets/guides/CIRC-Classroom-Toolkit.pdf",
+  "assets/guides/CIRC-Station-Week-Student-Packet.pdf",
+  "assets/guides/CIRC-Station-Week-Teacher-Guide.pdf",
   "assets/guides/CIRC-Teacher-Guide.pdf",
   "assets/guides/ECTV-Interview-Edit-Handout.pdf",
   "assets/icons/arrow-right.svg",

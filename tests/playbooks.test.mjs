@@ -5,12 +5,16 @@ import test from "node:test";
 import {
   PLAYBOOKS,
   STRANDS,
+  SUPPLEMENTAL_LESSONS,
   buildStudentLink,
+  currentWeekLesson,
   getLessonForRef,
   lessonMetaKeys,
   listMeetings,
   parseStudentLink,
   resolveMeeting,
+  resolveClassLesson,
+  resolveSupplementalLesson,
   strandCoverage
 } from "../src/model/playbooks.js";
 import { PLAYBOOK_LESSONS } from "../src/model/playbook-lessons.js";
@@ -71,8 +75,8 @@ test("every meeting path opens a complete, runnable 35-minute lesson", () => {
       assert.equal(validateExperienceRunner(JSON.parse(JSON.stringify(runner)), { teacherKey: "teacher:playbook-test" }).ok, true, where);
     }
   }
-  assert.equal(PLAYBOOK_LESSONS.length, 25);
-  for (const key of lessonMetaKeys()) assert.ok(key === "year:circ-canva-original" || PLAYBOOKS.some(playbook => allPaths(playbook.id).some(item => item.ref === key)), `unused lesson metadata ${key}`);
+  assert.equal(PLAYBOOK_LESSONS.length, 26);
+  for (const key of lessonMetaKeys()) assert.ok(key === "year:circ-canva-original" || SUPPLEMENTAL_LESSONS.some(item => item.ref === key) || PLAYBOOKS.some(playbook => allPaths(playbook.id).some(item => item.ref === key)), `unused lesson metadata ${key}`);
 });
 
 test("grade 6 runs all fifteen CIRC Tank lessons in order and grade 5 never enters Tank", () => {
@@ -260,4 +264,49 @@ test("jingle reuses the first logo, exposes usable resources, and retains the ol
   assert.ok(lesson.resources.some(resource => resource.url === "https://www.beepbox.co/"));
   assert.ok(lesson.resources.every(resource => resource.url.startsWith("https://")));
   assert.ok(getLessonForRef("year:circ-canva-original"), "older saved lesson remains available");
+});
+
+test("station week holds every saved annual place and ends at the Eastern date boundary", () => {
+  const held = { playbook: "a", meeting: 14, grade: 6, option: null, saved: true };
+  const before = JSON.stringify(held);
+  for (const day of [12, 13, 14, 15, 16]) {
+    assert.equal(resolveClassLesson(held, `2026-10-${day}`).lesson.runner.modeId, "circ-station-rotation");
+  }
+  for (const day of ["2026-10-11", "2026-10-17", "2026-10-19"]) {
+    assert.equal(resolveClassLesson(held, day).lesson.ref, resolveMeeting("a", 14, { grade: 6 }).lesson.ref);
+  }
+  assert.equal(currentWeekLesson(new Date("2026-10-12T03:59:59Z")), null);
+  assert.equal(currentWeekLesson(new Date("2026-10-12T04:00:00Z")).supplementalId, "circ-station-rotation");
+  assert.equal(currentWeekLesson(new Date("2026-10-17T03:59:59Z")).supplementalId, "circ-station-rotation");
+  assert.equal(currentWeekLesson(new Date("2026-10-17T04:00:00Z")), null);
+  assert.equal(currentWeekLesson(new Date("bad")), null);
+  assert.equal(currentWeekLesson("2026-10-120"), null);
+  assert.equal(JSON.stringify(held), before, "date selection must never mutate saved progress");
+});
+
+test("standalone links only accept retained curriculum IDs and never reinterpret numeric bookmarks", () => {
+  const link = buildStudentLink({ lesson: "circ-station-rotation", grade: 5, playbook: "a", meeting: 14, class: "PRIVATE", date: "2026-10-12" });
+  assert.equal(link, "student.html?lesson=circ-station-rotation&grade=5");
+  assert.deepEqual(parseStudentLink("?lesson=circ-station-rotation&grade=5&class=PRIVATE&owner=SECRET"), { playbook: null, meeting: null, grade: 5, option: null, lesson: "circ-station-rotation" });
+  assert.equal(buildStudentLink({ lesson: "PRIVATE" }), "student.html");
+  assert.equal(resolveSupplementalLesson("__proto__"), null);
+  assert.equal(buildStudentLink({ playbook: "a", meeting: 3 }), "student.html?playbook=a&meeting=3");
+  assert.equal(resolveMeeting("a", 3).lesson.runner.modeId, "circ-logo-jingle");
+  for (const item of SUPPLEMENTAL_LESSONS) {
+    const resolved = resolveSupplementalLesson(item.id);
+    assert.equal(resolved.lesson.minutes, 35, item.id);
+    assert.ok(resolved.lesson.success && resolved.lesson.cleanup.length && resolved.lesson.turnIn, item.id);
+    assert.equal(parseStudentLink(buildStudentLink({ lesson: item.id }).split("?")[1]).lesson, item.id);
+  }
+  assert.equal(listMeetings("b").length, 36, "retained lessons do not expand already-full B");
+  const station = resolveSupplementalLesson("circ-station-rotation").lesson;
+  assert.equal(station.steps.filter(step => step.label.startsWith("Group ")).length, 7);
+  assert.equal(validateExperienceTimingPlan(getExperienceTimingPlan(2, { modeId: "circ-station-rotation" })).ok, true);
+  assert.equal(station.resources.filter(item => /\.pdf$/.test(item.url)).length, 2);
+  const plan = getExperienceTimingPlan(2, { modeId: "circ-station-rotation" });
+  assert.equal(plan.steps.length, 10);
+  assert.equal(validateExperienceTimingPlan({ ...plan, activeModeId: "build-new" }).ok, false, "ten steps are only permitted for the station mode");
+  const runner = createExperienceRunner(getExperienceTimingPlan(2), { modeId: "circ-station-rotation", teacherKey: "teacher:station-test", nowIso: "2026-10-12T13:00:00.000Z" });
+  assert.equal(validateExperienceRunner(JSON.parse(JSON.stringify(runner)), { teacherKey: "teacher:station-test" }).ok, true);
+  assert.ok(validateExperienceRunner({ ...runner, modeId: "build-new" }, { teacherKey: "teacher:station-test" }).errors.includes("runner-step-count-invalid"));
 });

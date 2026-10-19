@@ -378,6 +378,8 @@ test("public server manifest is an exact reviewed allowlist", () => {
     "assets/ectv/roles/role-weather.svg",
     "assets/guides/CIRC-Classroom-Cards.pdf",
     "assets/guides/CIRC-Classroom-Toolkit.pdf",
+    "assets/guides/CIRC-Station-Week-Student-Packet.pdf",
+    "assets/guides/CIRC-Station-Week-Teacher-Guide.pdf",
   "assets/guides/CIRC-Teacher-Guide.pdf",
   "assets/guides/ECTV-Interview-Edit-Handout.pdf",
   "assets/icons/arrow-right.svg",
@@ -561,7 +563,7 @@ test("public verifier has a recursive-safe sanitized gate contract", () => {
 
 test("reviewed visual assets are exact and opaque files fail closed", async (context) => {
   assert.equal(typeof verifier.inspectAssetLocks, "function");
-  const lockedAssets = 13 + 2 + HANDOUT_FILES.length;
+  const lockedAssets = 15 + 2 + HANDOUT_FILES.length;
   assert.deepEqual(await verifier.inspectAssetLocks(ROOT), { ok: true, count: lockedAssets });
 
   const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-asset-lock-"));
@@ -1370,7 +1372,7 @@ test("Firebase example remains inert exact placeholders", async () => {
   assert.equal(locks.firebaseOk, true);
 });
 
-test("new public runtime has no student identity or CyberGrader path", async () => {
+test("new public runtime has no student identity or unreviewed legacy application reference", async () => {
   const sourceFiles = (await listFilesRecursively(path.join(ROOT, "src")))
     .filter((file) => file.endsWith(".js"));
   const files = [
@@ -1381,7 +1383,7 @@ test("new public runtime has no student identity or CyberGrader path", async () 
   ];
   const source = (await Promise.all(files.map((file) => readFile(file, "utf8")))).join("\n");
 
-  assert.doesNotMatch(source, /CyberGrader/i);
+  assert.equal(verifier.countPublicRuntimePolicyViolations(source), 0);
   assert.doesNotMatch(source, /\b(?:classCode|joinCode|studentAlias|studentAccount|studentRoster)\b/i);
   assert.doesNotMatch(source, /\b(?:students|studentAccounts|classCodes)\s*\//i);
   assert.doesNotMatch(source, /district[^\n]{0,40}(?:logo|mark)|(?:logo|mark)[^\n]{0,40}district/i);
@@ -1398,4 +1400,22 @@ test("entrypoint identity and locked legacy bytes remain exact", async () => {
     verifier.normalizedTextSha256(legacyBytes),
     LEGACY_SHA256
   );
+});
+
+test("station resources permit only the exact reviewed game and tool-manual URLs", () => {
+  const game = "https://percycodesios.github.io/CyberGrader.io/game/mynecraft.html";
+  const manual = "https://learn.chompshop.com/learn-chompsaw";
+  assert.equal(verifier.countPublicRuntimePolicyViolations(`href="${game}" ${manual}`), 0);
+  for (const bad of [
+    "CyberGrader",
+    game.replace("mynecraft.html", "index.html"),
+    `${game}?redirect=elsewhere`,
+    `${game}/extra`,
+    manual + "/unreviewed",
+    "https://percycodesios.github.io/CyberGrader.io/",
+    "https://elsewhere.invalid/game/mynecraft.html"
+  ]) assert.ok(verifier.countPublicRuntimePolicyViolations(bad) > 0, bad);
+  for (const privateToken of ["studentRoster", "studentAccount", "classCode", "joinCode", "studentAlias"]) {
+    assert.ok(verifier.countPublicRuntimePolicyViolations(`${game} ${privateToken}`) > 0, privateToken);
+  }
 });

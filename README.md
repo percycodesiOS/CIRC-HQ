@@ -21,6 +21,14 @@ The same address has two doors. They change the screen, not who can see what. Ne
 
 Without a saved schedule, the teacher side asks once: **Set up my schedule** or load a private schedule file. Both playbooks and every lesson still work without one.
 
+### Lesson preparation and teaching record
+
+Today puts the selected class's lesson first, with quick preparation, a materials list, timed student steps, the finish check and a preview of the following planned lesson. The schedule, current/next obligation and timer remain separate. During the October 12-16 station week, the following lesson is the class's held annual position; station work does not advance it.
+
+The **Teaching record** is a private, local journal for every teaching class in the saved schedule. Choose the actual class and visit date, distinguish **Taught / completed**, **Started / still working** and **Planned only**, then record what happened and what to prepare next time. Saving a note does not move the class's playbook position, mark a timer complete or infer earlier teaching. Classes found only in saved or imported records remain selectable with a **saved record** label, so a new year's schedule does not hide the previous year's notes or add old classes to the current schedule. Existing conversations and paper records are not imported automatically. Past curriculum completion statements are not class-by-class journal entries.
+
+Notes use the separate owner-scoped `circHQ.classJournal.local.v1` browser key. They are never synced, included in student links or sent to a service. **Download teaching record** exports all visits as JSON for private school storage and next-year reuse; the normal app backup does not include this journal. **Bring back a saved teaching record** validates and merges a chosen export, avoids duplicate IDs and refuses conflicting records. Unreadable existing data is left untouched. Limits are 5,000 visits and four million serialized characters; no older entries are silently evicted. A preview cannot write or import notes. Classroom records should use class/group codes and useful teaching observations, not student personal information.
+
 ## Playbooks A and B
 
 Two full-year routes alternate by school year. Every student meets one A year and one B year across grades 5 and 6.
@@ -253,6 +261,16 @@ node scripts/dev-server.mjs
 3. Open `http://127.0.0.1:4273/`.
 
 The development server binds only to `127.0.0.1` and exposes the reviewed public runtime allowlist. It does not intentionally expose tests, internal documentation, Firebase rules, package metadata, the locked legacy classroom snapshot, or private schedule files.
+
+## October 12-16 station week
+
+This week is one unnumbered class contact: begin with MYnecraft, then call groups of four to the teacher's ChompSaw demonstration while other groups continue their assigned project. Each child has a brief supported turn, or a documented alternate/follow-up. The EC model, Eddie's cave model, bird-nest model, and E/C letters remain parallel choices; this is not a five-station carousel.
+
+The current-week teacher start and student directions use `circ-station-rotation`. The permanent student address is `student.html?lesson=circ-station-rotation`. Completing this contact does not advance or reset saved annual progress. The next class contact resumes the previously held meeting. Existing numeric A/B links retain their exact meaning.
+
+Printable resources are [the six-page student packet](assets/guides/CIRC-Station-Week-Student-Packet.pdf) and [the three-page teacher guide and rotation tracker](assets/guides/CIRC-Station-Week-Teacher-Guide.pdf). Both contain blank student fields only. Keep completed trackers in the school's private records.
+
+A permanent retained-lesson bank keeps the station lesson, Outdoor Microclimate Map, Reflect and reset, and Catch up and finish available for next-year planning. It does not silently add contacts to the full Playbook B. Private pacing records preserve the one-contact shift, school closures, and conditional year-end overflow; actual class progress takes precedence.
 
 ## Verify a public candidate
 
