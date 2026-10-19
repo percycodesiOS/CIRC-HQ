@@ -5,7 +5,7 @@ import { PLAYBOOKS, buildStudentLink, getPlaybook } from "./model/playbooks.js";
 import { listHandouts, searchHandouts } from "./model/lesson-finder.js";
 import { buildIcon, createBuilder } from "./ui/playbook-view.js";
 
-// The four reviewed references already on the site. Page counts were read
+// The reviewed guides and references already on the site. Page counts were read
 // from the files. Status says whether the wording predates the current
 // logo-to-jingle lesson; nothing here claims a document was rewritten.
 export const GUIDES = Object.freeze([
@@ -162,7 +162,7 @@ export function renderResourceHub(root, { location = globalThis.location, docume
   filterForm.addEventListener("submit", event => event?.preventDefault?.());
 
   const guides = h("aside", { className: "resource-guides", attributes: { "aria-labelledby": "resource-guides-title" } }, [
-    h("h2", { text: "Teacher references", attributes: { id: "resource-guides-title" } }),
+    h("h2", { text: "Guides and teacher references", attributes: { id: "resource-guides-title" } }),
     ...GUIDES.map(guide => h("article", { className: "resource-guide" }, [
       h("div", { className: "resource-guide-head" }, [
         h("strong", { text: guide.title }),

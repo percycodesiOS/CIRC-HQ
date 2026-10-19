@@ -82,7 +82,7 @@ test("the handouts page imports no storage, schedule, cloud or teacher record mo
   assert.equal(html.match(/https?:\/\/[^\s"'<>]+/gi), null, "the handouts page makes no third-party request");
 });
 
-test("the hub lists every lesson handout with its PDF, response sheet and on-screen link, plus the four references", () => {
+test("the hub lists every lesson handout with its PDF, response sheet and on-screen link, plus the reviewed guides", () => {
   const root = render();
   const text = textOf(root);
   assert.match(text, /Handouts and guides/);

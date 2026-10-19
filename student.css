@@ -367,6 +367,8 @@ a.student-grade-button:hover { background: var(--blue-dark); color: #ffffff; }
 .student-side .pb-callout h3,
 .student-side .pb-steps-section h3 { font-family: var(--display); font-size: 1.2rem; font-weight: 600; }
 
+.student-more-lessons { margin-top: 30px; }
+
 /* Start here: the first step, one glance before the lesson card (merged from main, October 19). */
 .student-start-here { display: grid; gap: 8px; border-left: 6px solid var(--blue); }
 .student-start-here h2 { margin: 0; color: var(--blue-dark); font-family: var(--display); font-size: 1.3rem; font-weight: 600; }
@@ -557,6 +559,8 @@ a.student-grade-button:hover { background: var(--blue-dark); color: #ffffff; }
   .site-header,
   .student-nav,
   .student-browse,
+  .student-more-lessons,
+  .pb-retained-library,
   .student-finder,
   .student-number,
   .student-grade-switch,

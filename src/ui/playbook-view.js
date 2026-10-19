@@ -283,6 +283,14 @@ export function buildLessonCard(resolved, { audience = "student", grade = null, 
       callout(h, "pb-materials", "Materials", lesson.materials, sub)
     ]) : callout(h, "pb-materials", "You will use", lesson.materials, sub),
     student ? callout(h, "pb-safety", "Stay safe", lesson.safety, sub) : null,
+    // Links sit above the steps because a step can say "open the link".
+    studentResources.length ? h("section", { className: "pb-callout pb-resources" }, [
+      h(sub, { text: student ? "Links and examples" : "Lesson resources" }),
+      h("ul", { className: "plain-list" }, studentResources.map(resource => h("li", {}, [
+        h("a", { text: resource.label, attributes: { href: resource.url, target: "_blank", rel: "noopener noreferrer" } }),
+        h("p", { text: resource.description })
+      ])))
+    ]) : null,
     audience === "teacher" && lesson.teacherNotes.length ? h("details", { className: "pb-teacher-notes", attributes: { open: true } }, [
       h("summary", { text: "Teacher preparation and examples" }),
       list(h, lesson.teacherNotes)
@@ -313,13 +321,6 @@ export function buildLessonCard(resolved, { audience = "student", grade = null, 
     ]) : null,
     adaptations(h, lesson, audience, grade, sub),
     student ? null : callout(h, "pb-safety", "Stay safe", lesson.safety, sub),
-    studentResources.length ? h("section", { className: "pb-callout pb-resources" }, [
-      h(sub, { text: student ? "Links and examples" : "Lesson resources" }),
-      h("ul", { className: "plain-list" }, studentResources.map(resource => h("li", {}, [
-        h("a", { text: resource.label, attributes: { href: resource.url, target: "_blank", rel: "noopener noreferrer" } }),
-        h("p", { text: resource.description })
-      ])))
-    ]) : null,
     audience === "teacher" ? callout(h, "pb-cleanup", "Cleanup", lesson.cleanup, sub) : null,
     audience === "teacher" ? h("section", { className: "pb-callout pb-fourcs" }, [
       h(sub, { text: "Four Cs" }),
