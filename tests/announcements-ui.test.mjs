@@ -441,3 +441,78 @@ test("the live view rejects an unapproved draft and exposes only the approved br
   findByText(view, "button", "Exit broadcast view").click();
   assert.deepEqual(calls, ["exit"]);
 });
+
+
+// ECTV retained script dates follow the school calendar date, including overnight tabs.
+import vm from "node:vm";
+import { readFileSync } from "node:fs";
+
+function scriptDateHarness(nowIso, hash = "") {
+  let now = nowIso;
+  const timers = [];
+  const windowEvents = {};
+  const documentEvents = {};
+  class ScriptNode {
+    constructor(id, date, week = null) {
+      this.id = id; this.dataset = date ? { date } : {};
+      this.open = false; this.hidden = false; this.week = week;
+      this.listeners = {}; this.children = []; this.textContent = id;
+      const names = new Set();
+      this.classList = { toggle: (name, value) => value ? names.add(name) : names.delete(name), contains: name => names.has(name) };
+    }
+    addEventListener(name, callback) { this.listeners[name] = callback; }
+    append(child) { this.children.push(child); }
+    querySelector(selector) {
+      if (selector.includes("summary")) return this.summary;
+      return this.children.find(child => child.className === selector.slice(1)) ?? null;
+    }
+    closest() { return this.week; }
+  }
+  const weeks = [["2026-10-12", "2026-10-18"], ["2026-10-19", "2026-10-25"], ["2026-10-26", "2026-11-01"]].map(([first, last]) => {
+    const week = new ScriptNode("week-" + first);
+    week.dataset = { weekStart: first, weekEnd: last }; return week;
+  });
+  const days = ["2026-10-16", "2026-10-21", "2026-10-22", "2026-10-26"].map((date, index) => {
+    const day = new ScriptNode("script-oct-" + Number(date.slice(-2)), date, weeks[index === 0 ? 0 : index === 3 ? 2 : 1]);
+    day.summary = new ScriptNode(date); day.summary.textContent = date; return day;
+  });
+  const status = new ScriptNode("status"), jump = new ScriptNode("jump");
+  class ScriptClock extends Date { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return Date.parse(now); } }
+  const document = {
+    visibilityState: "visible", hidden: false,
+    querySelectorAll: selector => selector === "details[data-date]" ? days : weeks,
+    getElementById: id => id === "script-date-status" ? status : jump,
+    createElement: () => new ScriptNode("badge"),
+    addEventListener: (event, callback) => { documentEvents[event] = callback; }
+  };
+  const context = vm.createContext({ document, window: { location: { hash }, addEventListener: (event, callback) => { windowEvents[event] = callback; } }, Date: ScriptClock, Intl, setInterval: callback => { timers.push(callback); return timers.length; } });
+  vm.runInContext(readFileSync(new URL("../src/ectv-scripts.js", import.meta.url), "utf8"), context);
+  return { days, weeks, status, jump, timers, windowEvents, documentEvents, setNow: value => { now = value; } };
+}
+
+test("ECTV uses the New York date and retains readable past dates with a current week", () => {
+  const ui = scriptDateHarness("2026-10-22T02:30:00Z"); // Still October 21 in New York.
+  assert.equal(ui.days[0].dataset.dateState, "past");
+  assert.equal(ui.days[1].dataset.dateState, "today");
+  assert.equal(ui.days[2].dataset.dateState, "future");
+  assert.equal(ui.weeks[1].open, true);
+  assert.equal(ui.weeks[0].open, false);
+  assert.equal(ui.jump.href, "#script-oct-21");
+  assert.equal(ui.days[0].hidden, false);
+  assert.ok(ui.days[0].classList.contains("is-past"));
+});
+
+test("ECTV refreshes an overnight tab without a reload and can open a historical deep link", () => {
+  const ui = scriptDateHarness("2026-10-22T03:59:00Z");
+  assert.equal(ui.days[1].dataset.dateState, "today");
+  assert.ok(ui.timers.length > 0);
+  ui.setNow("2026-10-22T04:01:00Z");
+  ui.timers[0]();
+  assert.equal(ui.days[1].dataset.dateState, "past");
+  assert.equal(ui.days[2].dataset.dateState, "today");
+  assert.equal(ui.jump.href, "#script-oct-22");
+  const history = scriptDateHarness("2026-10-22T12:00:00Z", "#script-oct-16");
+  assert.equal(history.days[0].open, true);
+  assert.equal(history.weeks[0].open, true);
+  assert.equal(history.days[0].dataset.dateState, "past");
+});
