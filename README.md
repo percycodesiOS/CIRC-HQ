@@ -82,7 +82,7 @@ The welcome screen also offers two optional paths:
 
 **FID activities** are also available from the welcome screen and **Playbooks > Open FID activities**. The separate `fid.html` page opens in a new tab and contains four complete, independent Grades 5-6 challenges: redesign an everyday thing, debug the doodle bot, be a pattern detective, and tell a three-part story. Each has three steps, a finish check, an optional extension, and an equally valid think/say path. Ordinary paper or objects are optional. No previous lesson, live meeting, account, camera, upload, printer, or adult helper is required. Optional teacher facilitation is included without a meeting link.
 
-The FID page loads no teacher app scripts, private schedules, cloud clients, or student storage. Its directions are ordinary HTML and work without JavaScript. It does not submit work or establish attendance/assignment completion. Teachers supply any usual assignment and return directions separately. This addition is prepared locally; it is not described as live until a separately authorized release is verified.
+The FID page loads no teacher app scripts, private schedules, cloud clients, or student storage. Its directions are ordinary HTML and work without JavaScript. It does not submit work or establish attendance/assignment completion. Teachers supply any usual assignment and return directions separately. The FID activities are published at [fid.html](fid.html).
 
 - **Today** is the teacher home: next obligation, this class's lesson, timer, later obligations and shortcuts. The older dashboard is under **More tools**.
 - **Playbooks** opens Playbooks A and B with every lesson in full. The 36 reviewed experiences, announcements and FID stay under **More**.
@@ -98,7 +98,7 @@ The September 9-10 welcome screen and Today show **Open Day 5 build**. It opens 
 
 Set out cardboard, rulers, pencils, tape and labeled trays. Students can finish the entire build using tape and tabs. The teacher manages cuts and the existing glue station. When no checked aerial reference is ready, build freestanding modules and leave their placement undecided. Project **Student directions** only. Use **Start this lesson for a new class** for each subsequent class; **Next Step** remains manual. Without a configured schedule, the lesson runs as a preview and its timers reset on reload. With a saved teacher context, the existing local runner persistence applies.
 
-The empty browser icon has been replaced by a local CIRC circuit/C mark, also used beside the header name. It is an original CIRC mark, not an official district seal.
+Historical icon update, superseded by the SV interlock update described below: the empty browser icon was replaced by a local CIRC circuit/C mark, also used beside the header name. It was an original CIRC mark, not an official district seal.
 
 ## Ehrman Crest replica lessons
 
@@ -273,8 +273,10 @@ Verification checks the public candidate boundary, runtime imports, entrypoint i
 
 Repository work, commit creation, push, GitHub Pages deployment, Firebase Console changes, private cloud writes, and live-site confirmation are separate actions. Local tests or a committed candidate do not make the intended URL live. This documentation change performs no deployment and uploads no private teacher data.
 
-## Public script reading page - October 5, 2026
+## Public script reading page
 
-`ectv-scripts.html` is the permanent, account-free reading address and QR target. It contains only the reviewed current-week broadcast script with generic role labels, daily lunch notices, camera cues and four Cultural Day videos. It does not import the teacher application, storage, crew roster or school authentication. A New York date selects today; outside the published week a notice says that these scripts are not current. The native day list still works without JavaScript. The source remains the freshly read Moodle editor; after any live script edit, publish the reviewed reading copy too. Do not export teacher-only materials or rosters. This is publication, not an automatic Moodle connection.
+`ectv-scripts.html` is the permanent, account-free reading address and QR target. It contains reviewed broadcast scripts grouped by dated week, with generic role labels, daily lunch notices, camera and WAIT cues, and approved media for those dates. It does not import the teacher application, storage, crew roster or school authentication. New York time identifies today's script and the current week; past scripts remain available, and a notice appears when no script is published for today. The native week and day lists work without JavaScript.
+
+This repository is the source for the public reading page, published through GitHub Pages. Update its dated scripts from verified school announcements, preserve existing content, and verify the matching deployment and served file after publication. Moodle is a separate school editing copy, not a runtime dependency or an automatic connection. When reconciling that copy, freshly read the actual Moodle page and preserve teacher changes; record any pending update separately. Do not export teacher-only materials or rosters.
 
 Welcome, the Moodle classroom doorways and public CIRC/ECTV surfaces share navy, blue, cream and yellow. Script role colors retain their spoken-job meaning.
