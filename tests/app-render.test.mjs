@@ -1199,7 +1199,7 @@ test("rendered Board never leaks teacher-only active event fields", async () => 
   for (const type of ["duty", "support", "prep", "lunch", "special"]) {
     const rendered = await renderBoard(stateWithActiveEvent(type));
 
-    assert.match(rendered, /Board is ready when a class is active/, type);
+    assert.match(rendered, /Choose a lesson to project/, type);
     assert.doesNotMatch(rendered, new RegExp(`PRIVATE_${type.toUpperCase()}`), type);
     assert.doesNotMatch(rendered, /PRIVATE_CLASS_TITLE|PRIVATE_LESSON_TITLE|PRIVATE_OBJECTIVE|PRIVATE_STEP|PRIVATE_MATERIAL/, type);
   }
@@ -1229,14 +1229,42 @@ test("rendered Board receives a student-safe teach projection without model fall
   assert.match(rendered, /Classroom-safe lesson/);
   assert.match(rendered, /Current step: Build/);
   assert.doesNotMatch(rendered, /PRIVATE_TEACH_EVENT_LABEL|05:00|PRIVATE_TEACH_STEP/);
-  assert.doesNotMatch(rendered, /Board is ready when a class is active/);
+  assert.doesNotMatch(rendered, /Choose a lesson to project/);
 });
 
 test("rendered Board keeps a linked but unreviewed teach event inactive", async () => {
   const rendered = await renderBoard(stateWithActiveEvent("teach"));
 
-  assert.match(rendered, /Board is ready when a class is active/);
+  assert.match(rendered, /Choose a lesson to project/);
   assert.doesNotMatch(rendered, /PRIVATE_TEACH|PRIVATE_CLASS_TITLE|PRIVATE_LESSON_TITLE|PRIVATE_OBJECTIVE|PRIVATE_STEP|PRIVATE_MATERIAL/);
+});
+
+test("Today opens the lesson picker until both board records are reviewed", async () => {
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  globalThis.document = fakeDocument();
+  globalThis.window = { location: { hostname: "example.test" }, setInterval: () => 1, clearInterval: () => {}, fetch: async () => ({ ok: false }) };
+  try {
+    for (const reviewed of [false, true]) {
+      const state = stateWithActiveEvent("teach");
+      if (reviewed) {
+        Object.assign(state.classes[0], { title: "Reviewed classroom", visibility: "classroom", reviewedForBoard: true });
+        Object.assign(state.lessonGuides[0], { title: "Reviewed lesson", visibility: "classroom", reviewedForBoard: true });
+      }
+      const root = new FakeNode("main");
+      const controller = renderApp(root, { store: memoryStore(state), loadPrivateSeed: false, weatherService: {}, clock: { now: () => new Date("2026-08-20T09:10:00-04:00") } });
+      try {
+        await controller.ready;
+        controller.navigate("today");
+        const label = reviewed ? "Open Board" : "Choose a lesson";
+        const shortcut = findAll(root, node => node.tagName === "button" && textOf(node) === label)[0];
+        assert.ok(shortcut, label);
+        shortcut.click();
+        assert.match(textOf(root), reviewed ? /Reviewed classroom/ : /Playbooks A and B/);
+        assert.doesNotMatch(textOf(root), /PRIVATE_CLASS_TITLE|PRIVATE_TEACH_EVENT_LABEL/);
+      } finally { controller.destroy(); }
+    }
+  } finally { globalThis.document = previousDocument; globalThis.window = previousWindow; }
 });
 
 test("rendered Room anchors use only admitted safeHref values", async () => {
@@ -1709,7 +1737,7 @@ test("Year Map route exposes all 36 choices without private schedule content", a
   assert.equal(meetingButtons.length, 32, "Playbook A: 31 meetings plus one buffer");
   const lessonTitle = findAll(root, (node) => node.getAttribute("id") === "pb-lesson-title")[0];
   assert.equal(textOf(lessonTitle), "Logo to jingle: Give your brand a sound", "NeuroArt and Logo 1 are finished, so start with the jingle");
-  assert.match(rendered, /The September 30 references cover Playbooks A and B, including both grade paths/);
+  assert.match(rendered, /The October 31 guides match the current Playbooks A and B, including Logo to jingle, both grade paths/);
   assert.match(rendered, /Circuit Rescue, logo-to-jingle and NeuroArt check/);
   assert.equal(findAll(root, (node) => node.tagName === "a" && node.getAttribute("href") === "assets/guides/CIRC-Classroom-Toolkit.pdf").length, 1);
   assert.match(rendered, /Logo to jingle: Give your brand a sound/);
@@ -1779,15 +1807,15 @@ test("Playbooks features the Grade 6 announcements studio without adding a sixth
     assert.match(textOf(root), /rite of passage/i);
     assert.match(textOf(root), /Live scripts are on Moodle/);
     for (const [label, href] of [
-      ["Full-year teacher reference (September 30)", "assets/guides/CIRC-Teacher-Guide.pdf"],
-      ["Classroom screen-card reference (September 30)", "assets/guides/CIRC-Classroom-Cards.pdf"],
+      ["Full-year teacher guide (October 31)", "assets/guides/CIRC-Teacher-Guide.pdf"],
+      ["Classroom screen cards (October 31)", "assets/guides/CIRC-Classroom-Cards.pdf"],
       ["Circuit Rescue, logo-to-jingle and NeuroArt check", "assets/guides/CIRC-Classroom-Toolkit.pdf"]
     ]) {
       const link = findAll(root, node => node.tagName === "a" && textOf(node) === label);
       assert.equal(link.length, 1, label);
       assert.equal(link[0].attributes.get("href"), href);
     }
-    assert.match(textOf(root), /Use the current on-screen lesson for updates\. Print only the lesson you need\./);
+    assert.match(textOf(root), /Print only the lesson you need\./);
     assert.doesNotMatch(textOf(root), /Current teacher guide:|Current classroom screen cards/);
     const moodleLink = findAll(root, node => node.tagName === "a" && textOf(node) === "Open scripts in Moodle")[0];
     assert.equal(moodleLink.attributes.get("href"), "https://moodle.svsd.net/course/view.php?id=13811");
@@ -3871,9 +3899,9 @@ test("Board and the live lesson runner hide the real header until Today or destr
     assert.equal(header.getAttribute("aria-hidden"), "true");
     assert.equal(header.getAttribute("data-shell-marker"), "unchanged");
     const boardButtons = findAll(root, (node) => node.tagName === "button");
-    assert.deepEqual(boardButtons.map((node) => node.textContent), ["Return to Today"]);
+    assert.deepEqual(boardButtons.map(textOf), ["Choose a lesson", "Return to Today"]);
 
-    boardButtons[0].click();
+    boardButtons[1].click();
     assert.deepEqual([...header.attributes.entries()], originalAttributes);
     assert.deepEqual(navButtons.map((button) => [...button.attributes.entries()]), originalNavAttributes);
     assert.match(textOf(root), /Today/);
