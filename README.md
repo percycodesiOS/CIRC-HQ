@@ -40,7 +40,7 @@ Every lesson shows the goal, strands, Four Cs, design stage, materials and setup
 
 Capacity comes from the 2026-27 calendar: 35 or 36 visits per class in a full year, and from September 28, 2026, 31 visits on cycle days 1 to 3 and 30 on days 4 and 5. Seasons such as "About December" are guides, not dates. Mark a class by its record, never by the date. Playbook B should be checked against the 2027-28 calendar before relying on it.
 
-The September 30 teacher guide and classroom screen cards are preserved full-year references. They predate later lesson updates, including Logo to jingle; use the current on-screen lesson for updates. They include 74 unique lessons, each once, with a route table identifying every shared or grade-specific visit. The teacher guide includes teacher prompts, materials, safety, evidence, cleanup, adaptations and the complete paper-path data. Print only the current lesson. The screen deck has PDF bookmarks and one large step per page for projection; it is not an instruction to print the whole deck.
+The October 31 teacher guide and classroom screen cards are rebuilt from the current lesson source, including Logo to jingle. They include 74 unique lessons, each once, with a route table identifying every shared or grade-specific visit. The teacher guide includes teacher prompts, materials, safety, evidence, cleanup, adaptations and the complete paper-path data. Print only the current lesson. The screen deck has PDF bookmarks and one large step per page for projection; it is not an instruction to print the whole deck.
 
 The five-page Classroom Toolkit contains Circuit Rescue, an Operation-style battery buzzer unit over two or three 35-minute class contacts, the current 35-minute logo-to-jingle companion using the existing first logo, and an optional NeuroArt finish check with a jingle preview. Run each stage across a full five-day rotation before those classes return. The existing teacher Playbooks chooser now opens all three Circuit Rescue stages with the same runner, manual step control, Student directions and explicit new-class reset. These optional regular-CIRC choices do not reorder the annual playbook or add a new standalone student route. Six reusable table circuits plus a teacher demo and spare serve the incoming classes; cardboard boards stay with each class. Arduino and Raspberry Pi demonstrations are optional teacher extensions. The game signals a touch and never shocks a student. Exact 3 V parts, tool grip and room volume need a physical pilot. The toolkit is not the school WIN packet.
 
@@ -61,7 +61,13 @@ npm run build:handouts
 
 `build:handouts` needs the `playwright-core` dev dependency and a Chromium-based browser. Set `CIRC_CHROME` to a browser executable, or `CIRC_CHROME_CHANNEL=chrome` or `msedge` to use the installed browser. Nothing is downloaded. The script replaces Chromium's two timestamp strings with a fixed value, so a rebuild from unchanged lesson data on the same machine is byte-identical and the asset locks in `scripts/handout-manifest.mjs` still match. A different machine embeds different system fonts and produces different bytes: rebuild, run `node scripts/build-handouts.mjs --manifest`, and review that diff like any other public change. `CIRC_HANDOUT_WEB_FONTS=1` uses the site's Google Fonts instead of system fonts; the files roughly double in size.
 
-The September 30 and October references, including the two build-station PDFs, stay unchanged and are labeled on the handouts page. Teacher-only assessment guidance, exemplar reasoning and answer keys are kept outside the public checkout.
+Rebuild the two annual references with `python scripts/build-playbook-guides.py` (Python with `reportlab` and `pypdf`). The builder reads the same 74 current lessons and writes only `CIRC-Teacher-Guide.pdf` and `CIRC-Classroom-Cards.pdf`; `--out` selects an alternate output folder. Review rendered pages and update the two SHA-256 locks in `scripts/verify-public.mjs` after a change. It does not read a timetable or publish files.
+
+The annual teacher guide and projection cards were reconciled on October 31; the two build-station PDFs and Classroom Toolkit remain the reviewed originals. Teacher-only assessment guidance, exemplar reasoning and answer keys are kept outside the public checkout.
+
+## Ethernet networking lab
+
+Playbooks and the student page's other-lessons list link to `network-lab.html`, a two-visit networking lesson for seven tables. Its four-page offline PDF has two student pages and two teacher pages: local network vs internet, switch/router/device roles, a numbered T568B diagram, pass-through cable assembly, standalone wire-map testing, rotating jobs, preparation, troubleshooting and a blank check-in tracker. It does not change the annual route or read or save student work. Teachers verify the actual cable/connector/tool combination and pilot a cable before class. Practice cables stay disconnected from school network equipment. A basic continuity tester does not certify speed or detect every split-pair fault. Purchasing stays in the private supplies list.
 
 ## Dated updates
 
@@ -73,7 +79,7 @@ For the classroom year, open **Playbooks**, choose Playbook A or B and a meeting
 
 NeuroArt/book checkout and Logo 1 are finished, so Playbook A opens on meeting 3: Logo to jingle. Reuse the first logo, write a slogan of six words or fewer, use teacher-operated Suno or AI Jingle Maker, with approved Canva audio as the fallback, test a 10-15 second performance and share the design with the teacher. The original second-logo lesson remains available to older saved runners; it is no longer the next assignment. Saved per-class progress is preserved. Students use school Canva through resources.svsd.net and share the logo with the teacher's school account; it counts as turned in when the teacher can open it. A paper sketch is the fallback. The updated route adds no meetings. Earlier replica lessons remain under Playbooks > More > Ehrman Crest replica lessons; the annual A route begins at NeuroArt and is not a complete dated teaching history.
 
-The Playbooks page labels the teacher guide and classroom screen cards as September 30 references and links the updated Classroom Toolkit. Use the current on-screen lesson for updates and print only the lesson needed. The landscape cards are a projection deck, one step at a time. The live runner separates the opening three-minute block of the other lessons into two minutes of readiness and one minute of partner talk; the lesson content and 35-minute total stay the same.
+The Playbooks page links the current October 31 teacher guide, classroom screen cards and Classroom Toolkit. Print only the lesson needed. The landscape cards are a projection deck, one step at a time. The live runner separates the opening three-minute block of the other lessons into two minutes of readiness and one minute of partner talk; the lesson content and 35-minute total stay the same.
 
 The normal first action is **Set up my schedule**. The ordinary schedule editor is the primary setup surface and does not require a plan file.
 
@@ -94,7 +100,7 @@ The welcome screen also offers two optional paths:
 
 **FID activities** are also available from the welcome screen and **Playbooks > Open FID activities**. The separate `fid.html` page opens in a new tab and contains four complete, independent Grades 5-6 challenges: redesign an everyday thing, debug the doodle bot, be a pattern detective, and tell a three-part story. Each has three steps, a finish check, an optional extension, and an equally valid think/say path. Ordinary paper or objects are optional. No previous lesson, live meeting, account, camera, upload, printer, or adult helper is required. Optional teacher facilitation is included without a meeting link.
 
-The FID page loads no teacher app scripts, private schedules, cloud clients, or student storage. Its directions are ordinary HTML and work without JavaScript. It does not submit work or establish attendance/assignment completion. Teachers supply any usual assignment and return directions separately. This addition is prepared locally; it is not described as live until a separately authorized release is verified.
+The FID page loads no teacher app scripts, private schedules, cloud clients, or student storage. Its directions are ordinary HTML and work without JavaScript. It does not submit work or establish attendance/assignment completion. Teachers supply any usual assignment and return directions separately. The FID activities are published at [fid.html](fid.html).
 
 - **Today** is the teacher home: next obligation, this class's lesson, timer, later obligations and shortcuts. The older dashboard is under **More tools**.
 - **Playbooks** opens Playbooks A and B with every lesson in full. The 36 reviewed experiences, announcements and FID stay under **More**.
@@ -110,7 +116,7 @@ The September 9-10 welcome screen and Today show **Open Day 5 build**. It opens 
 
 Set out cardboard, rulers, pencils, tape and labeled trays. Students can finish the entire build using tape and tabs. The teacher manages cuts and the existing glue station. When no checked aerial reference is ready, build freestanding modules and leave their placement undecided. Project **Student directions** only. Use **Start this lesson for a new class** for each subsequent class; **Next Step** remains manual. Without a configured schedule, the lesson runs as a preview and its timers reset on reload. With a saved teacher context, the existing local runner persistence applies.
 
-The empty browser icon has been replaced by a local CIRC circuit/C mark, also used beside the header name. It is an original CIRC mark, not an official district seal.
+Historical icon update, superseded by the SV interlock update described below: the empty browser icon was replaced by a local CIRC circuit/C mark, also used beside the header name. It was an original CIRC mark, not an official district seal.
 
 ## Ehrman Crest replica lessons
 
@@ -285,8 +291,10 @@ Verification checks the public candidate boundary, runtime imports, entrypoint i
 
 Repository work, commit creation, push, GitHub Pages deployment, Firebase Console changes, private cloud writes, and live-site confirmation are separate actions. Local tests or a committed candidate do not make the intended URL live. This documentation change performs no deployment and uploads no private teacher data.
 
-## Public script reading page - October 5, 2026
+## Public script reading page
 
-`ectv-scripts.html` is the permanent, account-free reading address and QR target. It contains only the reviewed current-week broadcast script with generic role labels, daily lunch notices, camera cues and four Cultural Day videos. It does not import the teacher application, storage, crew roster or school authentication. A New York date selects today; outside the published week a notice says that these scripts are not current. The native day list still works without JavaScript. The source remains the freshly read Moodle editor; after any live script edit, publish the reviewed reading copy too. Do not export teacher-only materials or rosters. This is publication, not an automatic Moodle connection.
+`ectv-scripts.html` is the permanent, account-free reading address and QR target. It contains reviewed broadcast scripts grouped by dated week, with generic role labels, daily lunch notices, camera and WAIT cues, and approved media for those dates. It does not import the teacher application, storage, crew roster or school authentication. New York time identifies today's script and the current week; past scripts remain available, and a notice appears when no script is published for today. The native week and day lists work without JavaScript.
+
+This repository is the source for the public reading page, published through GitHub Pages. Update its dated scripts from verified school announcements, preserve existing content, and verify the matching deployment and served file after publication. Moodle is a separate school editing copy, not a runtime dependency or an automatic connection. When reconciling that copy, freshly read the actual Moodle page and preserve teacher changes; record any pending update separately. Do not export teacher-only materials or rosters.
 
 Welcome, the Moodle classroom doorways and public CIRC/ECTV surfaces share navy, blue, cream and yellow. Script role colors retain their spoken-job meaning.

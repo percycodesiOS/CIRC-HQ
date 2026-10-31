@@ -17,27 +17,30 @@ async function readPublicSource(relativePath) {
 
 async function bootEctvScript(hash = "", today = "2026-10-16") {
   const makeElement = (extra = {}) => ({
-    listeners: {},
+    listeners: {}, textContent: "", children: [],
+    classList: { toggle() {} },
+    append(node) { this.children.push(node); },
+    querySelector() { return null; },
+    closest() { return null; },
     addEventListener(type, handler) { this.listeners[type] = handler; },
     ...extra
   });
-  const days = [16, 19, 20].map(number => makeElement({
-    id: `script-oct-${number}`,
-    dataset: { date: `2026-10-${number}` },
-    open: false,
-    querySelector: () => ({ textContent: `October ${number}` })
-  }));
+  const days = [16, 19, 20].map(number => {
+    const summary = makeElement({ textContent: `October ${number}` });
+    return makeElement({ id: `script-oct-${number}`, dataset: { date: `2026-10-${number}` }, open: false, querySelector: () => summary });
+  });
   const status = { textContent: "" };
   const jump = makeElement({ hidden: true });
   const window = makeElement({ location: { hash } });
+  class SchoolDate extends Date { constructor(...args) { super(...(args.length ? args : [today + "T16:00:00Z"])); } }
   vm.runInNewContext(await readPublicSource("src/ectv-scripts.js"), {
     window,
     document: {
-      querySelectorAll: () => days,
-      getElementById: id => id === "today-jump" ? jump : status
+      querySelectorAll: selector => selector === "details[data-date]" ? days : [],
+      getElementById: id => id === "today-jump" ? jump : status,
+      createElement: () => makeElement(), addEventListener() {}
     },
-    Intl: { DateTimeFormat: function () { return { format: () => today }; } },
-    Date
+    Intl, Date: SchoolDate, setInterval() {}
   });
   return { days, status, jump, window, openIds: () => days.filter(day => day.open).map(day => day.id) };
 }
@@ -61,7 +64,7 @@ test("ECTV defaults to today for absent or unknown anchors and supports requeste
   for (const hash of ["", "#ectv-reading-script", "#script-oct-99", "#%invalid"]) {
     const page = await bootEctvScript(hash);
     assert.deepEqual(page.openIds(), ["script-oct-16"]);
-    assert.equal(page.status.textContent, "Today: October 16.");
+    assert.match(page.status.textContent, /^Today: October 16\./);
   }
   const weekend = await bootEctvScript("#script-oct-19", "2026-10-18");
   assert.deepEqual(weekend.openIds(), ["script-oct-19"]);

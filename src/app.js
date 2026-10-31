@@ -229,10 +229,10 @@ function restoreAttributes(node, snapshot) {
   for (const [name, value] of snapshot) node.setAttribute(name, value);
 }
 
-function buildHeading(model, onBoard, onWeek = null) {
+function buildHeading(model, onBoard, onWeek = null, boardReady = false) {
   const boardButton = element("button", {
     className: "board-button",
-    text: "Open Board",
+    text: boardReady ? "Open Board" : "Choose a lesson",
     attributes: { type: "button" }
   });
   boardButton.addEventListener("click", onBoard);
@@ -1144,8 +1144,9 @@ function buildToday(model, actions, options) {
   const projectView = actions.projectView;
   const children = [buildHeading(
     model,
-    () => actions.navigate("board"),
-    () => actions.navigate("week")
+    () => actions.navigate(options.boardReady ? "board" : "projects"),
+    () => actions.navigate("week"),
+    options.boardReady
   )];
   if (actions.lastCompletion) {
     children.push(element("div", {
@@ -1287,7 +1288,9 @@ function boardRoute(board, navigate) {
   return element("section", { className: "board-view", attributes: { "data-view": "board" } }, [
     element("div", { className: "board-heading" }, [
       element("p", { className: "eyebrow", text: "Board" }),
-      element("h1", { text: board.classTitle || "Board is ready when a class is active" }),
+      element("h1", { text: board.classTitle || "Choose a lesson to project" }),
+      !board.classTitle ? element("p", { text: "Open a lesson in Playbooks, then choose Student directions. This board only shows a class and lesson reviewed for classroom display." }) : null,
+      !board.classTitle ? actionButton("Choose a lesson", "secondary-action", () => navigate("projects")) : null,
       board.lessonTitle ? element("p", { className: "board-lesson", text: board.lessonTitle }) : null,
       board.countdown ? element("strong", { className: "board-countdown", text: board.countdown }) : null,
       board.currentProcessStep ? element("p", { className: "board-process", text: `Current step: ${board.currentProcessStep}` }) : null,
@@ -1300,7 +1303,7 @@ function boardRoute(board, navigate) {
 function playbookGuides() {
   return element("section", { className: "pb-guides", attributes: { "aria-labelledby": "pb-guides-title" } }, [
     element("h2", { text: "Printable guides", attributes: { id: "pb-guides-title" } }),
-    element("p", { text: "Every lesson has its own small student PDF and a Word response sheet on the handouts page, made from the on-screen lesson. The September 30 references cover Playbooks A and B, including both grade paths, KidWind and Tinkercad. Use the current on-screen lesson for updates. Print only the lesson you need. The screen-card deck uses PDF bookmarks and one step per page for projection." }),
+    element("p", { text: "Every lesson has its own small student PDF and a Word response sheet on the handouts page, made from the on-screen lesson. The October 31 guides match the current Playbooks A and B, including Logo to jingle, both grade paths, KidWind and Tinkercad. Print only the lesson you need. The screen-card deck uses PDF bookmarks and one step per page for projection." }),
     element("div", { className: "classroom-year-downloads" }, [
       element("a", {
         className: "primary-action",
@@ -1309,12 +1312,12 @@ function playbookGuides() {
       }),
       element("a", {
         className: "secondary-action",
-        text: "Full-year teacher reference (September 30)",
+        text: "Full-year teacher guide (October 31)",
         attributes: { href: "assets/guides/CIRC-Teacher-Guide.pdf", target: "_blank", rel: "noopener" }
       }),
       element("a", {
         className: "secondary-action",
-        text: "Classroom screen-card reference (September 30)",
+        text: "Classroom screen cards (October 31)",
         attributes: { href: "assets/guides/CIRC-Classroom-Cards.pdf", target: "_blank", rel: "noopener" }
       }),
       element("a", {
@@ -1322,6 +1325,17 @@ function playbookGuides() {
         text: "Circuit Rescue, logo-to-jingle and NeuroArt check",
         attributes: { href: "assets/guides/CIRC-Classroom-Toolkit.pdf", target: "_blank", rel: "noopener" }
       })
+    ])
+  ]);
+}
+
+function networkLabEntry() {
+  return element("section", { className: "pb-guides", attributes: { "aria-labelledby": "network-lab-title" } }, [
+    element("h2", { text: "Connect the dots: Ethernet lab", attributes: { id: "network-lab-title" } }),
+    element("p", { text: "Seven tables build, inspect and test practice cables over two class visits. Includes a visual T568B card, rotating jobs, teacher preparation and a printable check-in tracker. Choose it when materials are ready; this does not advance the annual playbook." }),
+    element("div", { className: "classroom-year-downloads" }, [
+      element("a", { className: "secondary-action", text: "Open networking lesson", attributes: { href: "network-lab.html" } }),
+      element("a", { className: "secondary-action", text: "Offline copy: download + print", attributes: { href: "assets/guides/CIRC-Network-Lab.pdf", download: "CIRC-Network-Lab.pdf" } })
     ])
   ]);
 }
@@ -1382,6 +1396,7 @@ function projectsRoute(actions) {
       element("div", { className: "pb-teacher-browser" }, [browser])
     ]),
     buildSupplementalLibrary({ audience: "teacher", documentRef: document, onOpenLesson: openSupplemental }),
+    networkLabEntry(),
     playbookGuides(),
     element("details", { className: "pb-more" }, [
       element("summary", { text: "More: all 36 experiences, morning announcements, FID and replica lessons" }),
@@ -3703,6 +3718,7 @@ export function renderApp(root, services = {}) {
         weatherRefreshing,
         teacherHome: home,
         teacherHomeActions: teacherHomeActions(home),
+        boardReady: Boolean(buildBoardProjection(state, model.current?.id).classTitle),
         moreToolsOpen,
         onMoreToolsToggle: (open) => { moreToolsOpen = open; },
         artifactContext: teacherArtifactContext(model, projectView.currentProject.number)

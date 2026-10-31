@@ -227,7 +227,8 @@ export function renderStudentPage(root, {
         h("details", { className: "student-more-lessons", attributes: { id: "browse" } }, [
           h("summary", { text: "Other lessons - open only when your teacher asks" }),
           finderSection(link, { id: null }),
-          buildSupplementalLibrary({ documentRef })
+          buildSupplementalLibrary({ documentRef }),
+          h("a", { className: "secondary-action", text: "Connect the dots: Ethernet lab", attributes: { href: "network-lab.html" } })
         ])
       ]);
     } else {
@@ -238,7 +239,8 @@ export function renderStudentPage(root, {
         todayHero(),
         numberForm(link),
         finderSection(link, { id: "browse" }),
-        buildSupplementalLibrary({ documentRef })
+        buildSupplementalLibrary({ documentRef }),
+        h("a", { className: "secondary-action", text: "Connect the dots: Ethernet lab", attributes: { href: "network-lab.html" } })
       ].filter(Boolean));
     }
     root.replaceChildren(page);

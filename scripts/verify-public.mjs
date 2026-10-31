@@ -12,6 +12,10 @@ const LEGACY_NORMALIZED_SHA256 =
   "6E7FF5AA3B15A57A44F0D3351C6C6A5A3B3D14813E9B5616AF3D138C5E41B69F";
 const EXPECTED_ROOT_GITIGNORE = "/.superpowers/\n/.worktrees/\n/.firebase/\n/.firebaserc\n/firebase-debug.log\n/firestore-debug.log\n/ui-debug.log\n/node_modules/\n";
 const ALLOWED_UNTRACKED = new Set([
+  "network-lab.html",
+  "network-lab.css",
+  "assets/guides/CIRC-Network-Lab.pdf",
+  "tests/network-lab.test.mjs",
   ".gitattributes",
   "walkthrough.html",
   "fid.css",
@@ -148,6 +152,7 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "assets/ectv/roles/role-weather.svg",
   "assets/guides/CIRC-Classroom-Cards.pdf",
   "assets/guides/CIRC-Classroom-Toolkit.pdf",
+  "assets/guides/CIRC-Network-Lab.pdf",
   "assets/guides/CIRC-Station-Week-Student-Packet.pdf",
   "assets/guides/CIRC-Station-Week-Teacher-Guide.pdf",
   "assets/guides/CIRC-Teacher-Guide.pdf",
@@ -189,6 +194,8 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "firebase-config.js",
   "index.html",
   "mission-control.html",
+  "network-lab.css",
+  "network-lab.html",
   "src/app.js",
   "src/ectv-scripts.js",
   "src/model/access.js",
@@ -302,6 +309,7 @@ const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "tests/experience-timing-plans.test.mjs",
   "tests/lesson-guide.test.mjs",
   "tests/local-store.test.mjs",
+  "tests/network-lab.test.mjs",
   "tests/public-shell.test.mjs",
   "tests/release-final-fixes.test.mjs",
   "tests/project-catalog.test.mjs",
@@ -331,6 +339,7 @@ const REVIEWED_CANDIDATE_MANIFEST = new Set([
   "tests/dated-updates.test.mjs",
   "tests/teacher-home.test.mjs",
   "scripts/build-handouts.mjs",
+  "scripts/build-playbook-guides.py",
   "scripts/build-response-sheets.mjs",
   "scripts/handout-manifest.mjs",
   "scripts/handout-template.mjs",
@@ -380,6 +389,7 @@ const TEXT_EXTENSIONS = new Set([
   ".yml",
   ".md",
   ".mjs",
+  ".py",
   ".svg",
   ".txt"
 ]);
@@ -387,12 +397,13 @@ const REVIEWED_BINARY_ASSETS = new Map([
   ...HANDOUT_ASSETS,
   ["assets/fonts/fredoka-latin.woff2", "99D6C78E043710D4F83ED90716779798B7B04EB690F73E0AD0E8F32D1F0E98C2"],
   ["assets/fonts/nunito-sans-latin.woff2", "C9746AD68C8A1A94E9D8981AE5093FD4DF05B6809E8B5AFECD08DF1A3BDB7E62"],
+  ["assets/guides/CIRC-Network-Lab.pdf","5EE7B3B14080C66814C5F53C3E492877EE2C51A715DAA79C9B99E41BAE70BD53"],
   ["assets/guides/CIRC-Station-Week-Student-Packet.pdf","694D5594A8A59586892E879C6C461DEEC5F086A31DA5BF5C1226233935A418EF"],
   ["assets/guides/CIRC-Station-Week-Teacher-Guide.pdf","6311F6BAD5DD242AC90CF54D1E53A627F534824A260B2B92E8A0E644E8195542"],
   ["assets/guides/CIRC-Classroom-Toolkit.pdf","9AB09B9AE9EA94B71BCCE49C293F6DAA5A614DB7AC17498A41E95C132708ADD3"],
   ["assets/guides/ECTV-Interview-Edit-Handout.pdf","CE852A21CAF3A8C4815247D7A22810665B7DC24F30A4EFC42D57DD5CEA2AB465"],
-  ["assets/guides/CIRC-Teacher-Guide.pdf","8EC0260A61E85E26F8534C94A740786D6F276EF8DAFA54B7A456D7A33E30E251"],
-  ["assets/guides/CIRC-Classroom-Cards.pdf","5D4CCA2796311C0A2608673C2A72FEAC1B6309EA8CE706412F7A5093B393FB6F"],
+  ["assets/guides/CIRC-Teacher-Guide.pdf","EB019E06423DC78DD9BEF89547D4C50CF49C1CA2DB3B56272E047E315BEB2030"],
+  ["assets/guides/CIRC-Classroom-Cards.pdf","DB64AD5458F3D54753C873ED24C0D5B52A54F65D7018B0612ED8D0190839223B"],
   [
     "assets/circ-hq-maker.webp",
     "5F725CE9D91E94BD753435F493892CAC0B3FB63C73E48F5A45608348118204A3"
@@ -912,7 +923,10 @@ export function countUnsafeRuntimeLinks(text) {
     "https://radar.weather.gov/station/KPBZ/standard",
     "https://support.apple.com/en-us/102242",
     "https://support.apple.com/en-us/102353",
-    "https://support.apple.com/en-us/102371"
+    "https://support.apple.com/en-us/102371",
+    "https://www.cisco.com/site/us/en/learn/topics/small-business/network-switch-vs-router.html",
+    "https://www.trendnet.com/support/faqs/?ToDo=view&catId=967&questId=399",
+    "https://www.truecable.com/blogs/cable-academy/t568a-vs-t568b"
   ]);
   let unsafe = 0;
   for (const link of links) {

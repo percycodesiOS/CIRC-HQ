@@ -1,5 +1,19 @@
 # CIRC HQ grades 5-6 redesign: review branch report
 
+## Completion update, October 31
+
+This update supersedes the dated pending list below. The redesign is reconciled with main through `28c4288`, including the Ethernet lab and current ECTV scripts. The original audit and older review evidence are retained below as history.
+
+- Rebuilt all 74 student PDFs on Windows and refreshed their hashes; the 74 editable response sheets remain source-identical.
+- Rebuilt the annual teacher guide (159 pages) and bookmarked projection deck (732 pages) from the current 74 lessons. Meeting A3 is Logo to jingle. The portable maintained generator is now `scripts/build-playbook-guides.py`; it has no private source paths or school-account writes.
+- Updated the one first-use walkthrough, retaining all 16 chapter anchors, with current teacher/student instructions and three new captures from a fresh preview.
+- Today offers Choose a lesson when no reviewed Board is available. Both review flags remain mandatory; private class text is never used as a fallback. The empty Board has an explicit route back to lesson selection.
+- Enabled the reviewed MYnecraft classroom link in Arcade. Added the Ethernet PDF to the handout hub and corrected the hub's desktop heading and format-control layout.
+- Checked every rebuilt PDF for empty pages and text beyond page boundaries (76 files, 1,043 pages); visually checked representative handouts, guide and projection pages. Checked student and resource layouts at 390, 768 and 1440 pixels, plus preview start, pause, resume, next step and return from projected directions.
+
+School-only acceptance remains separate: actual iPad/Chromebook/projector use, student accounts seeing Teams attachments, and tenant-specific edit-your-own-copy behavior. Teacher keyboard shortcuts and ECTV landmark restyling were optional suggestions, not missing redesign requirements; runner behavior and unrelated ECTV structure stay unchanged.
+
+
 October 11, 2026. Reviewed draft on the branch `claude/circ-hq-grades-5-6-redesign-9b3tmr`, started from main at commit `ef2c4888837d41a8e65e8346c144b8a9d4ffed9b` (checked against the remote on October 11; it was still the latest main). Nothing was published, merged, deployed or sent to anyone. No school system, account, permission or Moodle page was touched. All testing used dummy data in a headless browser; no student used it.
 
 ## Outcome in one paragraph

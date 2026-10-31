@@ -5,10 +5,18 @@ import { PLAYBOOKS, buildStudentLink, getPlaybook } from "./model/playbooks.js";
 import { listHandouts, searchHandouts } from "./model/lesson-finder.js";
 import { buildIcon, createBuilder } from "./ui/playbook-view.js";
 
-// The reviewed guides and references already on the site. Page counts were read
-// from the files. Status says whether the wording predates the current
-// logo-to-jingle lesson; nothing here claims a document was rewritten.
+// Reviewed public guides. Annual PDFs were rebuilt from current lesson data
+// on October 31; page counts were read from the generated files.
 export const GUIDES = Object.freeze([
+  {
+    title: "Connect the dots: Ethernet lab",
+    file: "assets/guides/CIRC-Network-Lab.pdf",
+    pages: 4,
+    audience: "Student and teacher",
+    status: "current",
+    statusLabel: "Current",
+    note: "Two visits: build and test practice cables, use the T568B diagram and record wire-map results. Includes teacher setup and a blank check-in tracker."
+  },
   {
     title: "Classroom Toolkit",
     file: "assets/guides/CIRC-Classroom-Toolkit.pdf",
@@ -21,20 +29,20 @@ export const GUIDES = Object.freeze([
   {
     title: "Full-year teacher guide",
     file: "assets/guides/CIRC-Teacher-Guide.pdf",
-    pages: 158,
+    pages: 159,
     audience: "Teacher",
-    status: "older",
-    statusLabel: "September 30 wording",
-    note: "Teacher prompts, materials, safety, evidence and paper paths for every lesson. Made before the logo-to-jingle update: its meeting 3 still prints the older second-logo lesson, so use the on-screen lesson or the lesson PDF for anything newer. Print only the lesson you need."
+    status: "current",
+    statusLabel: "Updated October 31",
+    note: "Teacher prompts, materials, safety, evidence and paper paths for all 74 lessons, including Logo to jingle. Matches the current Playbooks A and B. Print only the lesson you need."
   },
   {
     title: "Classroom screen cards",
     file: "assets/guides/CIRC-Classroom-Cards.pdf",
-    pages: 731,
+    pages: 732,
     audience: "Projection",
-    status: "older",
-    statusLabel: "September 30 wording",
-    note: "Landscape deck, one large step per page, with bookmarks. Project it from the bookmark you need. It is not meant to be printed. Its meeting 3 also shows the older second-logo lesson."
+    status: "current",
+    statusLabel: "Updated October 31",
+    note: "Landscape deck, one large step per page, with bookmarks. Includes the current Logo to jingle lesson. Project it from the bookmark you need; it is not meant to be printed."
   },
   {
     title: "Build stations: student packet",
@@ -180,7 +188,7 @@ export function renderResourceHub(root, { location = globalThis.location, docume
       h("div", { className: "page-heading" }, [
         h("p", { className: "eyebrow", text: "CIRC HQ | Grades 5 and 6" }),
         h("h1", { text: "Handouts and guides", attributes: { id: "resource-title", tabindex: "-1" } }),
-        h("p", { className: "resource-lead", text: "Every lesson is one small PDF with real text, headings and page numbers, plus a Word response sheet students can type in. Pick a grade and playbook, then download only the lesson you need. Nothing here is a whole-year deck." })
+        h("p", { className: "resource-lead", text: "Every lesson has a small PDF with real text, headings and page numbers, plus a Word response sheet students can type in. Pick a grade and playbook, then download only the lesson you need. Full-year references are in the guides section." })
       ]),
       filterForm,
       h("div", { className: "resource-layout" }, [

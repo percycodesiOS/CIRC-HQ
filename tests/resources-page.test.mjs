@@ -94,7 +94,8 @@ test("the hub lists every lesson handout with its PDF, response sheet and on-scr
   }
   assert.ok(hrefs.some(href => href === "student.html?playbook=a&meeting=3"));
   for (const guide of GUIDES) assert.ok(hrefs.includes(guide.file), guide.file);
-  assert.match(text, /September 30 wording/);
+  assert.match(text, /Updated October 31/);
+  assert.doesNotMatch(text, /September 30 wording|older second-logo/);
   assert.match(text, /not on this site/);
   assert.ok(hrefs.every(href => !/PRIVATE|__private__/.test(href)));
 });

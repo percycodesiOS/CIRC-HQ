@@ -91,7 +91,7 @@ export async function buildHandouts({ only = null, out = HANDOUT_FOLDER, check =
     const page = await browser.newPage();
     for (const entry of entries) {
       const bytes = await renderHandoutPdf(page, entry);
-      const target = path.join(ROOT, ...entry.files.pdf.split("/"));
+      const target = path.join(outDir, path.posix.basename(entry.files.pdf));
       let status = "written";
       if (check) {
         let existing = null;

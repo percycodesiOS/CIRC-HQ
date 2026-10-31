@@ -378,6 +378,7 @@ test("public server manifest is an exact reviewed allowlist", () => {
     "assets/ectv/roles/role-weather.svg",
     "assets/guides/CIRC-Classroom-Cards.pdf",
     "assets/guides/CIRC-Classroom-Toolkit.pdf",
+    "assets/guides/CIRC-Network-Lab.pdf",
     "assets/guides/CIRC-Station-Week-Student-Packet.pdf",
     "assets/guides/CIRC-Station-Week-Teacher-Guide.pdf",
   "assets/guides/CIRC-Teacher-Guide.pdf",
@@ -419,6 +420,8 @@ test("public server manifest is an exact reviewed allowlist", () => {
     "firebase-config.js",
     "index.html",
     "mission-control.html",
+    "network-lab.css",
+    "network-lab.html",
     "src/app.js",
   "src/ectv-scripts.js",
     "src/model/access.js",
@@ -563,7 +566,7 @@ test("public verifier has a recursive-safe sanitized gate contract", () => {
 
 test("reviewed visual assets are exact and opaque files fail closed", async (context) => {
   assert.equal(typeof verifier.inspectAssetLocks, "function");
-  const lockedAssets = 15 + 2 + HANDOUT_FILES.length;
+  const lockedAssets = 16 + 2 + HANDOUT_FILES.length;
   assert.deepEqual(await verifier.inspectAssetLocks(ROOT), { ok: true, count: lockedAssets });
 
   const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-asset-lock-"));

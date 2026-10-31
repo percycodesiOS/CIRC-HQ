@@ -448,6 +448,8 @@ a.student-grade-button:hover { background: var(--blue-dark); color: #ffffff; }
 .student-side .student-footer { color: var(--secondary); font-size: 0.9rem; }
 
 /* Resource hub */
+.resource-hub .page-heading { display: grid; justify-content: start; gap: 8px; }
+.resource-hub .page-heading .eyebrow { margin: 0; }
 .resource-hub .page-heading h1 { margin: 0; font-family: var(--display); font-size: clamp(1.9rem, 5vw, 2.5rem); font-weight: 700; line-height: 1.05; }
 .resource-lead { margin: 6px 0 0; max-width: 62ch; font-size: 1.1rem; }
 .resource-filters {
@@ -464,6 +466,8 @@ a.student-grade-button:hover { background: var(--blue-dark); color: #ffffff; }
 .resource-filters fieldset { display: flex; flex: 1 1 200px; flex-direction: column; gap: 6px; margin: 0; padding: 0; border: 0; min-width: 0; }
 .resource-filters legend { padding: 0 0 2px; color: var(--secondary); font-size: 0.8rem; font-weight: 800; }
 .resource-filters .student-filters { flex-wrap: nowrap; }
+.resource-filters label[for="resource-format"] { display: grid; gap: 6px; flex: 1 1 240px; min-width: 0; color: var(--secondary); font-size: 0.8rem; font-weight: 800; }
+.resource-filters select { width: 100%; min-width: 0; min-height: 44px; padding: 9px 12px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface); color: var(--ink); font: inherit; font-size: 0.95rem; }
 .resource-layout { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr); align-items: start; }
 .resource-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .resource-list-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
