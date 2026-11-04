@@ -363,6 +363,13 @@ test("public server manifest is an exact reviewed allowlist", () => {
   assert.equal(typeof devServer.getPublicStaticManifest, "function");
   assert.deepEqual(devServer.getPublicStaticManifest(), [
     "app.css",
+    "classroom.html",
+    "classroom-guide.html",
+    "classroom.css",
+    "src/classroom.js",
+    "src/model/classroom-lessons.js",
+    "assets/guides/CIRC-Tank-First-Idea.pdf",
+    "assets/guides/CIRC-Quick-Draw-Observations.pdf",
     "arcade.html",
     "assets/circ-hq-maker.webp",
     "assets/designers-challenge-sketch.webp",
@@ -566,7 +573,7 @@ test("public verifier has a recursive-safe sanitized gate contract", () => {
 
 test("reviewed visual assets are exact and opaque files fail closed", async (context) => {
   assert.equal(typeof verifier.inspectAssetLocks, "function");
-  const lockedAssets = 16 + 2 + HANDOUT_FILES.length;
+  const lockedAssets = 16 + 2 + 2 + HANDOUT_FILES.length;
   assert.deepEqual(await verifier.inspectAssetLocks(ROOT), { ok: true, count: lockedAssets });
 
   const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-asset-lock-"));
@@ -869,6 +876,7 @@ test("runtime import boundary rejects an imported module absent from the public 
       ""
     ].join("\n")),
     writeFile(path.join(repository, "src", "student.js"), "export const genericStudent = true;\n"),
+    writeFile(path.join(repository, "src", "classroom.js"), "export const genericClassroom = true;\n"),
     writeFile(
       path.join(repository, "src", "model", "unreviewed-runtime.js"),
       "export const genericRuntime = true;\n"

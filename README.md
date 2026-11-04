@@ -1,5 +1,13 @@
 # CIRC HQ | The Playbook
 
+## Learn together: the small classroom view
+
+Open [Learn together](classroom.html) for one step at a time, or the matching [teacher guide](classroom-guide.html) for setup, suggested wording, pacing, documents, fallback and post text. Grade 6 opens on the current Tank kickoff: one labeled sketch and a 30-second pitch to Mr. Macek. Grade 5 opens on Quick Draw. The opening sheets are one-page PDFs, built by `python scripts/build-classroom-sheets.py` with reportlab.
+
+There are 15 Grade 6 and 16 Grade 5 visits for a flexible winter route. Later visits use the existing curriculum and its existing PDF/Word handouts. These are lesson choices, not scheduled assignments or verified class progress; repeat or adjust a visit to match what was actually taught. This entrance does not renumber the annual playbooks. It reads no schedule, student data, account or browser storage. A copied lesson URL carries grade/visit only. Students follow the teacher's step; devices and optional timers do not synchronize. The teacher guide, student directions and copyable Teams text use one lesson source. Copying text does not post to Teams.
+
+First use: open the Grade 6 teacher guide, set out paper and pencils, then open the class screen and start at step 1. Begin hearing individual pitches during sketching, not only in the final minutes. For Grade 5 use the Quick Draw guide and check the site on a school device; the paper alternative remains available. Preserve and update matching existing CIRC posts rather than creating duplicates.
+
 CIRC HQ is a calm, teacher-first workspace for running a CIRC day. It keeps the schedule, current class, schedule-aware class clock, step clock, recovery controls, and shared-project handoff in one place.
 
 - Product: CIRC HQ | The Playbook

@@ -23,6 +23,13 @@ const CONTENT_TYPES = new Map([
 ]);
 
 const PUBLIC_STATIC_FILES = new Set([
+  "classroom.html",
+  "classroom-guide.html",
+  "classroom.css",
+  "src/classroom.js",
+  "src/model/classroom-lessons.js",
+  "assets/guides/CIRC-Tank-First-Idea.pdf",
+  "assets/guides/CIRC-Quick-Draw-Observations.pdf",
   "app.css",
   "arcade.html",
   "assets/circ-hq-maker.webp",

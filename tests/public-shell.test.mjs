@@ -124,6 +124,7 @@ test("public shell exposes the approved name and exact navigation", async () => 
     (match) => match[1].trim()
   );
   assert.deepEqual(labels, [
+    "Learn together",
     "Today",
     "Playbooks",
     "Schedule",
@@ -131,7 +132,7 @@ test("public shell exposes the approved name and exact navigation", async () => 
     "Arcade",
     "Settings"
   ]);
-  assert.equal((nav.match(/<img\b/gi) ?? []).length, 5);
+  assert.equal((nav.match(/<img\b/gi) ?? []).length, 6);
   for (const icon of ["house", "books", "calendar-dots", "chalkboard-teacher", "gear-six"]) {
     assert.match(nav, new RegExp(`assets/icons/${icon}\\.svg`));
   }

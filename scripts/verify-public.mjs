@@ -12,6 +12,15 @@ const LEGACY_NORMALIZED_SHA256 =
   "6E7FF5AA3B15A57A44F0D3351C6C6A5A3B3D14813E9B5616AF3D138C5E41B69F";
 const EXPECTED_ROOT_GITIGNORE = "/.superpowers/\n/.worktrees/\n/.firebase/\n/.firebaserc\n/firebase-debug.log\n/firestore-debug.log\n/ui-debug.log\n/node_modules/\n";
 const ALLOWED_UNTRACKED = new Set([
+  "classroom.html",
+  "classroom-guide.html",
+  "classroom.css",
+  "src/classroom.js",
+  "src/model/classroom-lessons.js",
+  "assets/guides/CIRC-Tank-First-Idea.pdf",
+  "assets/guides/CIRC-Quick-Draw-Observations.pdf",
+  "tests/classroom.test.mjs",
+  "scripts/build-classroom-sheets.py",
   "network-lab.html",
   "network-lab.css",
   "assets/guides/CIRC-Network-Lab.pdf",
@@ -136,6 +145,13 @@ const GATE_NAMES = Object.freeze([
   "node-tests"
 ]);
 const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
+  "classroom.html",
+  "classroom-guide.html",
+  "classroom.css",
+  "src/classroom.js",
+  "src/model/classroom-lessons.js",
+  "assets/guides/CIRC-Tank-First-Idea.pdf",
+  "assets/guides/CIRC-Quick-Draw-Observations.pdf",
   "app.css",
   "arcade.html",
   "assets/circ-hq-maker.webp",
@@ -256,6 +272,8 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   ...HANDOUT_FILES
 ].sort());
 const REVIEWED_CANDIDATE_MANIFEST = new Set([
+  "tests/classroom.test.mjs",
+  "scripts/build-classroom-sheets.py",
   ".gitattributes",
   "_config.yml",
   ".gitignore",
@@ -394,6 +412,8 @@ const TEXT_EXTENSIONS = new Set([
   ".txt"
 ]);
 const REVIEWED_BINARY_ASSETS = new Map([
+  ["assets/guides/CIRC-Tank-First-Idea.pdf","CA77B3A8EC560418A1DCD808E6289A9DB5E95F9ADCB3C5E5175F0FC0D7ABE123"],
+  ["assets/guides/CIRC-Quick-Draw-Observations.pdf","8482BF54ACB21A6E30B02FD74CC6F2ABBACA762CD4DA0C682BC06B470102A3A0"],
   ...HANDOUT_ASSETS,
   ["assets/fonts/fredoka-latin.woff2", "99D6C78E043710D4F83ED90716779798B7B04EB690F73E0AD0E8F32D1F0E98C2"],
   ["assets/fonts/nunito-sans-latin.woff2", "C9746AD68C8A1A94E9D8981AE5093FD4DF05B6809E8B5AFECD08DF1A3BDB7E62"],
@@ -735,7 +755,7 @@ function resolveRelativeModulePath(importer, specifier) {
 
 export async function inspectRuntimeImportBoundary(root = ROOT) {
   const runtime = new Set(EXPECTED_PUBLIC_MANIFEST);
-  const pending = ["src/app.js", "src/student.js"];
+  const pending = ["src/app.js", "src/student.js", "src/classroom.js"];
   const inspected = new Set();
   let violations = Number(!runtime.has(FIREBASE_CONFIG_RELATIVE_PATH));
   try {
@@ -895,6 +915,8 @@ export async function inspectLocalPaths(root = ROOT) {
 export function countUnsafeRuntimeLinks(text) {
   const links = text.match(/https?:\/\/[^\s"'`<>)]+/gi) ?? [];
   const reviewedStudentLinks = new Set([
+    "https://quickdraw.withgoogle.com/",
+    "https://percycodesios.github.io/CIRC-HQ/",
     "https://percycodesios.github.io/CyberGrader.io/game/mynecraft.html",
     "https://learn.chompshop.com/learn-chompsaw",
     "https://www.youtube.com/watch?v=YoqiYSvwCs0",
@@ -965,6 +987,9 @@ function isPublicRuntimePath(relativePath) {
     relativePath === "fid.css" ||
     relativePath === "fid.html" ||
     relativePath === "student.html" ||
+    relativePath === "classroom.html" ||
+    relativePath === "classroom-guide.html" ||
+    relativePath === "classroom.css" ||
     (relativePath.startsWith("assets/playbook/") && relativePath.endsWith(".svg")) ||
     relativePath === "index.html" ||
     relativePath === "mission-control.html" ||
