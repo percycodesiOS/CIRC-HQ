@@ -1,4 +1,4 @@
-import { CLASSROOM_INTRO, TANK_INTRO, classroomSelection, classroomPath, classroomPost } from './model/classroom-lessons.js';
+import { CLASSROOM_INTRO, TANK_INTRO, basketVisit, classroomSelection, classroomPath, classroomPost } from './model/classroom-lessons.js';
 
 // Insert all lesson content as text nodes, never HTML.
 function h(tag, attrs = {}, ...children) {
@@ -32,9 +32,10 @@ function outline(lesson, expanded = false) {
 }
 function chooser() {
   return h('form',{className:'chooser','aria-label':'Choose class lesson'},
-    h('label',{},'GRADE',h('select',{id:'grade'},[6,5].map(grade=>h('option',{value:grade,selected:grade===selection.grade},`Grade ${grade} · ${grade===6?'CIRC Tank':'CIRC'}`)))),
+    h('label',{},'GRADE',h('select',{id:'grade'},[6,5].map(grade=>h('option',{value:grade,selected:grade===selection.grade},`Grade ${grade} · CIRC`)))),
     h('label',{className:'visit-label'},'CLASS VISIT',h('select',{id:'visit'},selection.lessons.map(item=>h('option',{value:item.visit,selected:selection.visit===item.visit},`${item.visit}. ${item.title}`)))),
-    button(`Print ${teacher?'guide':'directions'}`,'print'));
+    button(`Print ${teacher?'guide':'directions'}`,'print'),
+    selection.grade===6 && selection.visit!==basketVisit ? link('Open Basket Build',classroomPath(6,basketVisit,teacher)) : null);
 }
 function route() {
   const node=details('Next class visits · flexible winter route',
@@ -52,7 +53,7 @@ function render() {
     h('div',{className:'badges'},h('span',{className:'badge'},`Grade ${lesson.grade}`),h('span',{className:'badge teal'},`Visit ${lesson.visit} · ${lesson.minutes} minutes`)),
     p(teacher?'Ready to teach':'Learn together','eyebrow'),h('h1',{},lesson.title),p(lesson.goal,'goal')),
     teacher?teacherView(lesson):studentView(lesson),route());
-  document.querySelector('#grade').addEventListener('change',event=>navigate(Number(event.target.value),1));
+  document.querySelector('#grade').addEventListener('change',event=>navigate(Number(event.target.value)));
   document.querySelector('#visit').addEventListener('change',event=>navigate(selection.grade,Number(event.target.value)));
   document.querySelector('.chooser').addEventListener('submit',event=>event.preventDefault());
   document.querySelector('#print').addEventListener('click',()=>window.print());
@@ -65,7 +66,7 @@ function studentView(lesson) {
   return h('div',{},h('div',{className:'layout'},h('div',{},
     h('section',{id:'step-card',className:'card step-card','aria-label':'Current lesson step'}),
     h('div',{className:'step-actions screen-only'},button('← Back','previous'),button('Next step →','next','primary')),
-    details(`What is ${lesson.grade===6?'CIRC HQ and CIRC Tank':'CIRC HQ'}?`,p(CLASSROOM_INTRO),lesson.grade===6?p(TANK_INTRO):null),
+    details('What is CIRC HQ?',p(CLASSROOM_INTRO),lesson.ref==='classroom:tank-kickoff'?p(TANK_INTRO):null),
     details(`All ${lesson.steps.length} steps at a glance`,outline(lesson)),
     h('section',{className:'print-only'},title('Follow these steps'),outline(lesson,true))),
     h('aside',{className:'side-stack','aria-label':'Lesson materials and finish check'},

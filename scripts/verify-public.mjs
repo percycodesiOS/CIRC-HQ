@@ -18,6 +18,7 @@ const ALLOWED_UNTRACKED = new Set([
   "src/classroom.js",
   "src/model/classroom-lessons.js",
   "assets/guides/CIRC-Tank-First-Idea.pdf",
+  "assets/guides/CIRC-Basket-Build.pdf",
   "assets/guides/CIRC-Quick-Draw-Observations.pdf",
   "tests/classroom.test.mjs",
   "scripts/build-classroom-sheets.py",
@@ -151,6 +152,7 @@ const EXPECTED_PUBLIC_MANIFEST = Object.freeze([
   "src/classroom.js",
   "src/model/classroom-lessons.js",
   "assets/guides/CIRC-Tank-First-Idea.pdf",
+  "assets/guides/CIRC-Basket-Build.pdf",
   "assets/guides/CIRC-Quick-Draw-Observations.pdf",
   "app.css",
   "arcade.html",
@@ -413,6 +415,7 @@ const TEXT_EXTENSIONS = new Set([
 ]);
 const REVIEWED_BINARY_ASSETS = new Map([
   ["assets/guides/CIRC-Tank-First-Idea.pdf","CA77B3A8EC560418A1DCD808E6289A9DB5E95F9ADCB3C5E5175F0FC0D7ABE123"],
+  ["assets/guides/CIRC-Basket-Build.pdf","5EEB55F5E8635AA877A6A36B3482236CB8B55A470BD5FF6C16CD0776B1EC48E6"],
   ["assets/guides/CIRC-Quick-Draw-Observations.pdf","8482BF54ACB21A6E30B02FD74CC6F2ABBACA762CD4DA0C682BC06B470102A3A0"],
   ...HANDOUT_ASSETS,
   ["assets/fonts/fredoka-latin.woff2", "99D6C78E043710D4F83ED90716779798B7B04EB690F73E0AD0E8F32D1F0E98C2"],

@@ -369,6 +369,7 @@ test("public server manifest is an exact reviewed allowlist", () => {
     "src/classroom.js",
     "src/model/classroom-lessons.js",
     "assets/guides/CIRC-Tank-First-Idea.pdf",
+    "assets/guides/CIRC-Basket-Build.pdf",
     "assets/guides/CIRC-Quick-Draw-Observations.pdf",
     "arcade.html",
     "assets/circ-hq-maker.webp",
@@ -573,7 +574,7 @@ test("public verifier has a recursive-safe sanitized gate contract", () => {
 
 test("reviewed visual assets are exact and opaque files fail closed", async (context) => {
   assert.equal(typeof verifier.inspectAssetLocks, "function");
-  const lockedAssets = 16 + 2 + 2 + HANDOUT_FILES.length;
+  const lockedAssets = 16 + 2 + 3 + HANDOUT_FILES.length;
   assert.deepEqual(await verifier.inspectAssetLocks(ROOT), { ok: true, count: lockedAssets });
 
   const repository = await mkdtemp(path.join(os.tmpdir(), "circ-hq-asset-lock-"));

@@ -53,17 +53,57 @@ const quickDraw = {
   ]
 };
 
+const basketBuild = {
+  ref: 'classroom:basket-build',
+  title: 'Basket Build: make something useful',
+  goal: 'Build something another team can use. Show what it does and how each teammate helped.',
+  materials: ['One team basket with chopsticks and felt', 'Cardboard scraps and tape', 'At the stations: cardboard cutters, ChompSaw and hot glue'],
+  prep: ['Set out a basket per group with felt, chopsticks, tape and a few pre-cut cardboard pieces. Save a spare chopstick or tape roll for testing.', 'Open only the tool station you can supervise. With one adult, run the hot glue and ChompSaw stations at different times. Groups can keep building with tape at their tables.'],
+  safety: 'Wait for Mr. Macek’s cutter demonstration and permission. Use the ChompSaw only for cardboard at the back station. Use hot glue only at an open, supervised station. Leave the nozzle and fresh glue alone while the joint cools.',
+  turnIn: 'Show Mr. Macek one working build. Let someone try its job. Each teammate names one thing another teammate did that helped.',
+  success: 'A classmate can use our build. We can show what happened in a test, what we changed and who helped make it work.',
+  fallback: 'Use the basket card or listen to the directions. Whole chopsticks, felt and tape are enough to make a carrier. Use pre-cut cardboard if a station is closed.',
+  extension: 'Ask a second tester to try the same job. Which version is easier to use?',
+  intro: 'Here’s your basket. Who could you help with what’s inside? By the end of class, someone at the next table should be able to pick up your invention and use it. I’m looking for two things: a build that does a job, and evidence that you built it together.',
+  teacherNotes: ['During building, ask different students to show a part they made or tested. Listen for one idea from each person.', 'During the table-to-table demos, check three things: the user can do the job, the team can explain its test or fix, and everyone can identify a teammate’s contribution. Visit teams as they test so every group gets seen.'],
+  resources: [{ label: 'Basket Build table card (PDF)', url: 'assets/guides/CIRC-Basket-Build.pdf', description: 'One printable card per basket. Includes the challenge, starter ideas and team check.' }],
+  steps: [
+    step('Choose one useful job', 5, [
+      'Look in your basket. Each person offers an idea. Pick one together: “We can help ___ do ___.”',
+      'Need a start? A felt sling could carry a tape roll. A pencil dock could stop a pencil rolling. A sign stand could hold a cardboard message upright. Your own idea is welcome.'
+    ], ['Hold up the basket. Ask, “How could I tell yours works just by trying it?”']),
+    step('Watch the tool demo and plan', 5, [
+      'Watch Mr. Macek show the cardboard cutters. Wait for permission before using a cutter or visiting a station.',
+      'Choose a test you can actually run. Share out the first jobs so everyone gets to make or test a part.'
+    ], ['Demonstrate the tools you will open. Point out the hot glue station, the ChompSaw at the back for cardboard and the tape at each table.']),
+    step('Build it together', 14, [
+      'Arrange the pieces first. Try the fit with tape. Take the joint to the open hot glue station if it needs a firmer hold.',
+      'Switch jobs partway through. Everyone should get a turn making, joining or testing a part.'
+    ], ['Circulate during building. Ask someone new at each table to show a choice they helped make.']),
+    step('Swap, test and improve', 7, [
+      'Ask a neighbor to try the job with your build. Watch what holds, slips or tips.',
+      'Change one thing based on what you saw. Let the tester try again.'
+    ], ['For a sling, carry a tape roll across the table. For a dock, gently tilt the base with a spare chopstick on it. For a stand, let go and see whether the sign stays upright.']),
+    step('Show it and reset', 4, [
+      'Give a 30-second demo at your table: “It helps ___ do ___. Watch. After our test, we changed ___.”',
+      'Each person points out one thing a teammate did that helped. Then put your build where Mr. Macek asks and return the tools and scraps.'
+    ], ['Pair tables so demos happen at the same time. Have partners trade turns, then reset the stations.'])
+  ]
+};
+
+const classroomActivities = new Map([kickoff, quickDraw, basketBuild].map(lesson => [lesson.ref, lesson]));
 const refs = {
-  6: ['classroom:tank-kickoff', 'year:tank-listen', 'year:tank-options', 'year:tank-plan', 'year:tank-joins', 'year:tank-prototype', 'year:tank-test-plan', 'year:tank-testing', 'year:tank-revision', 'year:tank-user-test', 'year:tank-materials', 'year:tank-brand-package', 'year:tank-pitch', 'year:tank-rehearse', 'year:tank-showcase'],
+  6: ['classroom:tank-kickoff', 'year:tank-listen', 'year:tank-options', 'year:tank-plan', 'year:tank-joins', 'year:tank-prototype', 'year:tank-test-plan', 'year:tank-testing', 'year:tank-revision', 'year:tank-user-test', 'year:tank-materials', 'year:tank-brand-package', 'year:tank-pitch', 'year:tank-rehearse', 'year:tank-showcase', basketBuild.ref],
   5: ['classroom:quick-draw', 'catalog:8', 'catalog:12', 'year:kidwind-lift', 'year:kidwind-variable', 'year:kidwind-best', 'year:kidwind-share', 'catalog:14', 'catalog:19', 'catalog:23', 'catalog:25', 'catalog:22', 'catalog:18', 'catalog:34', 'year:studio-retest', 'year:innovation-share']
 };
-export function classroomPath(grade, visit = 1, teacher = false) {
+export const basketVisit = refs[6].indexOf(basketBuild.ref) + 1;
+export function classroomPath(grade, visit = grade === 5 ? 1 : basketVisit, teacher = false) {
   return `${teacher ? 'classroom-guide' : 'classroom'}.html?grade=${grade === 5 ? 5 : 6}&visit=${Math.max(1, Math.trunc(Number(visit)) || 1)}`;
 }
 export function classroomLessons(grade) {
   const chosen = grade === 5 ? 5 : 6;
   return refs[chosen].map((ref, i) => {
-    const source = ref === kickoff.ref ? kickoff : ref === quickDraw.ref ? quickDraw : getLessonForRef(ref);
+    const source = classroomActivities.get(ref) ?? getLessonForRef(ref);
     if (!source) throw new Error(`Missing classroom lesson: ${ref}`);
     const lesson = structuredClone(source);
     const handout = handoutForRef(ref);
@@ -80,7 +120,7 @@ export function classroomSelection(search = '') {
   const params = new URLSearchParams(search);
   const grade = params.get('grade') === '5' ? 5 : 6;
   const lessons = classroomLessons(grade);
-  const raw = Number(params.get('visit') || 1);
+  const raw = Number(params.get('visit') ?? (grade === 5 ? 1 : basketVisit));
   const visit = Number.isInteger(raw) && raw >= 1 && raw <= lessons.length ? raw : 1;
   return { grade, visit, lessons, lesson: lessons[visit - 1] };
 }

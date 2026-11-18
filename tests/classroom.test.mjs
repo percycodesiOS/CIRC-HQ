@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import { classroomLessons, classroomSelection, classroomPost } from '../src/model/classroom-lessons.js';
+import { classroomLessons, classroomSelection, classroomPath, classroomPost } from '../src/model/classroom-lessons.js';
 import { getLessonForRef } from '../src/model/playbooks.js';
 import { countUnsafeRuntimeLinks } from '../scripts/verify-public.mjs';
 
@@ -25,7 +25,7 @@ test('kickoff does not fall back to old survey, essay or multi-sketch requiremen
   assert.ok(pitchWindow>=20,'Make time for individual pitches during work');
 });
 test('future lessons retain their existing safety, prep and fallback content',()=>{
-  for(const grade of [5,6])for(const lesson of classroomLessons(grade).slice(1)) {
+  for(const grade of [5,6])for(const lesson of classroomLessons(grade).filter(item=>!item.ref.startsWith('classroom:'))) {
     const original=getLessonForRef(lesson.ref);
     assert.deepEqual(lesson.steps,original.steps);
     assert.equal(lesson.safety,original.safety);
@@ -39,6 +39,18 @@ test('student link selects exact grade and visit without inventing a completed c
   assert.equal(classroomSelection('?grade=6&visit=2').lesson.ref,'year:tank-listen');
   for(const value of ['-1','999','1.2','NaN','<script>'])assert.equal(classroomSelection('?visit='+value).visit,1);
   assert.equal(classroomSelection('?grade=4').grade,6);
+});
+test('the grade 6 entrance opens the team basket build and keeps existing lesson links stable',()=>{
+  const {lesson,visit}=classroomSelection('');
+  assert.equal(visit,16);
+  assert.equal(lesson.ref,'classroom:basket-build');
+  assert.equal(classroomSelection('?grade=6').lesson.ref,lesson.ref);
+  assert.equal(classroomSelection('?grade=5').lesson.ref,'classroom:quick-draw');
+  assert.equal(classroomSelection('?grade=6&visit=1').lesson.ref,'classroom:tank-kickoff');
+  assert.equal(classroomPath(6,undefined,true),'classroom-guide.html?grade=6&visit=16');
+  assert.equal(classroomPath(5),'classroom.html?grade=5&visit=1');
+  assert.match(lesson.turnIn,/teammate/);
+  assert.deepEqual(lesson.steps.map(item=>item.minutes),[5,5,14,7,4]);
 });
 test('post and guide derive from the same lesson, no independent stale copy',()=>{
   for(const grade of [5,6])for(const lesson of classroomLessons(grade)) {

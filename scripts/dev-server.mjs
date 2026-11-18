@@ -29,6 +29,7 @@ const PUBLIC_STATIC_FILES = new Set([
   "src/classroom.js",
   "src/model/classroom-lessons.js",
   "assets/guides/CIRC-Tank-First-Idea.pdf",
+  "assets/guides/CIRC-Basket-Build.pdf",
   "assets/guides/CIRC-Quick-Draw-Observations.pdf",
   "app.css",
   "arcade.html",
